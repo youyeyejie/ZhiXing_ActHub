@@ -1,7 +1,7 @@
 @Entry
 @Component
 struct Index {
-  @State message: string = 'Hello World';
+  @State message: string = '知行';
 
   build() {
     RelativeContainer() {
