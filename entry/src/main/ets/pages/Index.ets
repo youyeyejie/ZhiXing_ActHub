@@ -1,23 +1,17 @@
+import { AppShell } from '../app/AppShell';
+import '../features/auth/pages/LoginPage'
+/**
+ * 应用根页面。
+ * 当前阶段只负责挂载整体壳层，不承载任何业务逻辑。
+ */
 @Entry
 @Component
 struct Index {
-  @State message: string = 'Hello World';
-
   build() {
-    RelativeContainer() {
-      Text(this.message)
-        .id('HelloWorld')
-        .fontSize($r('app.float.page_text_font_size'))
-        .fontWeight(FontWeight.Bold)
-        .alignRules({
-          center: { anchor: '__container__', align: VerticalAlign.Center },
-          middle: { anchor: '__container__', align: HorizontalAlign.Center }
-        })
-        .onClick(() => {
-          this.message = 'Welcome';
-        })
+    Column() {
+      AppShell();
     }
-    .height('100%')
     .width('100%')
+    .height('100%');
   }
 }
