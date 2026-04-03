@@ -1,21 +1,75 @@
 /**
- * 半屏弹出容器占位组件。
- * TODO: 后续处理遮罩、键盘避让、高度自适应和弹出动画。
+ * 半屏弹出容器。
+ * 统一遮罩、半屏高度和键盘避让偏移。
  */
 @Component
 export struct ActionSheet {
-  build() {
+  @Prop isVisible: boolean = false;
+  @Prop panelHeight: string = '62%';
+  @Prop keyboardOffset: number = 0;
+  onDismiss: () => void = () => {};
+
+  @BuilderParam content: () => void = this.defaultContent;
+  @State private panelOffsetY: number = 600;
+  @State private maskOpacity: number = 0;
+
+  @Builder
+  private defaultContent() {
     Column({ space: 8 }) {
       Text('ActionSheet')
         .fontSize(16)
         .fontWeight(FontWeight.Medium);
-      Text('TODO: 在此承载新建和详情编辑表单。')
+      Text('在此承载新建和详情编辑表单。')
         .fontSize(12)
         .fontColor('#666666');
     }
+    .alignItems(HorizontalAlign.Start)
+    .padding({ top: 12, bottom: 12 });
+  }
+
+  aboutToAppear(): void {
+    this.panelOffsetY = 600;
+    this.maskOpacity = 0;
+    setTimeout(() => {
+      this.panelOffsetY = 0;
+      this.maskOpacity = 1;
+    }, 16);
+  }
+
+  private requestDismiss(): void {
+    this.panelOffsetY = 600;
+    this.maskOpacity = 0;
+
+    setTimeout(() => {
+      this.onDismiss();
+    }, 190);
+  }
+
+  build() {
+    Stack({ alignContent: Alignment.Bottom }) {
+      if (this.isVisible) {
+        Column()
+          .width('100%')
+          .height('100%')
+          .backgroundColor('#5C0B1220')
+          .opacity(this.maskOpacity)
+          .onClick(() => {
+            this.requestDismiss();
+          });
+
+        Column({ space: 12 }) {
+          this.content();
+        }
+        .width('100%')
+        .height(this.panelHeight)
+        .padding({ left: 20, right: 20, top: 12, bottom: 20 + this.keyboardOffset })
+        .borderRadius({ topLeft: 24, topRight: 24 })
+        .backgroundColor('#FFFFFF')
+        .translate({ x: 0, y: this.panelOffsetY - this.keyboardOffset })
+        .animation({ duration: 220, curve: Curve.EaseOut, playMode: PlayMode.Normal });
+      }
+    }
     .width('100%')
-    .padding(20)
-    .borderRadius({ topLeft: 24, topRight: 24 })
-    .backgroundColor('#FFFFFF');
+    .height('100%');
   }
 }

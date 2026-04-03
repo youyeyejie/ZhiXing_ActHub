@@ -1,21 +1,77 @@
 /**
- * 自动保存输入组件占位。
- * TODO: 后续补充防抖、保存状态提示和失焦提交逻辑。
+ * 自动保存输入组件。
+ * 具备输入防抖与失焦立即保存能力。
  */
 @Component
 export struct AutoSaveText {
+  @Prop label: string = '自动保存输入';
+  @Prop placeholder: string = '请输入内容';
+  @Prop debounceMs: number = 600;
+  @Prop saveOnBlur: boolean = true;
+  onAutoSave: (value: string) => void = (_value: string) => {};
+
+  @State private value: string = '';
+  @State private isSaving: boolean = false;
+  @State private saveTip: string = '尚未保存';
+  private debounceTimerId: number = -1;
+
+  aboutToDisappear(): void {
+    this.clearDebounceTimer();
+  }
+
+  private clearDebounceTimer(): void {
+    if (this.debounceTimerId >= 0) {
+      clearTimeout(this.debounceTimerId);
+      this.debounceTimerId = -1;
+    }
+  }
+
+  private saveNow(): void {
+    this.clearDebounceTimer();
+    this.isSaving = true;
+    this.onAutoSave(this.value);
+    this.isSaving = false;
+    this.saveTip = '已自动保存';
+  }
+
+  private scheduleSave(): void {
+    this.saveTip = '输入中...';
+    this.clearDebounceTimer();
+    const waitMs = Math.max(120, this.debounceMs);
+    this.debounceTimerId = setTimeout(() => {
+      this.saveNow();
+    }, waitMs);
+  }
+
   build() {
     Column({ space: 8 }) {
-      Text('AutoSaveText')
-        .fontSize(16)
+      Text(this.label)
+        .fontSize(14)
         .fontWeight(FontWeight.Medium);
-      Text('TODO: 输入停止后自动持久化。')
+
+      TextInput({ text: this.value, placeholder: this.placeholder })
+        .fontSize(14)
+        .width('100%')
+        .backgroundColor('#F8FAFC')
+        .borderRadius(12)
+        .padding(12)
+        .onChange((value: string) => {
+          this.value = value;
+          this.scheduleSave();
+        })
+        .onBlur(() => {
+          if (this.saveOnBlur) {
+            this.saveNow();
+          }
+        });
+
+      Text(this.isSaving ? '保存中...' : this.saveTip)
         .fontSize(12)
-        .fontColor('#666666');
+        .fontColor('#667085');
     }
     .width('100%')
-    .padding(16)
-    .borderRadius(16)
+    .padding(12)
+    .borderRadius(14)
     .backgroundColor('#FFFFFF');
   }
 }

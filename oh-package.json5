@@ -1,4 +1,6 @@
 {
+  "name": "zhixing-acthub",
+  "version": "1.0.0",
   "modelVersion": "6.0.2",
   "description": "Please describe the basic information.",
   "dependencies": {
