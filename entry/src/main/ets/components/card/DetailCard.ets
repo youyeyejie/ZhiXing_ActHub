@@ -1,9 +1,12 @@
+import { AppState } from '../../app/AppStates';
+
 /**
  * 详情卡片基础组件。
  * 提供页面居中展示、背景遮罩和右上角关闭入口。
  */
 @ComponentV2
 export struct DetailCard {
+  @Consumer('appState') appState: AppState = new AppState();
   @Param isVisible: boolean = false;
   @Event onClose: () => void = () => {};
   @BuilderParam content: () => void = this.defaultContent;
@@ -35,7 +38,7 @@ export struct DetailCard {
         .fontWeight(FontWeight.Medium);
       Text('在此承载详情信息与编辑内容。')
         .fontSize(12)
-        .fontColor('#667085');
+        .fontColor(this.appState.theme.palette.textSecondary);
     }
     .alignItems(HorizontalAlign.Start);
   }
@@ -46,7 +49,7 @@ export struct DetailCard {
         Column()
           .width('100%')
           .height('100%')
-          .backgroundColor('#66000000')
+          .backgroundColor(this.appState.theme.palette.mask)
           .opacity(this.maskOpacity)
           .animation({ duration: 220, curve: Curve.EaseOut, playMode: PlayMode.Normal })
           .onClick(() => {
@@ -54,28 +57,16 @@ export struct DetailCard {
           });
 
         Column({ space: 10 }) {
-          Row() {
-            Blank();
-            Text('x')
-              .fontSize(16)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#475467')
-              .onClick(() => {
-                this.requestDismiss();
-              });
-          }
-          .width('100%');
-
           this.content();
         }
         .width('80%')
         .height('60%')
         .padding(18)
         .borderRadius(20)
-        .backgroundColor('#FFFFFF')
+        .backgroundColor(this.appState.theme.palette.surface)
         .scale({ x: this.cardScale, y: this.cardScale })
         .animation({ duration: 220, curve: Curve.EaseOut, playMode: PlayMode.Normal })
-        .shadow({ radius: 16, color: '#33000000', offsetX: 0, offsetY: 6 });
+        .shadow({ radius: 16, color: this.appState.theme.palette.mask, offsetX: 0, offsetY: 6 });
       }
       .width('100%')
       .height('100%')

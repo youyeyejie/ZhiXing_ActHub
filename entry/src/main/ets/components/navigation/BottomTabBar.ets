@@ -1,4 +1,5 @@
 import { AppTab } from '../../app/AppConstants';
+import { AppState } from '../../app/AppStates';
 
 /**
  * 主导航底栏骨架。
@@ -6,6 +7,7 @@ import { AppTab } from '../../app/AppConstants';
  */
 @ComponentV2
 export struct BottomTabBar {
+  @Consumer('appState') appState: AppState = new AppState();
   @Param currentTab: AppTab = AppTab.PLAN;
   @Event onTabChange: (tab: AppTab) => void = (_tab: AppTab): void => {};
 
@@ -15,13 +17,13 @@ export struct BottomTabBar {
       Text(label)
         .fontSize(14)
         .fontWeight(this.currentTab === tab ? FontWeight.Medium : FontWeight.Regular)
-        .fontColor(this.currentTab === tab ? '#1F2329' : '#8A8F99');
+        .fontColor(this.currentTab === tab ? this.appState.theme.palette.textPrimary : this.appState.theme.palette.textSecondary);
 
       Row()
         .width(20)
         .height(3)
         .borderRadius(999)
-        .backgroundColor(this.currentTab === tab ? '#1F2329' : '#FFFFFF');
+        .backgroundColor(this.currentTab === tab ? this.appState.theme.palette.primary : this.appState.theme.palette.surface);
     }
     .layoutWeight(1)
     .padding({ top: 10, bottom: 10 })
@@ -44,6 +46,6 @@ export struct BottomTabBar {
     .padding({ left: 8, right: 8, top: 6, bottom: 6 })
     .justifyContent(FlexAlign.SpaceBetween)
     .borderRadius(24)
-    .backgroundColor('#FFFFFF');
+    .backgroundColor(this.appState.theme.palette.surface);
   }
 }

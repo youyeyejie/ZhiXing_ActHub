@@ -1,6 +1,11 @@
 import { CategoryFilter } from './components/CategoryFilter';
 import { TodoCard } from './components/TodoCard';
 import { TodoEditorSheet } from './components/TodoEditorSheet';
+import { CircleButton } from '../../components/buttons/CircleButton';
+import { SearchOverlay } from '../../components/overlays/SearchOverlay';
+import { SearchScope } from '../../core/services/SearchService';
+import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
+import { AppState } from '../../app/AppStates';
 
 /**
  * 待办模块主页骨架。
@@ -8,12 +13,63 @@ import { TodoEditorSheet } from './components/TodoEditorSheet';
  */
 @ComponentV2
 export struct TodoPage {
+  @Consumer('appState') appState: AppState = new AppState();
+  @Local private topInset: number = 56;
+
+  private searchDialogController: CustomDialogController = new CustomDialogController({
+    builder: this.buildSearchDialog,
+    customStyle: true,
+    autoCancel: false,
+    alignment: DialogAlignment.Top
+  });
+
+  aboutToAppear(): void {
+    this.topInset = SafeAreaUtils.getSearchTopInset();
+  }
+
+  @Builder
+  private buildSearchDialog() {
+    Stack() {
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor(this.appState.theme.palette.background);
+
+      SearchOverlay({
+        title: '待办搜索',
+        placeholder: '搜索待办内容/分类',
+        scope: SearchScope.Todo,
+        topInset: this.topInset,
+        onDismiss: () => {
+          this.searchDialogController.close();
+        }
+      });
+    }
+    .width('100%')
+    .height('100%');
+  }
+
   build() {
     Scroll() {
       Column({ space: 16 }) {
-        Text('待办')
-          .fontSize(28)
-          .fontWeight(FontWeight.Bold);
+        Row() {
+          Text('待办')
+            .fontSize(28)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(this.appState.theme.palette.textPrimary)
+            .layoutWeight(1);
+
+          CircleButton({
+            icon: '?',
+            text: '搜索',
+            buttonSize: 46,
+            fillColor: this.appState.theme.palette.primary,
+            onTap: () => {
+              this.searchDialogController.open();
+            }
+          });
+        }
+        .width('100%');
         CategoryFilter();
         TodoCard();
         TodoEditorSheet();
@@ -23,6 +79,6 @@ export struct TodoPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F7F8FA');
+    .backgroundColor(this.appState.theme.palette.background);
   }
 }

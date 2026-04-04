@@ -1,9 +1,12 @@
+import { AppState } from '../../app/AppStates';
+
 /**
  * 撤销提示条。
  * 提供倒计时进度、撤销动作和自动关闭。
  */
 @ComponentV2
 export struct UndoNotification {
+  @Consumer('appState') appState: AppState = new AppState();
   @Param message: string = '操作已执行';
   @Param actionText: string = '撤销';
   @Param durationMs: number = 5000;
@@ -53,14 +56,14 @@ export struct UndoNotification {
       Row({ space: 10 }) {
         Text(this.message)
           .fontSize(14)
-          .fontColor('#F9FAFB')
+          .fontColor(this.appState.theme.palette.surface)
           .fontWeight(FontWeight.Medium)
           .layoutWeight(1);
 
         Text(this.actionText)
           .fontSize(13)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#86EFAC')
+          .fontColor(this.appState.theme.palette.primary)
           .onClick(() => {
             this.stopCountdown();
             this.onUndo();
@@ -71,13 +74,13 @@ export struct UndoNotification {
 
       Progress({ value: this.getProgressPercent(), total: 100, type: ProgressType.Linear })
         .width('100%')
-        .color('#86EFAC')
+        .color(this.appState.theme.palette.primary)
         .style({ strokeWidth: 3 });
     }
     .width('100%')
     .padding(16)
     .borderRadius(18)
-    .backgroundColor('#1F2937')
-    .shadow({ radius: 10, color: '#1A000000', offsetX: 0, offsetY: 3 });
+    .backgroundColor(this.appState.theme.palette.surfaceSecondary)
+    .shadow({ radius: 10, color: this.appState.theme.palette.mask, offsetX: 0, offsetY: 3 });
   }
 }

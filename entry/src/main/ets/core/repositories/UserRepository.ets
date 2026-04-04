@@ -1,4 +1,4 @@
-import { QueryBuilder, getORM } from '@ibestservices/ibest-orm';
+import { QueryBuilder } from '@ibestservices/ibest-orm';
 import { DatabaseConfig } from '../database/DatabaseConfig';
 import { User } from '../models/User';
 import { BaseRepository } from './BaseRepository';
@@ -9,7 +9,7 @@ import { BaseRepository } from './BaseRepository';
  */
 export class UserRepository extends BaseRepository<User> {
   constructor() {
-    super(DatabaseConfig.USER_TABLE, User);
+    super(DatabaseConfig.USER_TABLE);
   }
 
   findByAccount(account: string): Promise<User | null> {
@@ -73,7 +73,7 @@ export class UserRepository extends BaseRepository<User> {
   }
 
   private entityQuery(): QueryBuilder<User> {
-    return getORM().query(this.entityClass);
+    return this.tableQuery() as QueryBuilder<User>;
   }
 
   private createUserId(account: string, timestamp: number): string {

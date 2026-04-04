@@ -8,7 +8,7 @@ import { FocusPage } from '../pages/focus';
 import { IdeaPage } from '../pages/idea';
 import { UserPage } from '../pages/user';
 import { SharedInteractionTestPage } from '../pages/sharedtest';
-import display from '@ohos.display';
+import { SafeAreaUtils } from '../core/theme/SafeAreaUtils';
 
 /**
  * 应用总壳层。
@@ -22,30 +22,8 @@ export struct AppShell {
   @Local private bottomInset: number = 12;
 
   aboutToAppear(): void {
-    this.applySafeInsets();
-  }
-
-  private applySafeInsets(): void {
-    try {
-      const info = display.getDefaultDisplaySync();
-      const longEdge = Math.max(info.width, info.height);
-      const shortEdge = Math.max(1, Math.min(info.width, info.height));
-      const ratio = longEdge / shortEdge;
-
-      if (ratio >= 2.18) {
-        this.topInset = 48;
-        this.bottomInset = 22;
-      } else if (ratio >= 2.0) {
-        this.topInset = 40;
-        this.bottomInset = 18;
-      } else {
-        this.topInset = 30;
-        this.bottomInset = 12;
-      }
-    } catch (_error) {
-      this.topInset = 32;
-      this.bottomInset = 12;
-    }
+    this.topInset = SafeAreaUtils.getTopInset();
+    this.bottomInset = SafeAreaUtils.getBottomInset();
   }
 
   @Builder
@@ -84,7 +62,7 @@ export struct AppShell {
     .width('100%')
     .height('100%')
     .padding({ top: this.topInset, bottom: this.bottomInset })
-    .backgroundColor('#F7F8FA');
+    .backgroundColor(this.appState.theme.palette.background);
   }
 
   build() {
@@ -94,7 +72,7 @@ export struct AppShell {
     .title(AppConstants.APP_NAME)
     .mode(NavigationMode.Stack)
     .hideBackButton(true)
-    .hideTitleBar(false)
+    .hideTitleBar(true)
     .width('100%')
     .height('100%');
   }

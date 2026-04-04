@@ -1,9 +1,12 @@
+import { AppState } from '../../app/AppStates';
+
 /**
  * 半屏弹出容器。
  * 统一遮罩、半屏高度和键盘避让偏移。
  */
 @ComponentV2
 export struct ActionSheet {
+  @Consumer('appState') appState: AppState = new AppState();
   @Param isVisible: boolean = false;
   @Param panelHeight: string = '62%';
   @Param keyboardOffset: number = 0;
@@ -21,7 +24,7 @@ export struct ActionSheet {
         .fontWeight(FontWeight.Medium);
       Text('在此承载新建和详情编辑表单。')
         .fontSize(12)
-        .fontColor('#666666');
+        .fontColor(this.appState.theme.palette.textSecondary);
     }
     .alignItems(HorizontalAlign.Start)
     .padding({ top: 12, bottom: 12 });
@@ -51,7 +54,7 @@ export struct ActionSheet {
         Column()
           .width('100%')
           .height('100%')
-          .backgroundColor('#5C0B1220')
+          .backgroundColor(this.appState.theme.palette.mask)
           .opacity(this.maskOpacity)
           .onClick(() => {
             this.requestDismiss();
@@ -64,7 +67,7 @@ export struct ActionSheet {
         .height(this.panelHeight)
         .padding({ left: 20, right: 20, top: 12, bottom: 20 + this.keyboardOffset })
         .borderRadius({ topLeft: 24, topRight: 24 })
-        .backgroundColor('#FFFFFF')
+        .backgroundColor(this.appState.theme.palette.surface)
         .translate({ x: 0, y: this.panelOffsetY - this.keyboardOffset })
         .animation({ duration: 220, curve: Curve.EaseOut, playMode: PlayMode.Normal });
       }

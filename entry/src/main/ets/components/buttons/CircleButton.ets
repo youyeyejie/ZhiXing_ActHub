@@ -1,14 +1,17 @@
+import { AppState } from '../../app/AppStates';
+
 /**
  * 圆形按钮基类。
  * 统一新建按钮视觉与点击反馈。
  */
 @ComponentV2
 export struct CircleButton {
+  @Consumer('appState') appState: AppState = new AppState();
   @Param icon: string = '+';
   @Param text: string = '';
   @Param buttonSize: number = 56;
-  @Param fillColor: string = '#0F172A';
-  @Param iconColor: string = '#FFFFFF';
+  @Param fillColor: string = '';
+  @Param iconColor: string = '';
   @Event onTap: () => void = () => {};
 
   @Local private isPressed: boolean = false;
@@ -19,13 +22,13 @@ export struct CircleButton {
         Circle()
           .width(this.buttonSize)
           .height(this.buttonSize)
-          .fill(this.fillColor)
+          .fill(this.fillColor.length > 0 ? this.fillColor : this.appState.theme.palette.primary)
           .scale({ x: this.isPressed ? 0.94 : 1, y: this.isPressed ? 0.94 : 1 });
 
         Text(this.icon)
           .fontSize(this.buttonSize * 0.45)
           .fontWeight(FontWeight.Bold)
-          .fontColor(this.iconColor)
+          .fontColor(this.iconColor.length > 0 ? this.iconColor : this.appState.theme.palette.surface)
           .textAlign(TextAlign.Center)
           .maxLines(1);
       }
@@ -52,7 +55,7 @@ export struct CircleButton {
       if (this.text.length > 0) {
         Text(this.text)
           .fontSize(12)
-          .fontColor('#475467');
+          .fontColor(this.appState.theme.palette.textSecondary);
       }
     }
     .backgroundColor(Color.Transparent)

@@ -1,17 +1,30 @@
+import { AppState } from '../../app/AppStates';
+
 /**
  * 通用圆环组件。
  * 基于 Canvas 绘制轨道与进度弧线。
  */
 @ComponentV2
 export struct CircularProgress {
+  @Consumer('appState') appState: AppState = new AppState();
   @Param progress: number = 0.72;
   @Param diameter: number = 180;
   @Param strokeWidth: number = 12;
-  @Param progressColor: string = '#0EA5E9';
-  @Param trackColor: string = '#E2E8F0';
+  @Param progressColor: string = '';
+  @Param trackColor: string = '';
 
   private settings: RenderingContextSettings = new RenderingContextSettings(true);
   private context2D: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
+
+  @Computed
+  private get effectiveProgressColor(): string {
+    return this.progressColor.length > 0 ? this.progressColor : this.appState.theme.palette.primary;
+  }
+
+  @Computed
+  private get effectiveTrackColor(): string {
+    return this.trackColor.length > 0 ? this.trackColor : this.appState.theme.palette.surfaceSecondary;
+  }
 
   private draw(): void {
     const totalSize: number = Math.max(80, this.diameter);
@@ -25,17 +38,17 @@ export struct CircularProgress {
     this.context2D.lineCap = 'round';
 
     this.context2D.beginPath();
-    this.context2D.strokeStyle = this.trackColor;
+    this.context2D.strokeStyle = this.effectiveTrackColor;
     this.context2D.arc(center, center, radius, 0, Math.PI * 2);
     this.context2D.stroke();
 
     this.context2D.beginPath();
-    this.context2D.strokeStyle = this.progressColor;
+    this.context2D.strokeStyle = this.effectiveProgressColor;
     this.context2D.arc(center, center, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * value);
     this.context2D.stroke();
   }
 
-  @Monitor('progress', 'diameter', 'strokeWidth', 'progressColor', 'trackColor')
+  @Monitor('progress', 'diameter', 'strokeWidth', 'progressColor', 'trackColor', 'effectiveProgressColor', 'effectiveTrackColor')
   private handleParamsChanged(): void {
     this.draw();
   }
@@ -55,7 +68,7 @@ export struct CircularProgress {
       Text((Math.round(Math.max(0, Math.min(1, this.progress)) * 100)).toString() + '%')
         .fontSize(24)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#0F172A');
+        .fontColor(this.appState.theme.palette.textPrimary);
     }
     .width(this.diameter)
     .height(this.diameter);

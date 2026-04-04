@@ -1,4 +1,4 @@
-import { Class, getORM } from '@ibestservices/ibest-orm';
+import { QueryBuilder, getORM } from '@ibestservices/ibest-orm';
 import { BaseEntity } from '../models/BaseEntity';
 
 /**
@@ -7,11 +7,9 @@ import { BaseEntity } from '../models/BaseEntity';
  */
 export abstract class BaseRepository<T extends BaseEntity> {
   protected tableName: string = '';
-  protected entityClass: Class<T>;
 
-  constructor(tableName: string, entityClass: Class<T>) {
+  constructor(tableName: string) {
     this.tableName = tableName;
-    this.entityClass = entityClass;
   }
 
   save(entity: T): Promise<void> {
@@ -20,15 +18,19 @@ export abstract class BaseRepository<T extends BaseEntity> {
   }
 
   removeById(id: string): Promise<void> {
-    getORM().query(this.entityClass).where('id', id).delete();
+    this.tableQuery().where('id', id).delete();
     return Promise.resolve();
   }
 
   findById(id: string): Promise<T | null> {
-    return Promise.resolve(getORM().query(this.entityClass).where('id', id).first());
+    return Promise.resolve(this.tableQuery().where('id', id).first());
   }
 
   findAll(): Promise<Array<T>> {
-    return Promise.resolve(getORM().query(this.entityClass).find());
+    return Promise.resolve(this.tableQuery().find());
+  }
+
+  protected tableQuery(): QueryBuilder<T> {
+    return getORM().table(this.tableName) as QueryBuilder<T>;
   }
 }

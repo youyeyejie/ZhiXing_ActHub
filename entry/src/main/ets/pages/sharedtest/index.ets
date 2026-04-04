@@ -1,4 +1,3 @@
-import display from '@ohos.display';
 import { CircleButton } from '../../components/buttons/CircleButton';
 import { InteractableCard } from '../../components/card/InteractableCard';
 import { DetailCard } from '../../components/card/DetailCard';
@@ -8,6 +7,10 @@ import { EditableSuite } from '../../components/form/EditableSuite';
 import { UndoNotification } from '../../components/feedback/UndoNotification';
 import { SearchOverlay } from '../../components/overlays/SearchOverlay';
 import { CircularProgress } from '../../components/progress/CircularProgress';
+import { SearchScope } from '../../core/services/SearchService';
+import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
+import { AppState } from '../../app/AppStates';
+import { ThemeMode } from '../../core/theme/ThemeManager';
 
 /**
  * 通用交互抽象层测试页。
@@ -15,6 +18,7 @@ import { CircularProgress } from '../../components/progress/CircularProgress';
  */
 @ComponentV2
 export struct SharedInteractionTestPage {
+  @Consumer('appState') appState: AppState = new AppState();
   @Local private keyboardOffset: number = 0;
   @Local private undoVisible: boolean = false;
   @Local private progress: number = 0.45;
@@ -43,26 +47,7 @@ export struct SharedInteractionTestPage {
   });
 
   aboutToAppear(): void {
-    this.applyDeviceTopInset();
-  }
-
-  private applyDeviceTopInset(): void {
-    try {
-      const info = display.getDefaultDisplaySync();
-      const longEdge = Math.max(info.width, info.height);
-      const shortEdge = Math.max(1, Math.min(info.width, info.height));
-      const ratio = longEdge / shortEdge;
-
-      if (ratio >= 2.18) {
-        this.topInset = 78;
-      } else if (ratio >= 2.0) {
-        this.topInset = 66;
-      } else {
-        this.topInset = 56;
-      }
-    } catch (_error) {
-      this.topInset = 60;
-    }
+    this.topInset = SafeAreaUtils.getSearchTopInset();
   }
 
   private pushLog(message: string): void {
@@ -115,19 +100,27 @@ export struct SharedInteractionTestPage {
 
   @Builder
   private buildSearchDialog() {
-    SearchOverlay({
-      isVisible: true,
-      placeholder: '输入关键字进行测试',
-      topInset: this.topInset,
-      onDismiss: () => {
-        this.searchDialogController.close();
-      },
-      onSearch: (keyword: string) => {
-        this.pushLog('SearchOverlay 搜索: ' + keyword);
-      }
-    })
-      .width('100%')
-      .height('100%');
+    Stack() {
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor(this.appState.theme.palette.background);
+
+      SearchOverlay({
+        title: '搜索测试页',
+        placeholder: '输入关键字进行测试',
+        scope: SearchScope.Todo,
+        topInset: this.topInset,
+        onDismiss: () => {
+          this.searchDialogController.close();
+        },
+        onSearch: (keyword: string) => {
+          this.pushLog('SearchOverlay 搜索: ' + keyword);
+        }
+      });
+    }
+    .width('100%')
+    .height('100%');
   }
 
   @Builder
@@ -144,10 +137,10 @@ export struct SharedInteractionTestPage {
           .fontWeight(FontWeight.Bold);
         Text('宽度 80%，高度 60%，支持背景遮罩和右上角关闭。')
           .fontSize(13)
-          .fontColor('#667085');
+          .fontColor(this.appState.theme.palette.textSecondary);
         Text('你可以在这里放详情展示、编辑表单或操作按钮。')
           .fontSize(13)
-          .fontColor('#667085');
+          .fontColor(this.appState.theme.palette.textSecondary);
       }
       .alignItems(HorizontalAlign.Start)
       .width('100%');
@@ -160,21 +153,49 @@ export struct SharedInteractionTestPage {
         Column({ space: 16 }) {
           Text('通用交互层测试')
             .fontSize(28)
-            .fontWeight(FontWeight.Bold);
+            .fontWeight(FontWeight.Bold)
+            .fontColor(this.appState.theme.palette.textPrimary);
 
           Text('用于验证卡片手势、弹层、自动保存、撤销通知、搜索遮罩和圆环绘制。')
             .fontSize(13)
-            .fontColor('#475467');
+            .fontColor(this.appState.theme.palette.textSecondary);
+
+          Row({ space: 8 }) {
+            Button('浅色')
+              .fontSize(12)
+              .fontColor(this.appState.theme.palette.surface)
+              .backgroundColor(this.appState.theme.palette.primary)
+              .onClick(() => {
+                this.appState.theme.set(ThemeMode.LIGHT);
+                this.pushLog('主题切换: LIGHT');
+              });
+
+            Button('深色')
+              .fontSize(12)
+              .fontColor(this.appState.theme.palette.surface)
+              .backgroundColor(this.appState.theme.palette.primary)
+              .onClick(() => {
+                this.appState.theme.set(ThemeMode.DARK);
+                this.pushLog('主题切换: DARK');
+              });
+          }
+          .width('100%');
 
           InteractableCard({
             leftHint: '左滑: 删除',
             rightHint: '右滑: 启动专注',
+            enableSwipeLeft: true,
+            enableSwipeRight: false,
             onSwipeLeft: () => {
               this.undoVisible = true;
               this.pushLog('InteractableCard 左滑触发');
             },
             onSwipeRight: () => {
               this.pushLog('InteractableCard 右滑触发');
+            },
+            onCardTap: () => {
+              this.detailDialogController.open();
+              this.pushLog('InteractableCard 点击打开详情卡片');
             }
           }) {
             Column({ space: 8 }) {
@@ -183,7 +204,7 @@ export struct SharedInteractionTestPage {
                 .fontWeight(FontWeight.Medium);
               Text('左右滑动达到阈值后触发回调。')
                 .fontSize(12)
-                .fontColor('#667085');
+                .fontColor(this.appState.theme.palette.textSecondary);
             }
             .alignItems(HorizontalAlign.Start);
           }
@@ -201,7 +222,7 @@ export struct SharedInteractionTestPage {
             CircleButton({
               icon: '?',
               text: '搜索遮罩',
-              fillColor: '#0369A1',
+              fillColor: this.appState.theme.palette.primary,
               onTap: () => {
                 this.searchDialogController.open();
                 this.pushLog('SearchOverlay 打开');
@@ -211,7 +232,7 @@ export struct SharedInteractionTestPage {
             CircleButton({
               icon: 'i',
               text: '详情卡片',
-              fillColor: '#7C3AED',
+              fillColor: this.appState.theme.palette.primary,
               buttonSize: 52,
               onTap: () => {
                 this.detailDialogController.open();
@@ -222,7 +243,7 @@ export struct SharedInteractionTestPage {
             CircleButton({
               icon: '-',
               text: '进度-15%',
-              fillColor: '#15803D',
+              fillColor: this.appState.theme.palette.primary,
               buttonSize: 52,
               onTap: () => {
                 this.decreaseProgress();
@@ -233,7 +254,7 @@ export struct SharedInteractionTestPage {
             CircleButton({
               icon: '+',
               text: '进度+15%',
-              fillColor: '#0F766E',
+              fillColor: this.appState.theme.palette.primary,
               buttonSize: 52,
               onTap: () => {
                 this.cycleProgress();
@@ -247,9 +268,7 @@ export struct SharedInteractionTestPage {
           CircularProgress({
             progress: this.progress,
             diameter: 160,
-            strokeWidth: 10,
-            progressColor: '#0EA5E9',
-            trackColor: '#CBD5E1'
+            strokeWidth: 10
           });
 
           AutoSaveText({
@@ -263,7 +282,7 @@ export struct SharedInteractionTestPage {
           Row({ space: 12 }) {
             Text('模拟键盘避让')
               .fontSize(13)
-              .fontColor('#475467');
+              .fontColor(this.appState.theme.palette.textSecondary);
 
             Slider({ value: this.keyboardOffset, min: 0, max: 220, step: 10 })
               .layoutWeight(1)
@@ -281,27 +300,27 @@ export struct SharedInteractionTestPage {
             ForEach(this.logs, (item: string) => {
               Text('- ' + item)
                 .fontSize(12)
-                .fontColor('#475467')
+                .fontColor(this.appState.theme.palette.textSecondary)
                 .width('100%');
             });
 
             if (this.logs.length === 0) {
               Text('暂无交互日志')
                 .fontSize(12)
-                .fontColor('#98A2B3');
+                .fontColor(this.appState.theme.palette.textTertiary);
             }
           }
           .width('100%')
           .padding(12)
           .borderRadius(14)
-          .backgroundColor('#FFFFFF');
+          .backgroundColor(this.appState.theme.palette.surface);
         }
         .alignItems(HorizontalAlign.Start)
         .padding(20);
       }
       .width('100%')
       .height('100%')
-      .backgroundColor('#F7F8FA');
+      .backgroundColor(this.appState.theme.palette.background);
 
       if (this.undoVisible) {
         UndoNotification({

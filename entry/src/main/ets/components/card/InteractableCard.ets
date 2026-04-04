@@ -1,18 +1,25 @@
+import { AppState } from '../../app/AppStates';
+
 /**
  * 可交互卡片基类。
  * 提供统一圆角、阴影与左右滑动手势回调。
  */
 @ComponentV2
 export struct InteractableCard {
+  @Consumer('appState') appState: AppState = new AppState();
   @Param leftHint: string = '左滑动作';
   @Param rightHint: string = '右滑动作';
+  @Param enableSwipeLeft: boolean = false;
+  @Param enableSwipeRight: boolean = false;
   @Param swipeThreshold: number = 72;
   @Param maxSwipeOffset: number = 96;
   @Event onSwipeLeft: () => void = () => {};
   @Event onSwipeRight: () => void = () => {};
+  @Event onCardTap: () => void = () => {};
 
   @Local private offsetX: number = 0;
   @Local private startX: number = 0;
+  @Local private startY: number = 0;
   @Local private dragging: boolean = false;
 
   @BuilderParam content: () => void = this.defaultContent;
@@ -25,7 +32,7 @@ export struct InteractableCard {
         .fontWeight(FontWeight.Medium);
       Text('左右滑动触发回调，松手后自动回弹。')
         .fontSize(12)
-        .fontColor('#666666');
+        .fontColor(this.appState.theme.palette.textSecondary);
     }
     .alignItems(HorizontalAlign.Start);
   }
@@ -38,22 +45,34 @@ export struct InteractableCard {
     if (event.type === TouchType.Down) {
       this.dragging = true;
       this.startX = event.touches[0].x;
+      this.startY = event.touches[0].y;
       return;
     }
 
     if (event.type === TouchType.Move && this.dragging) {
-      const delta = event.touches[0].x - this.startX;
+      const rawDelta = event.touches[0].x - this.startX;
+      let delta = rawDelta;
+      if (!this.enableSwipeRight && delta > 0) {
+        delta = 0;
+      }
+      if (!this.enableSwipeLeft && delta < 0) {
+        delta = 0;
+      }
       const maxOffset = this.maxSwipeOffset;
       this.offsetX = Math.max(-maxOffset, Math.min(maxOffset, delta));
       return;
     }
 
     if ((event.type === TouchType.Up || event.type === TouchType.Cancel) && this.dragging) {
+      const deltaX = event.touches.length > 0 ? event.touches[0].x - this.startX : this.offsetX;
+      const deltaY = event.touches.length > 0 ? event.touches[0].y - this.startY : 0;
       const threshold = Math.max(24, this.swipeThreshold);
-      if (this.offsetX <= -threshold) {
+      if (this.enableSwipeLeft && this.offsetX <= -threshold) {
         this.onSwipeLeft();
-      } else if (this.offsetX >= threshold) {
+      } else if (this.enableSwipeRight && this.offsetX >= threshold) {
         this.onSwipeRight();
+      } else if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
+        this.onCardTap();
       }
 
       this.dragging = false;
@@ -66,11 +85,11 @@ export struct InteractableCard {
       Row() {
         Text(this.rightHint)
           .fontSize(12)
-          .fontColor('#0A7C3B');
+          .fontColor(this.appState.theme.palette.primary);
         Blank();
         Text(this.leftHint)
           .fontSize(12)
-          .fontColor('#B42318');
+          .fontColor(this.appState.theme.palette.textSecondary);
       }
       .width('100%')
       .padding({ left: 18, right: 18 });
@@ -81,8 +100,8 @@ export struct InteractableCard {
       .width('100%')
       .padding(16)
       .borderRadius(20)
-      .backgroundColor('#FFFFFF')
-      .shadow({ radius: 12, color: '#1A0F172A', offsetX: 0, offsetY: 4 })
+      .backgroundColor(this.appState.theme.palette.surface)
+      .shadow({ radius: 12, color: this.appState.theme.palette.mask, offsetX: 0, offsetY: 4 })
       .translate({ x: this.offsetX, y: 0 })
       .animation({ duration: 180, curve: Curve.EaseOut, playMode: PlayMode.Normal })
       .onTouch((event: TouchEvent) => {

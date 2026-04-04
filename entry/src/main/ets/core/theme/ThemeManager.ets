@@ -1,24 +1,26 @@
 import { ThemePalette } from './ThemePalette';
 
 /**
- * 全局主题管理器占位。
- * TODO: 后续接入深浅色切换、系统主题跟随和主题注入能力。
+ * 全局主题管理器。
+ * 负责深浅色模式与调色板分发。
  */
-
-
 export enum ThemeMode {
   LIGHT = 'LIGHT',
   DARK = 'DARK',
   SYSTEM = 'SYSTEM'
 }
 
-
 @ObservedV2
 export class ThemeManager {
-  @Trace private _mode: ThemeMode = ThemeMode.SYSTEM;
+  @Trace private _mode: ThemeMode = ThemeMode.LIGHT;
+  @Trace private _systemDark: boolean = false;
 
-  set(mode: ThemeMode) {
+  set(mode: ThemeMode): void {
     this._mode = mode;
+  }
+
+  setSystemDark(isDark: boolean): void {
+    this._systemDark = isDark;
   }
 
   get(): ThemeMode {
@@ -26,8 +28,18 @@ export class ThemeManager {
   }
 
   @Computed
-  get palette() {
-    // TODO: multiple palette
-    return new ThemePalette();
+  get isDark(): boolean {
+    if (this._mode === ThemeMode.DARK) {
+      return true;
+    }
+    if (this._mode === ThemeMode.LIGHT) {
+      return false;
+    }
+    return this._systemDark;
+  }
+
+  @Computed
+  get palette(): ThemePalette {
+    return this.isDark ? ThemePalette.dark() : ThemePalette.light();
   }
 }
