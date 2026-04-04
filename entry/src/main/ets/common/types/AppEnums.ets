@@ -7,7 +7,8 @@ export enum AppTab {
   TODO = 'TODO',
   FOCUS = 'FOCUS',
   IDEA = 'IDEA',
-  USER = 'USER'
+  USER = 'USER',
+  TEST = 'TEST'
 }
 
 export enum ThemeMode {

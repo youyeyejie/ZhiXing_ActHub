@@ -1,3 +1,6 @@
+import { BottomTabBar } from '../common/components/navigation/BottomTabBar';
+import { AppConstants } from '../common/constants/AppConstants';
+import { AppTab } from '../common/types/AppEnums';
 import { PlanPage } from '../features/plan/pages/PlanPage';
 import { TodoPage } from '../features/todo/pages/TodoPage';
 import { FocusPage } from '../features/focus/pages/FocusPage';
@@ -8,12 +11,14 @@ import display from '@ohos.display';
 
 /**
  * 应用总壳层。
- * TODO: 后续在此接入启动流程、登录态分发、底部导航和全局 Overlay 容器。
+ * 当前阶段改用 Navigation 承载主页面，后续在此继续接入登录态分发与全局 Overlay 容器。
  */
 @Component
 export struct AppShell {
+  @Provide('navPathStack') navPathStack: NavPathStack = new NavPathStack();
   @State private topInset: number = 30;
   @State private bottomInset: number = 12;
+  @State private currentTab: AppTab = AppTab.PLAN;
 
   aboutToAppear(): void {
     this.applySafeInsets();
@@ -42,46 +47,72 @@ export struct AppShell {
     }
   }
 
-  build() {
-    Column() {
-      Tabs({ barPosition: BarPosition.End }) {
-        TabContent() {
-          PlanPage();
-        }
-        .tabBar('日程');
-
-        TabContent() {
-          TodoPage();
-        }
-        .tabBar('待办');
-
-        TabContent() {
-          FocusPage();
-        }
-        .tabBar('专注');
-
-        TabContent() {
-          IdeaPage();
-        }
-        .tabBar('闪记');
-
-        TabContent() {
-          UserPage();
-        }
-        .tabBar('我的');
-
-        TabContent() {
-          SharedInteractionTestPage();
-        }
-        .tabBar('测试');
+  @Builder
+  private buildMainContent() {
+    Column({ space: 12 }) {
+      Column() {
+        this.buildCurrentPage();
       }
-      .scrollable(false)
-      .width('100%')
-      .layoutWeight(1);
+      .layoutWeight(1)
+      .width('100%');
+
+      BottomTabBar({
+        currentTab: this.currentTab,
+        onTabChange: (tab: AppTab): void => {
+          this.currentTab = tab;
+        }
+      });
     }
     .width('100%')
     .height('100%')
     .padding({ top: this.topInset, bottom: this.bottomInset })
     .backgroundColor('#F7F8FA');
+  }
+
+  @Builder
+  private buildCurrentPage() {
+    if (this.currentTab === AppTab.PLAN) {
+      PlanPage();
+    } else if (this.currentTab === AppTab.TODO) {
+      TodoPage();
+    } else if (this.currentTab === AppTab.FOCUS) {
+      FocusPage();
+    } else if (this.currentTab === AppTab.IDEA) {
+      IdeaPage();
+    } else if (this.currentTab === AppTab.TEST) {
+      SharedInteractionTestPage();
+    } else {
+      UserPage();
+    }
+  }
+
+  @Builder
+  private pageMap(name: string) {
+    if (name === AppTab.PLAN) {
+      PlanPage();
+    } else if (name === AppTab.TODO) {
+      TodoPage();
+    } else if (name === AppTab.FOCUS) {
+      FocusPage();
+    } else if (name === AppTab.IDEA) {
+      IdeaPage();
+    } else if (name === AppTab.USER) {
+      UserPage();
+    } else if (name === AppTab.TEST) {
+      SharedInteractionTestPage();
+    }
+  }
+
+  build() {
+    Navigation(this.navPathStack) {
+      this.buildMainContent();
+    }
+    .title(AppConstants.APP_NAME)
+    .mode(NavigationMode.Stack)
+    .navDestination(this.pageMap)
+    .hideBackButton(true)
+    .hideTitleBar(false)
+    .width('100%')
+    .height('100%');
   }
 }
