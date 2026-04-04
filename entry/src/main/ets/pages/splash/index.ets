@@ -1,4 +1,4 @@
-import { AppState } from '../../app/AppStates';
+import { AppState, useAppState } from '../../app/AppStates';
 
 /**
  * 启动页骨架。
@@ -6,22 +6,22 @@ import { AppState } from '../../app/AppStates';
  */
 @ComponentV2
 export struct SplashPage {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
 
   build() {
     Column({ space: 12 }) {
       Text('启动页')
         .fontSize(24)
         .fontWeight(FontWeight.Bold)
-        .fontColor(this.appState.theme.palette.textPrimary);
+        .fontColor(this.app.theme.palette.textPrimary);
       Text('TODO: Logo 展示与后台预加载。')
         .fontSize(14)
-        .fontColor(this.appState.theme.palette.textSecondary);
+        .fontColor(this.app.theme.palette.textSecondary);
     }
     .width('100%')
     .height('100%')
     .justifyContent(FlexAlign.Center)
     .padding(24)
-    .backgroundColor(this.appState.theme.palette.background);
+    .backgroundColor(this.app.theme.palette.background);
   }
 }

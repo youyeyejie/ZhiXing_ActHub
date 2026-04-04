@@ -1,4 +1,4 @@
-import { AppState } from '../../../app/AppStates';
+import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
  * 专注前待办选择骨架。
@@ -6,7 +6,7 @@ import { AppState } from '../../../app/AppStates';
  */
 @ComponentV2
 export struct TodoPickerSheet {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
 
   build() {
     Column({ space: 8 }) {
@@ -15,11 +15,11 @@ export struct TodoPickerSheet {
         .fontWeight(FontWeight.Medium);
       Text('TODO: 选择一个待办关联当前专注。')
         .fontSize(12)
-        .fontColor(this.appState.theme.palette.textSecondary);
+        .fontColor(this.app.theme.palette.textSecondary);
     }
     .width('100%')
     .padding(20)
     .borderRadius({ topLeft: 24, topRight: 24 })
-    .backgroundColor(this.appState.theme.palette.surface);
+    .backgroundColor(this.app.theme.palette.surface);
   }
 }

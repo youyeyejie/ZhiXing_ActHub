@@ -1,4 +1,4 @@
-import { AppState } from '../../../app/AppStates';
+import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
  * 时间轴容器骨架。
@@ -6,7 +6,7 @@ import { AppState } from '../../../app/AppStates';
  */
 @ComponentV2
 export struct TimelineView {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
 
   build() {
     Column({ space: 8 }) {
@@ -15,11 +15,11 @@ export struct TimelineView {
         .fontWeight(FontWeight.Medium);
       Text('TODO: 承载按时间排列的日程卡片。')
         .fontSize(12)
-        .fontColor(this.appState.theme.palette.textSecondary);
+        .fontColor(this.app.theme.palette.textSecondary);
     }
     .width('100%')
     .padding(16)
     .borderRadius(20)
-    .backgroundColor(this.appState.theme.palette.surface);
+    .backgroundColor(this.app.theme.palette.surface);
   }
 }

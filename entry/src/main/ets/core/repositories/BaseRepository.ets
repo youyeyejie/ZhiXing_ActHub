@@ -1,4 +1,4 @@
-import { QueryBuilder, getORM } from '@ibestservices/ibest-orm';
+import { QueryBuilder, getORM, Class } from '@ibestservices/ibest-orm';
 import { BaseEntity } from '../models/BaseEntity';
 
 /**
@@ -7,30 +7,28 @@ import { BaseEntity } from '../models/BaseEntity';
  */
 export abstract class BaseRepository<T extends BaseEntity> {
   protected tableName: string = '';
-
-  constructor(tableName: string) {
+  protected entityClass: Class<T>;
+  protected orm = getORM();
+  constructor(tableName: string, entityClass: Class<T>) {
     this.tableName = tableName;
+    this.entityClass = entityClass;
   }
 
   save(entity: T): Promise<void> {
-    getORM().save<T>(entity);
+    this.orm.save<T>(entity);
     return Promise.resolve();
   }
 
   removeById(id: string): Promise<void> {
-    this.tableQuery().where('id', id).delete();
+    this.orm.query(this.entityClass).where('id', id).delete();
     return Promise.resolve();
   }
 
   findById(id: string): Promise<T | null> {
-    return Promise.resolve(this.tableQuery().where('id', id).first());
+    return Promise.resolve(this.orm.query(this.entityClass).where('id', id).first());
   }
 
   findAll(): Promise<Array<T>> {
-    return Promise.resolve(this.tableQuery().find());
-  }
-
-  protected tableQuery(): QueryBuilder<T> {
-    return getORM().table(this.tableName) as QueryBuilder<T>;
+    return Promise.resolve(this.orm.query(this.entityClass).find());
   }
 }

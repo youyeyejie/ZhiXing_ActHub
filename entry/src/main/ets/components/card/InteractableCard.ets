@@ -1,4 +1,4 @@
-import { AppState } from '../../app/AppStates';
+import { AppState, useAppState } from '../../app/AppStates';
 
 /**
  * 可交互卡片基类。
@@ -6,7 +6,7 @@ import { AppState } from '../../app/AppStates';
  */
 @ComponentV2
 export struct InteractableCard {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
   @Param leftHint: string = '左滑动作';
   @Param rightHint: string = '右滑动作';
   @Param enableSwipeLeft: boolean = false;
@@ -32,7 +32,7 @@ export struct InteractableCard {
         .fontWeight(FontWeight.Medium);
       Text('左右滑动触发回调，松手后自动回弹。')
         .fontSize(12)
-        .fontColor(this.appState.theme.palette.textSecondary);
+        .fontColor(this.app.theme.palette.textSecondary);
     }
     .alignItems(HorizontalAlign.Start);
   }
@@ -85,11 +85,11 @@ export struct InteractableCard {
       Row() {
         Text(this.rightHint)
           .fontSize(12)
-          .fontColor(this.appState.theme.palette.primary);
+          .fontColor(this.app.theme.palette.primary);
         Blank();
         Text(this.leftHint)
           .fontSize(12)
-          .fontColor(this.appState.theme.palette.textSecondary);
+          .fontColor(this.app.theme.palette.textSecondary);
       }
       .width('100%')
       .padding({ left: 18, right: 18 });
@@ -100,8 +100,8 @@ export struct InteractableCard {
       .width('100%')
       .padding(16)
       .borderRadius(20)
-      .backgroundColor(this.appState.theme.palette.surface)
-      .shadow({ radius: 12, color: this.appState.theme.palette.mask, offsetX: 0, offsetY: 4 })
+      .backgroundColor(this.app.theme.palette.surface)
+      .shadow({ radius: 12, color: this.app.theme.palette.mask, offsetX: 0, offsetY: 4 })
       .translate({ x: this.offsetX, y: 0 })
       .animation({ duration: 180, curve: Curve.EaseOut, playMode: PlayMode.Normal })
       .onTouch((event: TouchEvent) => {

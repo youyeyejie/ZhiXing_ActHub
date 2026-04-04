@@ -1,4 +1,4 @@
-import { AppState } from '../../../app/AppStates';
+import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
  * 周视图日历骨架。
@@ -6,7 +6,7 @@ import { AppState } from '../../../app/AppStates';
  */
 @ComponentV2
 export struct WeekCalendar {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
 
   build() {
     Column({ space: 8 }) {
@@ -15,11 +15,11 @@ export struct WeekCalendar {
         .fontWeight(FontWeight.Medium);
       Text('TODO: 展示一周日期并响应手势切换。')
         .fontSize(12)
-        .fontColor(this.appState.theme.palette.textSecondary);
+        .fontColor(this.app.theme.palette.textSecondary);
     }
     .width('100%')
     .padding(16)
     .borderRadius(20)
-    .backgroundColor(this.appState.theme.palette.surface);
+    .backgroundColor(this.app.theme.palette.surface);
   }
 }

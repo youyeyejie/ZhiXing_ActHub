@@ -1,22 +1,23 @@
-import { BottomTabBar } from '../components/navigation/BottomTabBar';
-import { AppConstants } from './AppConstants';
 import { AppTab } from './AppConstants';
-import { AppState } from './AppStates';
-import { PlanPage } from '../pages/plan';
-import { TodoPage } from '../pages/todo';
-import { FocusPage } from '../pages/focus';
-import { IdeaPage } from '../pages/idea';
-import { UserPage } from '../pages/user';
-import { SharedInteractionTestPage } from '../pages/sharedtest';
 import { SafeAreaUtils } from '../core/theme/SafeAreaUtils';
+import { AppFlow, AppRoute } from './AppConstants';
+import { AppState, useAppState } from './AppStates';
+import { MainShell } from './MainShell';
+import { SplashPage } from '../pages/splash';
+import { LoginPage } from '../pages/login';
+import { FocusDestinationPage } from '../pages/navigation/FocusDestinationPage';
+import { SearchPlaceholderPage } from '../pages/navigation/SearchPlaceholderPage';
+import { DetailPlaceholderPage } from '../pages/navigation/DetailPlaceholderPage';
+import { SettingsPlaceholderPage } from '../pages/navigation/SettingsPlaceholderPage';
+import { SharedTestDestinationPage } from '../pages/navigation/SharedTestDestinationPage';
 
 /**
  * 应用总壳层。
- * 当前阶段改用 Navigation 承载主页面，后续在此继续接入登录态分发与全局 Overlay 容器。
+ * 负责分发启动、登录与主壳流程，并承载进入式页面路由。
  */
 @ComponentV2
 export struct AppShell {
-  @Provider('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
   @Local private currentTab: AppTab = AppTab.PLAN;
   @Local private topInset: number = 30;
   @Local private bottomInset: number = 12;
@@ -27,53 +28,58 @@ export struct AppShell {
   }
 
   @Builder
-  private buildCurrentPage() {
-    if (this.currentTab === AppTab.PLAN) {
-      PlanPage();
-    } else if (this.currentTab === AppTab.TODO) {
-      TodoPage();
-    } else if (this.currentTab === AppTab.FOCUS) {
-      FocusPage();
-    } else if (this.currentTab === AppTab.IDEA) {
-      IdeaPage();
-    } else if (this.currentTab === AppTab.TEST) {
-      SharedInteractionTestPage();
+  private buildBaseContent() {
+    if (this.app.flow === AppFlow.SPLASH) {
+      SplashPage();
+    } else if (this.app.flow === AppFlow.AUTH) {
+      LoginPage();
     } else {
-      UserPage();
+      MainShell();
     }
   }
 
   @Builder
-  private buildMainContent() {
-    Column({ space: 12 }) {
-      Column() {
-        this.buildCurrentPage();
-      }
-      .layoutWeight(1)
-      .width('100%');
-
-      BottomTabBar({
-        currentTab: this.currentTab,
-        onTabChange: (tab: AppTab): void => {
-          this.currentTab = tab;
-        }
-      });
+  private buildDestination(name: string) {
+    if (name === AppRoute.FOCUS) {
+      FocusDestinationPage();
+    } else if (
+      name === AppRoute.PLAN_SEARCH ||
+      name === AppRoute.TODO_SEARCH ||
+      name === AppRoute.IDEA_SEARCH
+    ) {
+      SearchPlaceholderPage({ routeName: name });
+    } else if (
+      name === AppRoute.PLAN_DETAIL ||
+      name === AppRoute.TODO_DETAIL ||
+      name === AppRoute.IDEA_DETAIL
+    ) {
+      DetailPlaceholderPage({ routeName: name });
+    } else if (name === AppRoute.USER_SETTINGS) {
+      SettingsPlaceholderPage();
+    } else if (name === AppRoute.SHARED_TEST) {
+      SharedTestDestinationPage();
+    } else {
+      SearchPlaceholderPage({ routeName: name });
     }
-    .width('100%')
-    .height('100%')
-    .padding({ top: this.topInset, bottom: this.bottomInset })
-    .backgroundColor(this.appState.theme.palette.background);
   }
 
   build() {
-    Navigation(this.appState.nav) {
-      this.buildMainContent();
+    Stack() {
+      this.buildBaseContent();
+
+      if (this.app.nav.hasOverlayRoute) {
+        Navigation(this.app.nav) {
+        }
+        .mode(NavigationMode.Stack)
+        .hideNavBar(true)
+        .navDestination(this.buildDestination)
+        .backgroundColor(Color.Transparent)
+        .width('100%')
+        .height('100%');
+      }
     }
-    .title(AppConstants.APP_NAME)
-    .mode(NavigationMode.Stack)
-    .hideBackButton(true)
-    .hideTitleBar(true)
     .width('100%')
-    .height('100%');
+    .height('100%')
+    .backgroundColor('#F7F8FA');
   }
 }

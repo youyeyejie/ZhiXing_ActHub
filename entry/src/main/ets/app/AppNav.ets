@@ -1,46 +1,84 @@
-import { AppTab } from './AppConstants';
-import { PlanPage } from '../pages/plan';
-import { TodoPage } from '../pages/todo';
-import { FocusPage } from '../pages/focus';
-import { IdeaPage } from '../pages/idea';
-import { UserPage } from '../pages/user';
-import { SharedInteractionTestPage } from '../pages/sharedtest';
+import { AppRoute, AppTab, DetailRouteParam, SearchRouteParam } from './AppConstants';
 
 /**
  * 应用主导航状态。
  * 基于 Navigation 控制器扩展应用级导航能力。
- * 当前 MVP 阶段负责维护底部标签页状态，并为后续子页路由预留统一入口。
+ * 当前 MVP 阶段负责维护主标签页状态，并为后续搜索、详情和专注页提供统一入口。
  */
 @ObservedV2
 export class AppNav extends NavPathStack {
-  @Trace private _tab: AppTab = AppTab.PLAN;
+  @Trace public selectedTab: AppTab = AppTab.PLAN;
+  @Trace public hasOverlayRoute: boolean = false;
 
-  get tab(): AppTab {
-    return this._tab;
+  selectTab(tab: AppTab): void {
+    this.selectedTab = tab;
   }
 
-  set tab(tab: AppTab) {
-    this._tab = tab;
+  openFocus(): void {
+    this.hasOverlayRoute = true;
+    this.pushPath({ name: AppRoute.FOCUS });
   }
-}
 
-/**
- * 应用首页当前标签页的内容构建入口。
- * 当前仅负责底部标签页对应主页内容的分发，不参与 Navigation 子页入栈。
- */
-@Builder
-export function buildCurrentPage(tab: AppTab) {
-  if (tab === AppTab.PLAN) {
-    PlanPage();
-  } else if (tab === AppTab.TODO) {
-    TodoPage();
-  } else if (tab === AppTab.FOCUS) {
-    FocusPage();
-  } else if (tab === AppTab.IDEA) {
-    IdeaPage();
-  } else if (tab === AppTab.TEST) {
-    SharedInteractionTestPage();
-  } else {
-    UserPage();
+  openPlanSearch(): void {
+    this.hasOverlayRoute = true;
+    this.pushPath({
+      name: AppRoute.PLAN_SEARCH,
+      param: new SearchRouteParam('plan', '搜索日程')
+    });
+  }
+
+  openTodoSearch(): void {
+    this.hasOverlayRoute = true;
+    this.pushPath({
+      name: AppRoute.TODO_SEARCH,
+      param: new SearchRouteParam('todo', '搜索待办')
+    });
+  }
+
+  openIdeaSearch(): void {
+    this.hasOverlayRoute = true;
+    this.pushPath({
+      name: AppRoute.IDEA_SEARCH,
+      param: new SearchRouteParam('idea', '搜索闪记')
+    });
+  }
+
+  openUserSettings(): void {
+    this.hasOverlayRoute = true;
+    this.pushPath({ name: AppRoute.USER_SETTINGS });
+  }
+
+  openSharedTest(): void {
+    this.hasOverlayRoute = true;
+    this.pushPath({ name: AppRoute.SHARED_TEST });
+  }
+
+  openPlanDetail(planId: string): void {
+    this.hasOverlayRoute = true;
+    this.pushPath({
+      name: AppRoute.PLAN_DETAIL,
+      param: new DetailRouteParam('plan', planId, '日程详情')
+    });
+  }
+
+  openTodoDetail(todoId: string): void {
+    this.hasOverlayRoute = true;
+    this.pushPath({
+      name: AppRoute.TODO_DETAIL,
+      param: new DetailRouteParam('todo', todoId, '待办详情')
+    });
+  }
+
+  openIdeaDetail(ideaId: string): void {
+    this.hasOverlayRoute = true;
+    this.pushPath({
+      name: AppRoute.IDEA_DETAIL,
+      param: new DetailRouteParam('idea', ideaId, '闪记详情')
+    });
+  }
+
+  back(): void {
+    this.pop();
+    this.hasOverlayRoute = this.getAllPathName().length > 0;
   }
 }

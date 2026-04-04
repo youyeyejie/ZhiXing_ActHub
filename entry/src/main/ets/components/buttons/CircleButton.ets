@@ -1,4 +1,4 @@
-import { AppState } from '../../app/AppStates';
+import { AppState, useAppState } from '../../app/AppStates';
 
 /**
  * 圆形按钮基类。
@@ -6,7 +6,7 @@ import { AppState } from '../../app/AppStates';
  */
 @ComponentV2
 export struct CircleButton {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
   @Param icon: string = '+';
   @Param text: string = '';
   @Param buttonSize: number = 56;
@@ -22,13 +22,13 @@ export struct CircleButton {
         Circle()
           .width(this.buttonSize)
           .height(this.buttonSize)
-          .fill(this.fillColor.length > 0 ? this.fillColor : this.appState.theme.palette.primary)
+          .fill(this.fillColor.length > 0 ? this.fillColor : this.app.theme.palette.primary)
           .scale({ x: this.isPressed ? 0.94 : 1, y: this.isPressed ? 0.94 : 1 });
 
         Text(this.icon)
           .fontSize(this.buttonSize * 0.45)
           .fontWeight(FontWeight.Bold)
-          .fontColor(this.iconColor.length > 0 ? this.iconColor : this.appState.theme.palette.surface)
+          .fontColor(this.iconColor.length > 0 ? this.iconColor : this.app.theme.palette.surface)
           .textAlign(TextAlign.Center)
           .maxLines(1);
       }
@@ -55,7 +55,7 @@ export struct CircleButton {
       if (this.text.length > 0) {
         Text(this.text)
           .fontSize(12)
-          .fontColor(this.appState.theme.palette.textSecondary);
+          .fontColor(this.app.theme.palette.textSecondary);
       }
     }
     .backgroundColor(Color.Transparent)

@@ -9,7 +9,7 @@ import { SearchOverlay } from '../../components/overlays/SearchOverlay';
 import { CircularProgress } from '../../components/progress/CircularProgress';
 import { SearchScope } from '../../core/services/SearchService';
 import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
-import { AppState } from '../../app/AppStates';
+import { AppState, useAppState } from '../../app/AppStates';
 import { ThemeMode } from '../../core/theme/ThemeManager';
 
 /**
@@ -18,7 +18,7 @@ import { ThemeMode } from '../../core/theme/ThemeManager';
  */
 @ComponentV2
 export struct SharedInteractionTestPage {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
   @Local private keyboardOffset: number = 0;
   @Local private undoVisible: boolean = false;
   @Local private progress: number = 0.45;
@@ -104,7 +104,7 @@ export struct SharedInteractionTestPage {
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor(this.appState.theme.palette.background);
+        .backgroundColor(this.app.theme.palette.background);
 
       SearchOverlay({
         title: '搜索测试页',
@@ -137,10 +137,10 @@ export struct SharedInteractionTestPage {
           .fontWeight(FontWeight.Bold);
         Text('宽度 80%，高度 60%，支持背景遮罩和右上角关闭。')
           .fontSize(13)
-          .fontColor(this.appState.theme.palette.textSecondary);
+          .fontColor(this.app.theme.palette.textSecondary);
         Text('你可以在这里放详情展示、编辑表单或操作按钮。')
           .fontSize(13)
-          .fontColor(this.appState.theme.palette.textSecondary);
+          .fontColor(this.app.theme.palette.textSecondary);
       }
       .alignItems(HorizontalAlign.Start)
       .width('100%');
@@ -154,28 +154,28 @@ export struct SharedInteractionTestPage {
           Text('通用交互层测试')
             .fontSize(28)
             .fontWeight(FontWeight.Bold)
-            .fontColor(this.appState.theme.palette.textPrimary);
+            .fontColor(this.app.theme.palette.textPrimary);
 
           Text('用于验证卡片手势、弹层、自动保存、撤销通知、搜索遮罩和圆环绘制。')
             .fontSize(13)
-            .fontColor(this.appState.theme.palette.textSecondary);
+            .fontColor(this.app.theme.palette.textSecondary);
 
           Row({ space: 8 }) {
             Button('浅色')
               .fontSize(12)
-              .fontColor(this.appState.theme.palette.surface)
-              .backgroundColor(this.appState.theme.palette.primary)
+              .fontColor(this.app.theme.palette.surface)
+              .backgroundColor(this.app.theme.palette.primary)
               .onClick(() => {
-                this.appState.theme.set(ThemeMode.LIGHT);
+                this.app.theme.set(ThemeMode.LIGHT);
                 this.pushLog('主题切换: LIGHT');
               });
 
             Button('深色')
               .fontSize(12)
-              .fontColor(this.appState.theme.palette.surface)
-              .backgroundColor(this.appState.theme.palette.primary)
+              .fontColor(this.app.theme.palette.surface)
+              .backgroundColor(this.app.theme.palette.primary)
               .onClick(() => {
-                this.appState.theme.set(ThemeMode.DARK);
+                this.app.theme.set(ThemeMode.DARK);
                 this.pushLog('主题切换: DARK');
               });
           }
@@ -204,7 +204,7 @@ export struct SharedInteractionTestPage {
                 .fontWeight(FontWeight.Medium);
               Text('左右滑动达到阈值后触发回调。')
                 .fontSize(12)
-                .fontColor(this.appState.theme.palette.textSecondary);
+                .fontColor(this.app.theme.palette.textSecondary);
             }
             .alignItems(HorizontalAlign.Start);
           }
@@ -222,7 +222,7 @@ export struct SharedInteractionTestPage {
             CircleButton({
               icon: '?',
               text: '搜索遮罩',
-              fillColor: this.appState.theme.palette.primary,
+              fillColor: this.app.theme.palette.primary,
               onTap: () => {
                 this.searchDialogController.open();
                 this.pushLog('SearchOverlay 打开');
@@ -232,7 +232,7 @@ export struct SharedInteractionTestPage {
             CircleButton({
               icon: 'i',
               text: '详情卡片',
-              fillColor: this.appState.theme.palette.primary,
+              fillColor: this.app.theme.palette.primary,
               buttonSize: 52,
               onTap: () => {
                 this.detailDialogController.open();
@@ -243,7 +243,7 @@ export struct SharedInteractionTestPage {
             CircleButton({
               icon: '-',
               text: '进度-15%',
-              fillColor: this.appState.theme.palette.primary,
+              fillColor: this.app.theme.palette.primary,
               buttonSize: 52,
               onTap: () => {
                 this.decreaseProgress();
@@ -254,7 +254,7 @@ export struct SharedInteractionTestPage {
             CircleButton({
               icon: '+',
               text: '进度+15%',
-              fillColor: this.appState.theme.palette.primary,
+              fillColor: this.app.theme.palette.primary,
               buttonSize: 52,
               onTap: () => {
                 this.cycleProgress();
@@ -282,7 +282,7 @@ export struct SharedInteractionTestPage {
           Row({ space: 12 }) {
             Text('模拟键盘避让')
               .fontSize(13)
-              .fontColor(this.appState.theme.palette.textSecondary);
+              .fontColor(this.app.theme.palette.textSecondary);
 
             Slider({ value: this.keyboardOffset, min: 0, max: 220, step: 10 })
               .layoutWeight(1)
@@ -300,27 +300,27 @@ export struct SharedInteractionTestPage {
             ForEach(this.logs, (item: string) => {
               Text('- ' + item)
                 .fontSize(12)
-                .fontColor(this.appState.theme.palette.textSecondary)
+                .fontColor(this.app.theme.palette.textSecondary)
                 .width('100%');
             });
 
             if (this.logs.length === 0) {
               Text('暂无交互日志')
                 .fontSize(12)
-                .fontColor(this.appState.theme.palette.textTertiary);
+                .fontColor(this.app.theme.palette.textTertiary);
             }
           }
           .width('100%')
           .padding(12)
           .borderRadius(14)
-          .backgroundColor(this.appState.theme.palette.surface);
+          .backgroundColor(this.app.theme.palette.surface);
         }
         .alignItems(HorizontalAlign.Start)
         .padding(20);
       }
       .width('100%')
       .height('100%')
-      .backgroundColor(this.appState.theme.palette.background);
+      .backgroundColor(this.app.theme.palette.background);
 
       if (this.undoVisible) {
         UndoNotification({
@@ -343,4 +343,9 @@ export struct SharedInteractionTestPage {
     .width('100%')
     .height('100%');
   }
+}
+
+@Builder
+export function SharedInteractionTestPageBuilder(_name: string, _param: Object) {
+  SharedInteractionTestPage();
 }

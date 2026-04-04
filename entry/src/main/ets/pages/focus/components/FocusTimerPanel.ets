@@ -1,5 +1,5 @@
 import { CircularProgress } from '../../../components/progress/CircularProgress';
-import { AppState } from '../../../app/AppStates';
+import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
  * 专注计时面板骨架。
@@ -7,22 +7,22 @@ import { AppState } from '../../../app/AppStates';
  */
 @ComponentV2
 export struct FocusTimerPanel {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
 
   build() {
     Column({ space: 16 }) {
       Text('FocusTimerPanel')
         .fontSize(16)
         .fontWeight(FontWeight.Medium)
-        .fontColor(this.appState.theme.palette.textPrimary)
+        .fontColor(this.app.theme.palette.textPrimary)
       CircularProgress();
       Text('TODO: 展示倒计时与控制按钮。')
         .fontSize(12)
-        .fontColor(this.appState.theme.palette.textSecondary);
+        .fontColor(this.app.theme.palette.textSecondary);
     }
     .width('100%')
     .padding(20)
     .borderRadius(24)
-    .backgroundColor(this.appState.theme.palette.surface);
+    .backgroundColor(this.app.theme.palette.surface);
   }
 }

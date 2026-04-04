@@ -9,7 +9,7 @@ import { BaseRepository } from './BaseRepository';
  */
 export class UserRepository extends BaseRepository<User> {
   constructor() {
-    super(DatabaseConfig.USER_TABLE);
+    super(DatabaseConfig.USER_TABLE, User);
   }
 
   findByAccount(account: string): Promise<User | null> {
@@ -73,7 +73,7 @@ export class UserRepository extends BaseRepository<User> {
   }
 
   private entityQuery(): QueryBuilder<User> {
-    return this.tableQuery() as QueryBuilder<User>;
+    return this.orm.query(this.entityClass);
   }
 
   private createUserId(account: string, timestamp: number): string {

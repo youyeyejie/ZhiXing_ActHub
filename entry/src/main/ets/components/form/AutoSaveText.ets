@@ -1,4 +1,4 @@
-import { AppState } from '../../app/AppStates';
+import { AppState, useAppState } from '../../app/AppStates';
 
 /**
  * 自动保存输入组件。
@@ -6,7 +6,7 @@ import { AppState } from '../../app/AppStates';
  */
 @ComponentV2
 export struct AutoSaveText {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
   @Param label: string = '自动保存输入';
   @Param placeholder: string = '请输入内容';
   @Param debounceMs: number = 600;
@@ -51,12 +51,12 @@ export struct AutoSaveText {
       Text(this.label)
         .fontSize(14)
         .fontWeight(FontWeight.Medium)
-        .fontColor(this.appState.theme.palette.textPrimary);
+        .fontColor(this.app.theme.palette.textPrimary);
 
       TextInput({ text: this.value, placeholder: this.placeholder })
         .fontSize(14)
         .width('100%')
-        .backgroundColor(this.appState.theme.palette.surfaceSecondary)
+        .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
         .padding(12)
         .onChange((value: string) => {
@@ -71,11 +71,11 @@ export struct AutoSaveText {
 
       Text(this.isSaving ? '保存中...' : this.saveTip)
         .fontSize(12)
-        .fontColor(this.appState.theme.palette.textSecondary);
+        .fontColor(this.app.theme.palette.textSecondary);
     }
     .width('100%')
     .padding(12)
     .borderRadius(14)
-    .backgroundColor(this.appState.theme.palette.surface);
+    .backgroundColor(this.app.theme.palette.surface);
   }
 }

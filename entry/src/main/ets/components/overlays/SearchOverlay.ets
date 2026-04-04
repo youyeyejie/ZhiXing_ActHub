@@ -1,5 +1,5 @@
 import { SearchResultItem, SearchScope, SearchService } from '../../core/services/SearchService';
-import { AppState } from '../../app/AppStates';
+import { AppState, useAppState } from '../../app/AppStates';
 
 /**
  * 搜索基类页面。
@@ -7,7 +7,7 @@ import { AppState } from '../../app/AppStates';
  */
 @ComponentV2
 export struct SearchOverlay {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
   @Param title: string = '搜索';
   @Param placeholder: string = '搜索';
   @Param scope: SearchScope = SearchScope.Plan;
@@ -50,7 +50,7 @@ export struct SearchOverlay {
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor(this.appState.theme.palette.background);
+        .backgroundColor(this.app.theme.palette.background);
 
       Column({ space: 12 }) {
         Column({ space: 10 }) {
@@ -59,12 +59,12 @@ export struct SearchOverlay {
               .layoutWeight(1)
               .height(44)
               .borderRadius(12)
-              .backgroundColor(this.appState.theme.palette.surface)
+              .backgroundColor(this.app.theme.palette.surface)
               .padding({ left: 12, right: 12 })
               .defaultFocus(true)
-              .placeholderColor(this.appState.theme.palette.textTertiary)
-              .caretColor(this.appState.theme.palette.textTertiary)
-              .fontColor(this.appState.theme.palette.textPrimary)
+              .placeholderColor(this.app.theme.palette.textTertiary)
+              .caretColor(this.app.theme.palette.textTertiary)
+              .fontColor(this.app.theme.palette.textPrimary)
               .onChange((value: string) => {
                 this.keyword = value;
                 this.onSearch(value);
@@ -77,7 +77,7 @@ export struct SearchOverlay {
 
             Text('取消')
               .fontSize(14)
-              .fontColor(this.appState.theme.palette.textSecondary)
+              .fontColor(this.app.theme.palette.textSecondary)
               .onClick(() => {
                 this.onDismiss();
               });
@@ -86,38 +86,38 @@ export struct SearchOverlay {
 
           Text(this.title)
             .fontSize(13)
-            .fontColor(this.appState.theme.palette.textTertiary);
+            .fontColor(this.app.theme.palette.textTertiary);
         }
         .width('100%')
         .padding({ left: 16, right: 16, top: this.topInset, bottom: 8 })
-        .backgroundColor(this.appState.theme.palette.background);
+        .backgroundColor(this.app.theme.palette.background);
 
         Scroll() {
           Column({ space: 10 }) {
             if (this.searching) {
               Text('搜索中...')
                 .fontSize(13)
-                .fontColor(this.appState.theme.palette.textTertiary);
+                .fontColor(this.app.theme.palette.textTertiary);
             } else if (this.keyword.trim().length === 0) {
               Text('输入关键字开始搜索')
                 .fontSize(13)
-                .fontColor(this.appState.theme.palette.textTertiary);
+                .fontColor(this.app.theme.palette.textTertiary);
             } else if (this.resultList.length === 0) {
               Text('没有匹配结果')
                 .fontSize(13)
-                .fontColor(this.appState.theme.palette.textTertiary);
+                .fontColor(this.app.theme.palette.textTertiary);
             } else {
               ForEach(this.resultList, (item: SearchResultItem) => {
                 Column({ space: 4 }) {
                   Text(item.title)
                     .fontSize(15)
                     .fontWeight(FontWeight.Medium)
-                    .fontColor(this.appState.theme.palette.textPrimary)
+                    .fontColor(this.app.theme.palette.textPrimary)
                     .width('100%');
 
                   Text(item.subtitle)
                     .fontSize(12)
-                    .fontColor(this.appState.theme.palette.textSecondary)
+                    .fontColor(this.app.theme.palette.textSecondary)
                     .maxLines(2)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
                     .width('100%');
@@ -125,23 +125,23 @@ export struct SearchOverlay {
                 .width('100%')
                 .padding(12)
                 .borderRadius(12)
-                .backgroundColor(this.appState.theme.palette.surface);
+                .backgroundColor(this.app.theme.palette.surface);
               });
             }
           }
           .alignItems(HorizontalAlign.Start)
           .padding({ left: 16, right: 16, bottom: 16 })
-          .backgroundColor(this.appState.theme.palette.background);
+          .backgroundColor(this.app.theme.palette.background);
         }
         .width('100%')
         .layoutWeight(1)
-        .backgroundColor(this.appState.theme.palette.background);
+        .backgroundColor(this.app.theme.palette.background);
       }
       .width('100%')
       .height('100%');
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.appState.theme.palette.background);
+    .backgroundColor(this.app.theme.palette.background);
   }
 }

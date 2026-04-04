@@ -1,4 +1,4 @@
-import { AppState } from '../../app/AppStates';
+import { AppState, useAppState } from '../../app/AppStates';
 
 /**
  * 通用圆环组件。
@@ -6,7 +6,7 @@ import { AppState } from '../../app/AppStates';
  */
 @ComponentV2
 export struct CircularProgress {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
   @Param progress: number = 0.72;
   @Param diameter: number = 180;
   @Param strokeWidth: number = 12;
@@ -18,12 +18,12 @@ export struct CircularProgress {
 
   @Computed
   private get effectiveProgressColor(): string {
-    return this.progressColor.length > 0 ? this.progressColor : this.appState.theme.palette.primary;
+    return this.progressColor.length > 0 ? this.progressColor : this.app.theme.palette.primary;
   }
 
   @Computed
   private get effectiveTrackColor(): string {
-    return this.trackColor.length > 0 ? this.trackColor : this.appState.theme.palette.surfaceSecondary;
+    return this.trackColor.length > 0 ? this.trackColor : this.app.theme.palette.surfaceSecondary;
   }
 
   private draw(): void {
@@ -68,7 +68,7 @@ export struct CircularProgress {
       Text((Math.round(Math.max(0, Math.min(1, this.progress)) * 100)).toString() + '%')
         .fontSize(24)
         .fontWeight(FontWeight.Bold)
-        .fontColor(this.appState.theme.palette.textPrimary);
+        .fontColor(this.app.theme.palette.textPrimary);
     }
     .width(this.diameter)
     .height(this.diameter);

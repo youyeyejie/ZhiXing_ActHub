@@ -4,7 +4,7 @@ import { CircleButton } from '../../components/buttons/CircleButton';
 import { SearchOverlay } from '../../components/overlays/SearchOverlay';
 import { SearchScope } from '../../core/services/SearchService';
 import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
-import { AppState } from '../../app/AppStates';
+import { AppState, useAppState } from '../../app/AppStates';
 
 /**
  * 专注模块主页骨架。
@@ -12,7 +12,7 @@ import { AppState } from '../../app/AppStates';
  */
 @ComponentV2
 export struct FocusPage {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
   @Local private topInset: number = 56;
 
   private searchDialogController: CustomDialogController = new CustomDialogController({
@@ -32,7 +32,7 @@ export struct FocusPage {
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor(this.appState.theme.palette.background);
+        .backgroundColor(this.app.theme.palette.background);
 
       SearchOverlay({
         title: '专注搜索',
@@ -55,14 +55,14 @@ export struct FocusPage {
           Text('专注')
             .fontSize(28)
             .fontWeight(FontWeight.Bold)
-            .fontColor(this.appState.theme.palette.textPrimary)
+            .fontColor(this.app.theme.palette.textPrimary)
             .layoutWeight(1);
 
           CircleButton({
             icon: '?',
             text: '搜索',
             buttonSize: 46,
-            fillColor: this.appState.theme.palette.primary,
+            fillColor: this.app.theme.palette.primary,
             onTap: () => {
               this.searchDialogController.open();
             }
@@ -71,7 +71,7 @@ export struct FocusPage {
         .width('100%');
         Text('TODO: 在开始前选择待办或直接进入计时。')
           .fontSize(14)
-          .fontColor(this.appState.theme.palette.textSecondary);
+          .fontColor(this.app.theme.palette.textSecondary);
         FocusTimerPanel();
         TodoPickerSheet();
       }
@@ -80,6 +80,6 @@ export struct FocusPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.appState.theme.palette.background);
+    .backgroundColor(this.app.theme.palette.background);
   }
 }

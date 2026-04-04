@@ -1,5 +1,5 @@
 import { AutoSaveText } from './AutoSaveText';
-import { AppState } from '../../app/AppStates';
+import { AppState, useAppState } from '../../app/AppStates';
 
 /**
  * 自动保存编辑套件。
@@ -7,7 +7,7 @@ import { AppState } from '../../app/AppStates';
  */
 @ComponentV2
 export struct EditableSuite {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
   @Param title: string = 'EditableSuite';
   @Event onSaveField: (field: string, value: string) => void = (_field: string, _value: string) => {};
 
@@ -23,7 +23,7 @@ export struct EditableSuite {
       Text(this.title)
         .fontSize(16)
         .fontWeight(FontWeight.Medium)
-        .fontColor(this.appState.theme.palette.textPrimary);
+        .fontColor(this.app.theme.palette.textPrimary);
 
       AutoSaveText({
         label: '标题',
@@ -44,11 +44,11 @@ export struct EditableSuite {
 
       Text('最近自动保存字段: ' + this.lastSavedField)
         .fontSize(12)
-        .fontColor(this.appState.theme.palette.textSecondary);
+        .fontColor(this.app.theme.palette.textSecondary);
     }
     .width('100%')
     .padding(16)
     .borderRadius(20)
-    .backgroundColor(this.appState.theme.palette.surface);
+    .backgroundColor(this.app.theme.palette.surface);
   }
 }

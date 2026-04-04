@@ -1,4 +1,4 @@
-import { AppState } from '../../../app/AppStates';
+import { AppState, useAppState } from '../../../app/AppStates';
 import { ThemeMode } from '../../../core/theme/ThemeManager';
 
 /**
@@ -7,29 +7,29 @@ import { ThemeMode } from '../../../core/theme/ThemeManager';
  */
 @ComponentV2
 export struct SettingsPanel {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
 
   build() {
     Column({ space: 8 }) {
       Text('SettingsPanel')
         .fontSize(16)
         .fontWeight(FontWeight.Medium)
-        .fontColor(this.appState.theme.palette.textPrimary);
+        .fontColor(this.app.theme.palette.textPrimary);
       Text('TODO: 汇总系统设置项。')
         .fontSize(12)
-        .fontColor(this.appState.theme.palette.textSecondary);
+        .fontColor(this.app.theme.palette.textSecondary);
 
       Row({ space: 8 }) {
         Button('浅色')
           .fontSize(12)
           .onClick(() => {
-            this.appState.theme.set(ThemeMode.LIGHT);
+            this.app.theme.set(ThemeMode.LIGHT);
           });
 
         Button('深色')
           .fontSize(12)
           .onClick(() => {
-            this.appState.theme.set(ThemeMode.DARK);
+            this.app.theme.set(ThemeMode.DARK);
           });
       }
       .width('100%');
@@ -37,6 +37,6 @@ export struct SettingsPanel {
     .width('100%')
     .padding(16)
     .borderRadius(20)
-    .backgroundColor(this.appState.theme.palette.surface);
+    .backgroundColor(this.app.theme.palette.surface);
   }
 }

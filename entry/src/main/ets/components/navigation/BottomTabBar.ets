@@ -1,15 +1,16 @@
 import { AppTab } from '../../app/AppConstants';
-import { AppState } from '../../app/AppStates';
+import { AppState, useAppState } from '../../app/AppStates';
 
 /**
  * 主导航底栏骨架。
- * 当前阶段只负责五大主页面切换入口，视觉细节后续再统一收敛。
+ * 当前阶段采用四个主标签页加中间专注入口的结构。
  */
 @ComponentV2
 export struct BottomTabBar {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
   @Param currentTab: AppTab = AppTab.PLAN;
   @Event onTabChange: (tab: AppTab) => void = (_tab: AppTab): void => {};
+  @Event onFocusTap: () => void = (): void => {};
 
   @Builder
   private buildTabItem(tab: AppTab, label: string) {
@@ -17,13 +18,13 @@ export struct BottomTabBar {
       Text(label)
         .fontSize(14)
         .fontWeight(this.currentTab === tab ? FontWeight.Medium : FontWeight.Regular)
-        .fontColor(this.currentTab === tab ? this.appState.theme.palette.textPrimary : this.appState.theme.palette.textSecondary);
+        .fontColor(this.currentTab === tab ? this.app.theme.palette.textPrimary : this.app.theme.palette.textSecondary);
 
       Row()
         .width(20)
         .height(3)
         .borderRadius(999)
-        .backgroundColor(this.currentTab === tab ? this.appState.theme.palette.primary : this.appState.theme.palette.surface);
+        .backgroundColor(this.currentTab === tab ? this.app.theme.palette.primary : this.app.theme.palette.surface);
     }
     .layoutWeight(1)
     .padding({ top: 10, bottom: 10 })
@@ -33,19 +34,41 @@ export struct BottomTabBar {
     });
   }
 
+  @Builder
+  private buildFocusAction() {
+    Column({ space: 6 }) {
+      Row() {
+        Image($r("app.media.foreground"))
+      }
+      .width(80)
+      .height(80)
+      .borderColor("#114928")
+      .borderWidth(2)
+      .borderRadius(40)
+      .justifyContent(FlexAlign.Center)
+      .backgroundColor('#f5f8fe');
+    }
+    .padding({ top: 2, left: 8, right: 8 })
+    .alignItems(HorizontalAlign.Center)
+    .offset({y:-24})
+    .onClick(() => {
+      this.onFocusTap();
+    });
+  }
+
   build() {
     Row() {
       this.buildTabItem(AppTab.PLAN, '日程');
       this.buildTabItem(AppTab.TODO, '待办');
-      this.buildTabItem(AppTab.FOCUS, '专注');
+      this.buildFocusAction();
       this.buildTabItem(AppTab.IDEA, '闪记');
       this.buildTabItem(AppTab.USER, '我的');
-      this.buildTabItem(AppTab.TEST, '测试');
     }
+    .height(60)
     .width('100%')
     .padding({ left: 8, right: 8, top: 6, bottom: 6 })
     .justifyContent(FlexAlign.SpaceBetween)
     .borderRadius(24)
-    .backgroundColor(this.appState.theme.palette.surface);
+    .backgroundColor(this.app.theme.palette.surface);
   }
 }

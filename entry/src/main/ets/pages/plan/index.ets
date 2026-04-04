@@ -6,7 +6,7 @@ import { CircleButton } from '../../components/buttons/CircleButton';
 import { SearchOverlay } from '../../components/overlays/SearchOverlay';
 import { SearchScope } from '../../core/services/SearchService';
 import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
-import { AppState } from '../../app/AppStates';
+import { AppState, useAppState  } from '../../app/AppStates';
 
 /**
  * 日程模块主页骨架。
@@ -14,7 +14,7 @@ import { AppState } from '../../app/AppStates';
  */
 @ComponentV2
 export struct PlanPage {
-  @Consumer('appState') appState: AppState = new AppState();
+  @Local private app: AppState = useAppState();
   @Local private topInset: number = 56;
 
   private searchDialogController: CustomDialogController = new CustomDialogController({
@@ -34,7 +34,7 @@ export struct PlanPage {
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor(this.appState.theme.palette.background);
+        .backgroundColor(this.app.theme.palette.background);
 
       SearchOverlay({
         title: '日程搜索',
@@ -57,16 +57,16 @@ export struct PlanPage {
           Text('日程')
             .fontSize(28)
             .fontWeight(FontWeight.Bold)
-            .fontColor(this.appState.theme.palette.textPrimary)
+            .fontColor(this.app.theme.palette.textPrimary)
             .layoutWeight(1);
 
           CircleButton({
             icon: '?',
             text: '搜索',
             buttonSize: 46,
-            fillColor: this.appState.theme.palette.primary,
+            fillColor: this.app.theme.palette.primary,
             onTap: () => {
-              this.searchDialogController.open();
+              this.app.nav.openPlanSearch();
             }
           });
         }
@@ -81,6 +81,6 @@ export struct PlanPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.appState.theme.palette.background);
+    .backgroundColor(this.app.theme.palette.background);
   }
 }
