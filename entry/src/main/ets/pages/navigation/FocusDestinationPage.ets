@@ -1,3 +1,4 @@
+import display from '@ohos.display';
 import { FocusPage } from '../focus';
 import { AppState, useAppState } from '../../app/AppStates';
 
@@ -9,6 +10,45 @@ import { AppState, useAppState } from '../../app/AppStates';
 export struct FocusDestinationPage {
   @Local private app: AppState = useAppState();
   @Local private pathStack: NavPathStack | undefined = undefined;
+  @Local private pageOffsetY: number = 1200;
+  @Local private closing: boolean = false;
+  @Local private entered: boolean = false;
+
+  aboutToAppear(): void {
+    this.pageOffsetY = this.resolveOffscreenOffset();
+    this.entered = false;
+  }
+
+  private resolveOffscreenOffset(): number {
+    try {
+      const info = display.getDefaultDisplaySync();
+      return Math.max(info.width, info.height);
+    } catch (_error) {
+      return 1200;
+    }
+  }
+
+  private closeWithAnimation(): void {
+    if (this.closing) {
+      return;
+    }
+    this.closing = true;
+    this.pageOffsetY = this.resolveOffscreenOffset();
+    setTimeout(() => {
+      this.app.nav.back();
+      this.closing = false;
+    }, 500);
+  }
+
+  private startEnterAnimation(): void {
+    if (this.entered) {
+      return;
+    }
+    this.entered = true;
+    setTimeout(() => {
+      this.pageOffsetY = 0;
+    }, 16);
+  }
 
   build() {
     NavDestination() {
@@ -17,7 +57,7 @@ export struct FocusDestinationPage {
           Button('返回')
             .type(ButtonType.Normal)
             .onClick(() => {
-              this.app.nav.back();
+              this.closeWithAnimation();
             });
 
           Blank();
@@ -30,15 +70,19 @@ export struct FocusDestinationPage {
       }
       .width('100%')
       .height('100%')
-      .backgroundColor('#F7F8FA');
+      .backgroundColor(this.app.theme.palette.background)
+      .translate({ x: 0, y: this.pageOffsetY })
+      .animation({ duration: 500, curve: Curve.EaseInOut, playMode: PlayMode.Normal });
     }
     .width('100%')
     .height('100%')
+    .backgroundColor(Color.Transparent)
     .onReady((context: NavDestinationContext) => {
       this.pathStack = context.pathStack;
+      this.startEnterAnimation();
     })
     .onBackPressed(() => {
-      this.app.nav.back();
+      this.closeWithAnimation();
       return true;
     });
   }

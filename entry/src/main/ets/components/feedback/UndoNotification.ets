@@ -36,13 +36,13 @@ export struct UndoNotification {
     this.stopCountdown();
     this.remainMs = Math.max(1000, this.durationMs);
     this.timerId = setInterval(() => {
-      this.remainMs = this.remainMs - 100;
+      this.remainMs = this.remainMs - 10;
       if (this.remainMs <= 0) {
         this.stopCountdown();
         this.onTimeout();
         this.onClose();
       }
-    }, 100);
+    }, 10);
   }
 
   private getProgressPercent(): number {

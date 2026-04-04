@@ -14,39 +14,10 @@ import { AppState, useAppState } from '../../app/AppStates';
 @ComponentV2
 export struct UserPage {
   @Local private app: AppState = useAppState();
-  @Local private topInset: number = 56;
-
-  private searchDialogController: CustomDialogController = new CustomDialogController({
-    builder: this.buildSearchDialog,
-    customStyle: true,
-    autoCancel: false,
-    alignment: DialogAlignment.Top
-  });
+  @Local private topInset: number = SafeAreaUtils.getSearchTopInset();
 
   aboutToAppear(): void {
     this.topInset = SafeAreaUtils.getSearchTopInset();
-  }
-
-  @Builder
-  private buildSearchDialog() {
-    Stack() {
-      Column()
-        .width('100%')
-        .height('100%')
-        .backgroundColor(this.app.theme.palette.background);
-
-      SearchOverlay({
-        title: '用户搜索',
-        placeholder: '搜索用户名称',
-        scope: SearchScope.User,
-        topInset: this.topInset,
-        onDismiss: () => {
-          this.searchDialogController.close();
-        }
-      });
-    }
-    .width('100%')
-    .height('100%');
   }
 
   build() {

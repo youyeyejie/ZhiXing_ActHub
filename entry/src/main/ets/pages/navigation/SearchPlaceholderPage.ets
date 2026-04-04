@@ -42,14 +42,14 @@ export struct SearchPlaceholderPage {
 
         Text('TODO: 在当前页面之上提供搜索遮罩、输入框和结果列表。')
           .fontSize(14)
-          .fontColor('#666666');
+          .fontColor(this.app.theme.palette.textSecondary);
       }
       .width('100%')
       .height('100%')
       .alignItems(HorizontalAlign.Start)
       .justifyContent(FlexAlign.Start)
       .padding(20)
-      .backgroundColor('#F7F8FA');
+      .backgroundColor(this.app.theme.palette.background);
     }
     .width('100%')
     .height('100%')

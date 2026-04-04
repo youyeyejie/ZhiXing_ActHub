@@ -1,5 +1,6 @@
 import { SearchResultItem, SearchScope, SearchService } from '../../core/services/SearchService';
 import { AppState, useAppState } from '../../app/AppStates';
+import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
 
 /**
  * 搜索基类页面。
@@ -11,7 +12,7 @@ export struct SearchOverlay {
   @Param title: string = '搜索';
   @Param placeholder: string = '搜索';
   @Param scope: SearchScope = SearchScope.Plan;
-  @Param topInset: number = 56;
+  @Param topInset: number = SafeAreaUtils.getSearchTopInset();
   @Event onDismiss: () => void = () => {};
   @Event onSearch: (keyword: string) => void = (_keyword: string) => {};
 

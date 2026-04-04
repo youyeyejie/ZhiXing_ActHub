@@ -40,17 +40,17 @@ export struct BottomTabBar {
       Row() {
         Image($r("app.media.foreground"))
       }
-      .width(80)
-      .height(80)
-      .borderColor("#114928")
-      .borderWidth(2)
-      .borderRadius(40)
+      .width(60)
+      .height(60)
+      .borderColor(this.app.theme.palette.primary)
+      .borderWidth(5)
+      .borderRadius(30)
       .justifyContent(FlexAlign.Center)
-      .backgroundColor('#f5f8fe');
+      .backgroundColor(this.app.theme.palette.surfaceSecondary);
     }
     .padding({ top: 2, left: 8, right: 8 })
     .alignItems(HorizontalAlign.Center)
-    .offset({y:-24})
+    .offset({y:-20})
     .onClick(() => {
       this.onFocusTap();
     });
@@ -60,7 +60,7 @@ export struct BottomTabBar {
     Row() {
       this.buildTabItem(AppTab.PLAN, '日程');
       this.buildTabItem(AppTab.TODO, '待办');
-      this.buildFocusAction();
+      this.buildFocusAction(); // 专注入口
       this.buildTabItem(AppTab.IDEA, '闪记');
       this.buildTabItem(AppTab.USER, '我的');
     }

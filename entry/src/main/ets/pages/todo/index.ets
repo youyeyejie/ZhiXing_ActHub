@@ -14,7 +14,7 @@ import { AppState, useAppState  } from '../../app/AppStates';
 @ComponentV2
 export struct TodoPage {
   @Local private app: AppState = useAppState();
-  @Local private topInset: number = 56;
+  @Local private topInset: number = SafeAreaUtils.getSearchTopInset();
 
   private searchDialogController: CustomDialogController = new CustomDialogController({
     builder: this.buildSearchDialog,

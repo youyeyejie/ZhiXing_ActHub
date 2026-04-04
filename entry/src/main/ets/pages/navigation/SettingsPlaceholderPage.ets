@@ -28,14 +28,14 @@ export struct SettingsPlaceholderPage {
 
         Text('TODO: 深浅色模式、提醒开关、导入导出和退出登录后续在此集中实现。')
           .fontSize(14)
-          .fontColor('#666666');
+          .fontColor(this.app.theme.palette.textSecondary);
       }
       .width('100%')
       .height('100%')
       .alignItems(HorizontalAlign.Start)
       .justifyContent(FlexAlign.Start)
       .padding(20)
-      .backgroundColor('#F7F8FA');
+      .backgroundColor(this.app.theme.palette.background);
     }
     .width('100%')
     .height('100%')

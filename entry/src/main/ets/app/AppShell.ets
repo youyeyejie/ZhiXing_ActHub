@@ -1,5 +1,4 @@
 import { AppTab } from './AppConstants';
-import { SafeAreaUtils } from '../core/theme/SafeAreaUtils';
 import { AppFlow, AppRoute } from './AppConstants';
 import { AppState, useAppState } from './AppStates';
 import { MainShell } from './MainShell';
@@ -19,13 +18,6 @@ import { SharedTestDestinationPage } from '../pages/navigation/SharedTestDestina
 export struct AppShell {
   @Local private app: AppState = useAppState();
   @Local private currentTab: AppTab = AppTab.PLAN;
-  @Local private topInset: number = 30;
-  @Local private bottomInset: number = 12;
-
-  aboutToAppear(): void {
-    this.topInset = SafeAreaUtils.getTopInset();
-    this.bottomInset = SafeAreaUtils.getBottomInset();
-  }
 
   @Builder
   private buildBaseContent() {
@@ -80,6 +72,6 @@ export struct AppShell {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F7F8FA');
+    .backgroundColor(this.app.theme.palette.background);
   }
 }

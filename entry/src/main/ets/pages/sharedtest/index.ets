@@ -23,7 +23,7 @@ export struct SharedInteractionTestPage {
   @Local private undoVisible: boolean = false;
   @Local private progress: number = 0.45;
   @Local private logs: string[] = [];
-  @Local private topInset: number = 56;
+  @Local private topInset: number = SafeAreaUtils.getSearchTopInset();
 
   private actionSheetDialogController: CustomDialogController = new CustomDialogController({
     builder: this.buildActionSheetDialog,
@@ -235,8 +235,8 @@ export struct SharedInteractionTestPage {
               fillColor: this.app.theme.palette.primary,
               buttonSize: 52,
               onTap: () => {
-                this.detailDialogController.open();
-                this.pushLog('DetailCard 打开');
+                this.app.nav.openPlanDetail('shared-test-plan-001');
+                this.pushLog('通过 openPlanDetail 打开路由详情卡片');
               }
             });
 

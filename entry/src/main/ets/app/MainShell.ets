@@ -1,7 +1,7 @@
-import display from '@ohos.display';
 import { BottomTabBar } from '../components/navigation/BottomTabBar';
 import { AppTab } from './AppConstants';
 import { AppState, useAppState } from './AppStates';
+import { SafeAreaUtils } from '../core/theme/SafeAreaUtils';
 import { PlanPage } from '../pages/plan';
 import { TodoPage } from '../pages/todo';
 import { IdeaPage } from '../pages/idea';
@@ -14,36 +14,27 @@ import { UserPage } from '../pages/user';
 @ComponentV2
 export struct MainShell {
   @Local private app: AppState = useAppState();
-  @Local private topInset: number = 30;
-  @Local private bottomInset: number = 12;
+  @Local private topInset: number = SafeAreaUtils.getTopInset();
+  @Local private bottomInset: number = SafeAreaUtils.getBottomInset();
 
   aboutToAppear(): void {
-    this.applySafeInsets();
+    this.topInset = SafeAreaUtils.getTopInset();
+    this.bottomInset = SafeAreaUtils.getBottomInset();
   }
 
-  private applySafeInsets(): void {
-    try {
-      const info = display.getDefaultDisplaySync();
-      const longEdge = Math.max(info.width, info.height);
-      const shortEdge = Math.max(1, Math.min(info.width, info.height));
-      const ratio = longEdge / shortEdge;
-
-      if (ratio >= 2.18) {
-        this.topInset = 48;
-        this.bottomInset = 22;
-      } else if (ratio >= 2.0) {
-        this.topInset = 40;
-        this.bottomInset = 18;
-      } else {
-        this.topInset = 30;
-        this.bottomInset = 12;
-      }
-    } catch (_error) {
-      this.topInset = 32;
-      this.bottomInset = 12;
+  private resolveTabByIndex(index: number): AppTab {
+    if (index === 0) {
+      return AppTab.PLAN;
     }
+    if (index === 1) {
+      return AppTab.TODO;
+    }
+    if (index === 2) {
+      return AppTab.IDEA;
+    }
+    return AppTab.USER;
   }
-
+  
   @Builder
   private buildCurrentTabPage() {
     if (this.app.nav.selectedTab === AppTab.PLAN) {
@@ -78,6 +69,6 @@ export struct MainShell {
     .width('100%')
     .height('100%')
     .padding({ top: this.topInset, bottom: this.bottomInset })
-    .backgroundColor('#F7F8FA');
+    .backgroundColor(this.app.theme.palette.background);
   }
 }

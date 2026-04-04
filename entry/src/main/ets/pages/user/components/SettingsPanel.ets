@@ -18,21 +18,6 @@ export struct SettingsPanel {
       Text('TODO: 汇总系统设置项。')
         .fontSize(12)
         .fontColor(this.app.theme.palette.textSecondary);
-
-      Row({ space: 8 }) {
-        Button('浅色')
-          .fontSize(12)
-          .onClick(() => {
-            this.app.theme.set(ThemeMode.LIGHT);
-          });
-
-        Button('深色')
-          .fontSize(12)
-          .onClick(() => {
-            this.app.theme.set(ThemeMode.DARK);
-          });
-      }
-      .width('100%');
     }
     .width('100%')
     .padding(16)
