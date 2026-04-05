@@ -8,6 +8,6 @@ import { BaseRepository } from './BaseRepository';
  */
 export class FocusRepository extends BaseRepository<Focus> {
   constructor() {
-    super(DatabaseConfig.FOCUS_TABLE, Focus);
+    super(DatabaseConfig.FOCUS_TABLE);
   }
 }

@@ -1,4 +1,5 @@
 import { AppState, useAppState } from '../../app/AppStates';
+import { SearchRouteParam } from '../../app/AppConstants';
 /**
  * 搜索目的页骨架。
  * 当前只承载统一的搜索路由结构，具体搜索交互后续在对应模块内实现。
@@ -6,18 +7,12 @@ import { AppState, useAppState } from '../../app/AppStates';
 @ComponentV2
 export struct SearchPlaceholderPage {
   @Local private app: AppState = useAppState();
-  @Param routeName: string = '';
+  @Param routeParam: SearchRouteParam = new SearchRouteParam('', '搜索');
   @Local private pathStack: NavPathStack | undefined = undefined;
 
   private resolveTitle(): string {
-    if (this.routeName === 'planSearch') {
-      return '搜索日程';
-    }
-    if (this.routeName === 'todoSearch') {
-      return '搜索待办';
-    }
-    if (this.routeName === 'ideaSearch') {
-      return '搜索闪记';
+    if (this.routeParam.pageTitle.length > 0) {
+      return this.routeParam.pageTitle;
     }
     return '搜索';
   }
@@ -64,6 +59,6 @@ export struct SearchPlaceholderPage {
 }
 
 @Builder
-export function SearchPlaceholderPageBuilder(name: string, _param: Object) {
-  SearchPlaceholderPage({ routeName: name });
+export function SearchPlaceholderPageBuilder(name: string, param: Object) {
+  SearchPlaceholderPage({ routeParam: param as SearchRouteParam });
 }

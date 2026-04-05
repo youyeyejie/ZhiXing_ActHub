@@ -6,6 +6,7 @@ import { CircleButton } from '../../components/buttons/CircleButton';
 import { SearchOverlay } from '../../components/overlays/SearchOverlay';
 import { SearchScope } from '../../core/services/SearchService';
 import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
+import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState  } from '../../app/AppStates';
 
 /**
@@ -66,7 +67,7 @@ export struct PlanPage {
             buttonSize: 46,
             fillColor: this.app.theme.palette.primary,
             onTap: () => {
-              this.app.nav.openPlanSearch();
+              this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('plan', '搜索日程'));
             }
           });
         }

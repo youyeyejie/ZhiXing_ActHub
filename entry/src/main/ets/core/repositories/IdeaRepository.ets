@@ -8,6 +8,6 @@ import { BaseRepository } from './BaseRepository';
  */
 export class IdeaRepository extends BaseRepository<Idea> {
   constructor() {
-    super(DatabaseConfig.IDEA_TABLE, Idea);
+    super(DatabaseConfig.IDEA_TABLE);
   }
 }

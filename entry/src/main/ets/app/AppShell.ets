@@ -1,5 +1,4 @@
-import { AppTab } from './AppConstants';
-import { AppFlow, AppRoute } from './AppConstants';
+import { AppFlow, AppOverlayRoute, AppRoute } from './AppConstants';
 import { AppState, useAppState } from './AppStates';
 import { MainShell } from './MainShell';
 import { SplashPage } from '../pages/splash';
@@ -7,6 +6,7 @@ import { LoginPage } from '../pages/login';
 import { FocusDestinationPage } from '../pages/navigation/FocusDestinationPage';
 import { SearchPlaceholderPage } from '../pages/navigation/SearchPlaceholderPage';
 import { SharedTestDestinationPage } from '../pages/navigation/SharedTestDestinationPage';
+import { SearchRouteParam } from './AppConstants';
 
 /**
  * 应用总壳层。
@@ -15,7 +15,10 @@ import { SharedTestDestinationPage } from '../pages/navigation/SharedTestDestina
 @ComponentV2
 export struct AppShell {
   @Local private app: AppState = useAppState();
-  @Local private currentTab: AppTab = AppTab.PLAN;
+
+  private createFallbackSearchParam(routeName: string): SearchRouteParam {
+    return new SearchRouteParam(routeName, '搜索');
+  }
 
   @Builder
   private buildBaseContent() {
@@ -32,16 +35,12 @@ export struct AppShell {
   private buildDestination(name: string) {
     if (name === AppRoute.FOCUS) {
       FocusDestinationPage();
-    } else if (
-      name === AppRoute.PLAN_SEARCH ||
-      name === AppRoute.TODO_SEARCH ||
-      name === AppRoute.IDEA_SEARCH
-    ) {
-      SearchPlaceholderPage({ routeName: name });
-    } else if (name === AppRoute.SHARED_TEST) {
+    } else if (name === AppOverlayRoute.SEARCH) {
+      SearchPlaceholderPage({ routeParam: this.createFallbackSearchParam(name) });
+    } else if (name === AppOverlayRoute.SHARED_TEST) {
       SharedTestDestinationPage();
     } else {
-      SearchPlaceholderPage({ routeName: name });
+      SearchPlaceholderPage({ routeParam: this.createFallbackSearchParam(name) });
     }
   }
 

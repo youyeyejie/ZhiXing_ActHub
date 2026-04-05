@@ -8,6 +8,6 @@ import { BaseRepository } from './BaseRepository';
  */
 export class TodoCategoryRepository extends BaseRepository<TodoCategory> {
   constructor() {
-    super(DatabaseConfig.TODO_CATEGORY_TABLE, TodoCategory);
+    super(DatabaseConfig.TODO_CATEGORY_TABLE);
   }
 }

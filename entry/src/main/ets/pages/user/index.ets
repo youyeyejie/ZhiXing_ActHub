@@ -2,11 +2,8 @@ import { ActivityHeatmap } from '../idea/components/ActivityHeatmap';
 import { FocusStatsChart } from './components/FocusStatsChart';
 import { SettingsPanel } from './components/SettingsPanel';
 import { CircleButton } from '../../components/buttons/CircleButton';
-import { SearchOverlay } from '../../components/overlays/SearchOverlay';
-import { SearchScope } from '../../core/services/SearchService';
-import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
+import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
-import { InteractableCard } from '../../components/card/InteractableCard';
 
 /**
  * 我的页面骨架。
@@ -15,11 +12,6 @@ import { InteractableCard } from '../../components/card/InteractableCard';
 @ComponentV2
 export struct UserPage {
   @Local private app: AppState = useAppState();
-  @Local private topInset: number = SafeAreaUtils.getSearchTopInset();
-
-  aboutToAppear(): void {
-    this.topInset = SafeAreaUtils.getSearchTopInset();
-  }
 
   build() {
     Scroll() {
@@ -37,7 +29,7 @@ export struct UserPage {
             buttonSize: 46,
             fillColor: this.app.theme.palette.primary,
             onTap: () => {
-              this.app.nav.openSharedTest();
+              this.app.nav.pushOverlayByName(AppOverlayRoute.SHARED_TEST);
             }
           });
         }

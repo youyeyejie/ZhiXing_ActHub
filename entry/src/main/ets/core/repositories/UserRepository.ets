@@ -9,18 +9,18 @@ import { BaseRepository } from './BaseRepository';
  */
 export class UserRepository extends BaseRepository<User> {
   constructor() {
-    super(DatabaseConfig.USER_TABLE, User);
+    super(DatabaseConfig.USER_TABLE);
   }
 
   findByAccount(account: string): Promise<User | null> {
     return Promise.resolve(
-      this.entityQuery().where('name', account).first()
+      this.query.where('name', account).first()
     );
   }
 
   hasAccount(account: string): Promise<boolean> {
     return Promise.resolve(
-      this.entityQuery().where('name', account).exists()
+      this.query.where('name', account).exists()
     );
   }
 
@@ -31,7 +31,7 @@ export class UserRepository extends BaseRepository<User> {
       return Promise.resolve(null);
     }
 
-    if (this.entityQuery().where('name', normalizedAccount).exists()) {
+    if (this.query.where('name', normalizedAccount).exists()) {
       return Promise.resolve(null);
     }
 
@@ -55,7 +55,7 @@ export class UserRepository extends BaseRepository<User> {
       return Promise.resolve(null);
     }
 
-    const user: User | null = this.entityQuery()
+    const user: User | null = this.query
       .where('name', normalizedAccount)
       .where('password', normalizedPassword)
       .first();
@@ -70,10 +70,6 @@ export class UserRepository extends BaseRepository<User> {
   updateProfile(user: User): Promise<void> {
     user.updatedAt = Date.now();
     return this.save(user);
-  }
-
-  private entityQuery(): QueryBuilder<User> {
-    return this.orm.query(this.entityClass);
   }
 
   private createUserId(account: string, timestamp: number): string {

@@ -1,5 +1,5 @@
 import { BottomTabBar } from '../components/navigation/BottomTabBar';
-import { AppTab } from './AppConstants';
+import { AppRoute, AppTab } from './AppConstants';
 import { AppState, useAppState } from './AppStates';
 import { SafeAreaUtils } from '../core/theme/SafeAreaUtils';
 import { PlanPage } from '../pages/plan';
@@ -22,26 +22,13 @@ export struct MainShell {
     this.bottomInset = SafeAreaUtils.getBottomInset();
   }
 
-  private resolveTabByIndex(index: number): AppTab {
-    if (index === 0) {
-      return AppTab.PLAN;
-    }
-    if (index === 1) {
-      return AppTab.TODO;
-    }
-    if (index === 2) {
-      return AppTab.IDEA;
-    }
-    return AppTab.USER;
-  }
-  
   @Builder
   private buildCurrentTabPage() {
-    if (this.app.nav.selectedTab === AppTab.PLAN) {
+    if (this.app.nav.mainRouteName === AppRoute.PLAN) {
       PlanPage();
-    } else if (this.app.nav.selectedTab === AppTab.TODO) {
+    } else if (this.app.nav.mainRouteName === AppRoute.TODO) {
       TodoPage();
-    } else if (this.app.nav.selectedTab === AppTab.IDEA) {
+    } else if (this.app.nav.mainRouteName === AppRoute.IDEA) {
       IdeaPage();
     } else {
       UserPage();
@@ -57,7 +44,7 @@ export struct MainShell {
       .width('100%');
 
       BottomTabBar({
-        currentTab: this.app.nav.selectedTab,
+        currentTab: this.app.nav.currentTab(),
         onTabChange: (tab: AppTab): void => {
           this.app.nav.selectTab(tab);
         },

@@ -8,6 +8,6 @@ import { BaseRepository } from './BaseRepository';
  */
 export class PlanRepository extends BaseRepository<Plan> {
   constructor() {
-    super(DatabaseConfig.PLAN_TABLE, Plan);
+    super(DatabaseConfig.PLAN_TABLE);
   }
 }
