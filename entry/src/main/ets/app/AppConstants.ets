@@ -26,10 +26,6 @@ export class AppRoute {
   static readonly PLAN_SEARCH: string = 'planSearch';
   static readonly TODO_SEARCH: string = 'todoSearch';
   static readonly IDEA_SEARCH: string = 'ideaSearch';
-  static readonly PLAN_DETAIL: string = 'planDetail';
-  static readonly TODO_DETAIL: string = 'todoDetail';
-  static readonly IDEA_DETAIL: string = 'ideaDetail';
-  static readonly USER_SETTINGS: string = 'userSettings';
   static readonly SHARED_TEST: string = 'sharedTest';
 }
 

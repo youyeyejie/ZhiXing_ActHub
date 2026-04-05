@@ -45,50 +45,18 @@ export class AppNav extends NavPathStack {
     });
   }
 
-  openUserSettings(): void {
-    this.hasOverlayRoute = true;
-    this.pushPath({ name: AppRoute.USER_SETTINGS });
-  }
-
   openSharedTest(): void {
     this.hasOverlayRoute = true;
     this.pushPath({ name: AppRoute.SHARED_TEST });
-  }
-
-  openPlanDetail(planId: string): void {
-    this.detailModuleName = 'plan';
-    this.detailRecordId = planId;
-    this.hasOverlayRoute = true;
-    this.pushPathByName(AppRoute.PLAN_DETAIL, new DetailRouteParam('plan', planId, '日程详情'), false);
-  }
-
-  openTodoDetail(todoId: string): void {
-    this.detailModuleName = 'todo';
-    this.detailRecordId = todoId;
-    this.hasOverlayRoute = true;
-    this.pushPathByName(AppRoute.TODO_DETAIL, new DetailRouteParam('todo', todoId, '待办详情'), false);
-  }
-
-  openIdeaDetail(ideaId: string): void {
-    this.detailModuleName = 'idea';
-    this.detailRecordId = ideaId;
-    this.hasOverlayRoute = true;
-    this.pushPathByName(AppRoute.IDEA_DETAIL, new DetailRouteParam('idea', ideaId, '闪记详情'), false);
   }
 
   back(animated: boolean = true): void {
     this.pop(animated);
     const pathNames = this.getAllPathName();
     this.hasOverlayRoute = pathNames.length > 0;
-    if (pathNames.length === 0 || !this.isDetailRoute(pathNames[pathNames.length - 1])) {
+    if (pathNames.length === 0 ) {
       this.detailModuleName = '';
       this.detailRecordId = '';
     }
-  }
-
-  private isDetailRoute(routeName: string): boolean {
-    return routeName === AppRoute.PLAN_DETAIL ||
-      routeName === AppRoute.TODO_DETAIL ||
-      routeName === AppRoute.IDEA_DETAIL;
   }
 }

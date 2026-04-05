@@ -45,26 +45,6 @@ export struct UserPage {
         Text('TODO: 用户信息区与主题切换入口。')
           .fontSize(14)
           .fontColor(this.app.theme.palette.textSecondary);
-        InteractableCard({
-          leftHint: '左滑: 删除',
-          rightHint: '右滑: 启动专注',
-          enableSwipeLeft: true,
-          enableSwipeRight: false,
-          onCardTap: () => {
-            this.app.nav.openPlanDetail('shared-test-plan-001');
-          }
-          }) {
-          Column({ space: 8 }) {
-              Text('交互卡片手势测试')
-              .fontSize(16)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(this.app.theme.palette.textPrimary);
-              Text('左右滑动达到阈值后触发回调。')
-              .fontSize(12)
-              .fontColor(this.app.theme.palette.textSecondary);
-          }
-          .alignItems(HorizontalAlign.Start);
-          }
         FocusStatsChart();
         ActivityHeatmap();
         SettingsPanel();

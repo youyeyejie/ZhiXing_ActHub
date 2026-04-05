@@ -42,7 +42,7 @@ export struct SharedInteractionTestPage {
   private detailDialogController: CustomDialogController = new CustomDialogController({
     builder: this.buildDetailDialog,
     customStyle: true,
-    autoCancel: false,
+    autoCancel: true,
     alignment: DialogAlignment.Center
   });
 
@@ -124,27 +124,31 @@ export struct SharedInteractionTestPage {
   }
 
   @Builder
+  private buildDetailDialogContent() {
+    Column({ space: 10 }) {
+      Text('详情卡片基础组件')
+        .fontSize(18)
+        .fontWeight(FontWeight.Bold);
+      Text('宽度 80%，高度 60%，支持背景遮罩和右上角关闭。')
+        .fontSize(13)
+        .fontColor(this.app.theme.palette.textSecondary);
+      Text('你可以在这里放详情展示、编辑表单或操作按钮。')
+        .fontSize(13)
+        .fontColor(this.app.theme.palette.textSecondary);
+    }
+    .alignItems(HorizontalAlign.Start)
+    .width('100%');
+  }
+
+  @Builder
   private buildDetailDialog() {
     DetailCard({
-      isVisible: true,
+      controller: this.detailDialogController,
+      content: this.buildDetailDialogContent,
       onClose: () => {
-        this.detailDialogController.close();
+        this.pushLog('DetailCard 已关闭');
       }
-    }) {
-      Column({ space: 10 }) {
-        Text('详情卡片基础组件')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold);
-        Text('宽度 80%，高度 60%，支持背景遮罩和右上角关闭。')
-          .fontSize(13)
-          .fontColor(this.app.theme.palette.textSecondary);
-        Text('你可以在这里放详情展示、编辑表单或操作按钮。')
-          .fontSize(13)
-          .fontColor(this.app.theme.palette.textSecondary);
-      }
-      .alignItems(HorizontalAlign.Start)
-      .width('100%');
-    }
+    });
   }
 
   build() {
@@ -235,7 +239,6 @@ export struct SharedInteractionTestPage {
               fillColor: this.app.theme.palette.primary,
               buttonSize: 52,
               onTap: () => {
-                this.app.nav.openPlanDetail('shared-test-plan-001');
                 this.pushLog('通过 openPlanDetail 打开路由详情卡片');
               }
             });

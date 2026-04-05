@@ -2,53 +2,61 @@ import { AppState, useAppState } from '../../app/AppStates';
 
 /**
  * 详情卡片基础组件。
- * 提供页面居中展示、背景遮罩和右上角关闭入口。
+ * 使用 CustomDialog 承载内容，统一右上角关闭与系统返回的关闭行为。
  */
-@ComponentV2
+@CustomDialog
 export struct DetailCard {
-  @Local private app: AppState = useAppState();
-  @Param isVisible: boolean = false;
-  @Event onClose: () => void = () => {};
+  controller?: CustomDialogController;
+  onClose: () => void = () => {};
   @BuilderParam content: () => void = this.defaultContent;
-  @Local private maskOpacity: number = 0;
-  @Local private cardScale: number = 0.96;
-  @Local private rendered: boolean = false;
-  @Local private closing: boolean = false;
-  @Local private lastVisible: boolean = false;
+  private app: AppState = useAppState();
+  private dismissed: boolean = false;
 
   aboutToAppear(): void {
-    this.rendered = true;
-    this.closing = false;
-    this.lastVisible = this.isVisible;
-    this.maskOpacity = 0;
-    this.cardScale = 0.96;
-    setTimeout(() => {
-      this.maskOpacity = 1;
-      this.cardScale = 1;
-    }, 16);
+    this.dismissed = false;
   }
 
-  aboutToUpdate(): void {
-    if (this.isVisible !== this.lastVisible) {
-      this.lastVisible = this.isVisible;
-      if (!this.isVisible && this.rendered) {
-        this.requestDismiss();
-      }
+  aboutToDisappear(): void {
+    if (this.dismissed) {
+      return;
     }
+    this.dismissed = true;
+    this.onClose();
   }
 
   private requestDismiss(): void {
-    if (this.closing) {
+    if (this.dismissed) {
       return;
     }
-    this.closing = true;
-    this.maskOpacity = 0;
-    this.cardScale = 0.96;
-    setTimeout(() => {
-      this.rendered = false;
-      this.closing = false;
-      this.onClose();
-    }, 190);
+    if (this.controller !== undefined) {
+      this.controller.close();
+      return;
+    }
+    this.dismissed = true;
+    this.onClose();
+  }
+
+  @Builder
+  private buildHeader() {
+    Row() {
+      Blank();
+
+      Button({ type: ButtonType.Circle, stateEffect: true }) {
+        Text('×')
+          .fontSize(18)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.app.theme.palette.textSecondary);
+      }
+      .width(32)
+      .height(32)
+      .backgroundColor(this.app.theme.palette.background)
+      .onClick(() => {
+        this.requestDismiss();
+      });
+    }
+    .width('100%')
+    .justifyContent(FlexAlign.SpaceBetween)
+    .alignItems(VerticalAlign.Center);
   }
 
   @Builder
@@ -65,32 +73,21 @@ export struct DetailCard {
   }
 
   build() {
-    Stack({ alignContent: Alignment.Center }) {
-      Column()
-        .width('100%')
-        .height('100%')
-        .backgroundColor(this.app.theme.palette.mask)
-        .opacity(this.rendered ? this.maskOpacity : 0)
-        .animation({ duration: 220, curve: Curve.EaseOut, playMode: PlayMode.Normal })
-        .onClick(() => {
-          this.requestDismiss();
-        });
+    Column({ space: 10 }) {
+    //   this.buildHeader();
 
       Column({ space: 10 }) {
         this.content();
       }
-      .width('80%')
-      .height('60%')
-      .padding(18)
-      .borderRadius(20)
-      .backgroundColor(this.app.theme.palette.surface)
-      .opacity(this.rendered ? 1 : 0)
-      .scale({ x: this.cardScale, y: this.cardScale })
-      .animation({ duration: 220, curve: Curve.EaseOut, playMode: PlayMode.Normal })
-      .shadow({ radius: 16, color: this.app.theme.palette.mask, offsetX: 0, offsetY: 6 });
+      .width('100%')
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start);
     }
-    .width('100%')
-    .height('100%')
-    .zIndex(1100);
+    .width('80%')
+    .height('60%')
+    .padding(18)
+    .borderRadius(20)
+    .backgroundColor(this.app.theme.palette.surface)
+    .shadow({ radius: 16, color: this.app.theme.palette.mask, offsetX: 0, offsetY: 6 });
   }
 }

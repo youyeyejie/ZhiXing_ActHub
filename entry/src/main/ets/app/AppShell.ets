@@ -6,8 +6,6 @@ import { SplashPage } from '../pages/splash';
 import { LoginPage } from '../pages/login';
 import { FocusDestinationPage } from '../pages/navigation/FocusDestinationPage';
 import { SearchPlaceholderPage } from '../pages/navigation/SearchPlaceholderPage';
-import { DetailPlaceholderPage } from '../pages/navigation/DetailPlaceholderPage';
-import { SettingsPlaceholderPage } from '../pages/navigation/SettingsPlaceholderPage';
 import { SharedTestDestinationPage } from '../pages/navigation/SharedTestDestinationPage';
 
 /**
@@ -40,14 +38,6 @@ export struct AppShell {
       name === AppRoute.IDEA_SEARCH
     ) {
       SearchPlaceholderPage({ routeName: name });
-    } else if (
-      name === AppRoute.PLAN_DETAIL ||
-      name === AppRoute.TODO_DETAIL ||
-      name === AppRoute.IDEA_DETAIL
-    ) {
-      DetailPlaceholderPage({ routeName: name });
-    } else if (name === AppRoute.USER_SETTINGS) {
-      SettingsPlaceholderPage();
     } else if (name === AppRoute.SHARED_TEST) {
       SharedTestDestinationPage();
     } else {

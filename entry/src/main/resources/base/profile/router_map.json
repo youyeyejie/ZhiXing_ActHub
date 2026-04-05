@@ -21,26 +21,6 @@
       "buildFunction": "SearchPlaceholderPageBuilder"
     },
     {
-      "name": "planDetail",
-      "pageSourceFile": "src/main/ets/pages/navigation/DetailPlaceholderPage.ets",
-      "buildFunction": "DetailPlaceholderPageBuilder"
-    },
-    {
-      "name": "todoDetail",
-      "pageSourceFile": "src/main/ets/pages/navigation/DetailPlaceholderPage.ets",
-      "buildFunction": "DetailPlaceholderPageBuilder"
-    },
-    {
-      "name": "ideaDetail",
-      "pageSourceFile": "src/main/ets/pages/navigation/DetailPlaceholderPage.ets",
-      "buildFunction": "DetailPlaceholderPageBuilder"
-    },
-    {
-      "name": "userSettings",
-      "pageSourceFile": "src/main/ets/pages/navigation/SettingsPlaceholderPage.ets",
-      "buildFunction": "SettingsPlaceholderPageBuilder"
-    },
-    {
       "name": "sharedTest",
       "pageSourceFile": "src/main/ets/pages/navigation/SharedTestDestinationPage.ets",
       "buildFunction": "SharedTestDestinationPageBuilder"
