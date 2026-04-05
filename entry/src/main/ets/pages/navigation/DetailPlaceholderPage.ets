@@ -8,6 +8,8 @@ import { DetailCard } from '../../components/card/DetailCard';
 export struct DetailPlaceholderPage {
   @Local private app: AppState = useAppState();
   @Param routeName: string = '';
+  @Local private isDetailVisible: boolean = true;
+  @Local private closingByBack: boolean = false;
 
   private resolveTitle(): string {
     if (this.routeName === 'planDetail') {
@@ -42,13 +44,28 @@ export struct DetailPlaceholderPage {
     return '未提供';
   }
 
+  private dismissFromSystemBack(): void {
+    if (this.closingByBack) {
+      return;
+    }
+    this.closingByBack = true;
+    this.isDetailVisible = false;
+    setTimeout(() => {
+      this.app.nav.back(false);
+      this.closingByBack = false;
+    }, 200);
+  }
+
   build() {
     NavDestination() {
       Stack() {
         DetailCard({
-          isVisible: true,
+          isVisible: this.isDetailVisible,
           onClose: () => {
-            this.app.nav.back();
+            if (this.closingByBack) {
+              return;
+            }
+            this.app.nav.back(false);
           }
         }) {
           Column({ space: 10 }) {
@@ -85,7 +102,7 @@ export struct DetailPlaceholderPage {
     .height('100%')
     .backgroundColor(Color.Transparent)
     .onBackPressed(() => {
-      this.app.nav.back();
+      this.dismissFromSystemBack();
       return true;
     });
   }

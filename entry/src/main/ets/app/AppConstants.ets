@@ -54,3 +54,6 @@ export class DetailRouteParam {
     this.pageTitle = pageTitle;
   }
 }
+
+export class FocusRouteParam {
+}

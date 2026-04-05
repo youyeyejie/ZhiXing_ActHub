@@ -12,8 +12,14 @@ export struct DetailCard {
   @BuilderParam content: () => void = this.defaultContent;
   @Local private maskOpacity: number = 0;
   @Local private cardScale: number = 0.96;
+  @Local private rendered: boolean = false;
+  @Local private closing: boolean = false;
+  @Local private lastVisible: boolean = false;
 
   aboutToAppear(): void {
+    this.rendered = true;
+    this.closing = false;
+    this.lastVisible = this.isVisible;
     this.maskOpacity = 0;
     this.cardScale = 0.96;
     setTimeout(() => {
@@ -22,10 +28,25 @@ export struct DetailCard {
     }, 16);
   }
 
+  aboutToUpdate(): void {
+    if (this.isVisible !== this.lastVisible) {
+      this.lastVisible = this.isVisible;
+      if (!this.isVisible && this.rendered) {
+        this.requestDismiss();
+      }
+    }
+  }
+
   private requestDismiss(): void {
+    if (this.closing) {
+      return;
+    }
+    this.closing = true;
     this.maskOpacity = 0;
     this.cardScale = 0.96;
     setTimeout(() => {
+      this.rendered = false;
+      this.closing = false;
       this.onClose();
     }, 190);
   }
@@ -44,33 +65,32 @@ export struct DetailCard {
   }
 
   build() {
-    if (this.isVisible) {
-      Stack({ alignContent: Alignment.Center }) {
-        Column()
-          .width('100%')
-          .height('100%')
-          .backgroundColor(this.app.theme.palette.mask)
-          .opacity(this.maskOpacity)
-          .animation({ duration: 220, curve: Curve.EaseOut, playMode: PlayMode.Normal })
-          .onClick(() => {
-            this.requestDismiss();
-          });
-
-        Column({ space: 10 }) {
-          this.content();
-        }
-        .width('80%')
-        .height('60%')
-        .padding(18)
-        .borderRadius(20)
-        .backgroundColor(this.app.theme.palette.surface)
-        .scale({ x: this.cardScale, y: this.cardScale })
+    Stack({ alignContent: Alignment.Center }) {
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor(this.app.theme.palette.mask)
+        .opacity(this.rendered ? this.maskOpacity : 0)
         .animation({ duration: 220, curve: Curve.EaseOut, playMode: PlayMode.Normal })
-        .shadow({ radius: 16, color: this.app.theme.palette.mask, offsetX: 0, offsetY: 6 });
+        .onClick(() => {
+          this.requestDismiss();
+        });
+
+      Column({ space: 10 }) {
+        this.content();
       }
-      .width('100%')
-      .height('100%')
-      .zIndex(1100);
+      .width('80%')
+      .height('60%')
+      .padding(18)
+      .borderRadius(20)
+      .backgroundColor(this.app.theme.palette.surface)
+      .opacity(this.rendered ? 1 : 0)
+      .scale({ x: this.cardScale, y: this.cardScale })
+      .animation({ duration: 220, curve: Curve.EaseOut, playMode: PlayMode.Normal })
+      .shadow({ radius: 16, color: this.app.theme.palette.mask, offsetX: 0, offsetY: 6 });
     }
+    .width('100%')
+    .height('100%')
+    .zIndex(1100);
   }
 }

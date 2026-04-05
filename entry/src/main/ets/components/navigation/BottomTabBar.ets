@@ -51,8 +51,10 @@ export struct BottomTabBar {
     .padding({ top: 2, left: 8, right: 8 })
     .alignItems(HorizontalAlign.Center)
     .offset({y:-20})
-    .onClick(() => {
-      this.onFocusTap();
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        this.onFocusTap();
+      }
     });
   }
 

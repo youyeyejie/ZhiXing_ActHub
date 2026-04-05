@@ -11,12 +11,18 @@ export struct FocusDestinationPage {
   @Local private app: AppState = useAppState();
   @Local private pathStack: NavPathStack | undefined = undefined;
   @Local private pageOffsetY: number = 1200;
+  @Local private pageTravelY: number = 1200;
   @Local private closing: boolean = false;
   @Local private entered: boolean = false;
 
   aboutToAppear(): void {
-    this.pageOffsetY = this.resolveOffscreenOffset();
+    this.pageTravelY = this.resolveOffscreenOffset();
+    this.pageOffsetY = this.pageTravelY;
     this.entered = false;
+    this.closing = false;
+    setTimeout(() => {
+      this.startEnterAnimation();
+    }, 16);
   }
 
   private resolveOffscreenOffset(): number {
@@ -33,11 +39,11 @@ export struct FocusDestinationPage {
       return;
     }
     this.closing = true;
-    this.pageOffsetY = this.resolveOffscreenOffset();
+    this.pageOffsetY = this.pageTravelY;
     setTimeout(() => {
-      this.app.nav.back();
+      this.app.nav.back(false);
       this.closing = false;
-    }, 500);
+    }, 260);
   }
 
   private startEnterAnimation(): void {
@@ -47,7 +53,7 @@ export struct FocusDestinationPage {
     this.entered = true;
     setTimeout(() => {
       this.pageOffsetY = 0;
-    }, 16);
+    }, 1);
   }
 
   build() {
@@ -72,14 +78,13 @@ export struct FocusDestinationPage {
       .height('100%')
       .backgroundColor(this.app.theme.palette.background)
       .translate({ x: 0, y: this.pageOffsetY })
-      .animation({ duration: 500, curve: Curve.EaseInOut, playMode: PlayMode.Normal });
+      .animation({ duration: 260, curve: Curve.EaseOut, playMode: PlayMode.Normal });
     }
     .width('100%')
     .height('100%')
     .backgroundColor(Color.Transparent)
     .onReady((context: NavDestinationContext) => {
       this.pathStack = context.pathStack;
-      this.startEnterAnimation();
     })
     .onBackPressed(() => {
       this.closeWithAnimation();

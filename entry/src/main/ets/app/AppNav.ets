@@ -1,4 +1,4 @@
-import { AppRoute, AppTab, DetailRouteParam, SearchRouteParam } from './AppConstants';
+import { AppRoute, AppTab, DetailRouteParam, FocusRouteParam, SearchRouteParam } from './AppConstants';
 
 /**
  * 应用主导航状态。
@@ -18,7 +18,7 @@ export class AppNav extends NavPathStack {
 
   openFocus(): void {
     this.hasOverlayRoute = true;
-    this.pushPath({ name: AppRoute.FOCUS });
+    this.pushPathByName(AppRoute.FOCUS, new FocusRouteParam(), false);
   }
 
   openPlanSearch(): void {
@@ -59,34 +59,25 @@ export class AppNav extends NavPathStack {
     this.detailModuleName = 'plan';
     this.detailRecordId = planId;
     this.hasOverlayRoute = true;
-    this.pushPath({
-      name: AppRoute.PLAN_DETAIL,
-      param: new DetailRouteParam('plan', planId, '日程详情')
-    });
+    this.pushPathByName(AppRoute.PLAN_DETAIL, new DetailRouteParam('plan', planId, '日程详情'), false);
   }
 
   openTodoDetail(todoId: string): void {
     this.detailModuleName = 'todo';
     this.detailRecordId = todoId;
     this.hasOverlayRoute = true;
-    this.pushPath({
-      name: AppRoute.TODO_DETAIL,
-      param: new DetailRouteParam('todo', todoId, '待办详情')
-    });
+    this.pushPathByName(AppRoute.TODO_DETAIL, new DetailRouteParam('todo', todoId, '待办详情'), false);
   }
 
   openIdeaDetail(ideaId: string): void {
     this.detailModuleName = 'idea';
     this.detailRecordId = ideaId;
     this.hasOverlayRoute = true;
-    this.pushPath({
-      name: AppRoute.IDEA_DETAIL,
-      param: new DetailRouteParam('idea', ideaId, '闪记详情')
-    });
+    this.pushPathByName(AppRoute.IDEA_DETAIL, new DetailRouteParam('idea', ideaId, '闪记详情'), false);
   }
 
-  back(): void {
-    this.pop();
+  back(animated: boolean = true): void {
+    this.pop(animated);
     const pathNames = this.getAllPathName();
     this.hasOverlayRoute = pathNames.length > 0;
     if (pathNames.length === 0 || !this.isDetailRoute(pathNames[pathNames.length - 1])) {
