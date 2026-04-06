@@ -1,6 +1,7 @@
 import { AppState, useAppState } from '../../app/AppStates';
 import { SafeAreaInsetLayout } from '../../components/layout/SafeAreaInsetLayout';
 import { ActionSheetController } from '../../components/overlays/ActionSheet';
+import { DetailCardController } from '../../components/card/DetailCard';
 import { SharedInteractionTestPage } from '../sharedtest';
 
 /**
@@ -11,7 +12,9 @@ import { SharedInteractionTestPage } from '../sharedtest';
 export struct SharedTestDestinationPage {
   @Local private app: AppState = useAppState();
   @Local private actionSheetVisible: boolean = false;
+  @Local private detailCardVisible: boolean = false;
   private actionSheetController: ActionSheetController = new ActionSheetController();
+  private detailCardController: DetailCardController = new DetailCardController();
 
   build() {
     NavDestination() {
@@ -21,12 +24,20 @@ export struct SharedTestDestinationPage {
       }) {
         SharedInteractionTestPage({
           actionSheetVisible: this.actionSheetVisible,
+          detailCardVisible: this.detailCardVisible,
           actionSheetController: this.actionSheetController,
+          detailCardController: this.detailCardController,
           onOpenActionSheet: () => {
             this.actionSheetVisible = true;
           },
           onCloseActionSheet: () => {
             this.actionSheetVisible = false;
+          },
+          onOpenDetailCard: () => {
+            this.detailCardVisible = true;
+          },
+          onCloseDetailCard: () => {
+            this.detailCardVisible = false;
           }
         });
       }
@@ -35,6 +46,10 @@ export struct SharedTestDestinationPage {
     .height('100%')
     .backgroundColor(this.app.theme.palette.background)
     .onBackPressed(() => {
+      if (this.detailCardVisible) {
+        this.detailCardController.dismiss();
+        return true;
+      }
       if (this.actionSheetVisible) {
         this.actionSheetController.dismiss();
         return true;

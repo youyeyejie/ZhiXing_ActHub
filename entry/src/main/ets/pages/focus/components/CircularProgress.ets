@@ -1,4 +1,4 @@
-import { AppState, useAppState } from '../../app/AppStates';
+import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
  * 通用圆环组件。

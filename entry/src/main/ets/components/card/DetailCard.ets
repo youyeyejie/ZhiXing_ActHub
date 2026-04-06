@@ -1,39 +1,51 @@
 import { AppState, useAppState } from '../../app/AppStates';
 
+export class DetailCardController {
+  dismiss: () => void = () => {};
+}
+
 /**
  * 详情卡片基础组件。
- * 使用 CustomDialog 承载内容，统一右上角关闭与系统返回的关闭行为。
+ * 使用页面内遮罩承载内容，统一遮罩点击、右上角关闭与系统返回关闭行为。
  */
-@CustomDialog
+@ComponentV2
 export struct DetailCard {
-  controller?: CustomDialogController;
-  onClose: () => void = () => {};
+  @Param isVisible: boolean = false;
+  @Param controller: DetailCardController = new DetailCardController();
+  @Event onDismiss: () => void = () => {};
   @BuilderParam content: () => void = this.defaultContent;
-  private app: AppState = useAppState();
-  private dismissed: boolean = false;
+  @Local private app: AppState = useAppState();
+  @Local private dismissing: boolean = false;
+  @Local private maskOpacity: number = 0;
+  @Local private cardScale: number = 0.88;
+  @Local private cardOpacity: number = 0;
 
   aboutToAppear(): void {
-    this.dismissed = false;
-  }
-
-  aboutToDisappear(): void {
-    if (this.dismissed) {
-      return;
-    }
-    this.dismissed = true;
-    this.onClose();
+    this.controller.dismiss = () => {
+      this.requestDismiss();
+    };
+    this.dismissing = false;
+    this.maskOpacity = 0;
+    this.cardScale = 0.88;
+    this.cardOpacity = 0;
+    setTimeout(() => {
+      this.maskOpacity = 1;
+      this.cardScale = 1;
+      this.cardOpacity = 1;
+    }, 16);
   }
 
   private requestDismiss(): void {
-    if (this.dismissed) {
+    if (this.dismissing) {
       return;
     }
-    if (this.controller !== undefined) {
-      this.controller.close();
-      return;
-    }
-    this.dismissed = true;
-    this.onClose();
+    this.dismissing = true;
+    this.maskOpacity = 0;
+    this.cardScale = 0.88;
+    this.cardOpacity = 0;
+    setTimeout(() => {
+      this.onDismiss();
+    }, 200);
   }
 
   @Builder
@@ -47,8 +59,8 @@ export struct DetailCard {
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.textSecondary);
       }
-      .width(32)
-      .height(32)
+        .width(56)
+        .height(56)
       .backgroundColor(this.app.theme.palette.background)
       .onClick(() => {
         this.requestDismiss();
@@ -73,21 +85,48 @@ export struct DetailCard {
   }
 
   build() {
-    Column({ space: 10 }) {
-    //   this.buildHeader();
+    Stack({ alignContent: Alignment.Center }) {
+      if (this.isVisible) {
+        Column()
+          .width('100%')
+          .height('100%')
+          .backgroundColor(this.app.theme.palette.mask)
+          .opacity(this.maskOpacity)
+          .animation({ duration: 200, curve: Curve.EaseOut, playMode: PlayMode.Normal })
+          .onClick(() => {
+            this.requestDismiss();
+          });
 
-      Column({ space: 10 }) {
-        this.content();
+        Column({ space: 10 }) {
+          this.buildHeader();
+
+          Column({ space: 10 }) {
+            this.content();
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start);
+        }
+        .width('80%')
+        .height('60%')
+        .padding(18)
+        .borderRadius(20)
+        .backgroundColor(this.app.theme.palette.surface)
+        .shadow({ radius: 16, color: this.app.theme.palette.mask, offsetX: 0, offsetY: 6 })
+        .opacity(this.cardOpacity)
+        .scale({ x: this.cardScale, y: this.cardScale })
+        .animation({ duration: 200, curve: Curve.EaseOut, playMode: PlayMode.Normal });
       }
-      .width('100%')
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start);
     }
-    .width('80%')
-    .height('60%')
-    .padding(18)
-    .borderRadius(20)
-    .backgroundColor(this.app.theme.palette.surface)
-    .shadow({ radius: 16, color: this.app.theme.palette.mask, offsetX: 0, offsetY: 6 });
+    .width('100%')
+    .height('100%')
+    .focusable(this.isVisible)
+    .onKeyEvent((event: KeyEvent) => {
+      if (this.isVisible && event.type === KeyType.Down && event.keyCode === 2) {
+        this.requestDismiss();
+        return true;
+      }
+      return false;
+    });
   }
 }

@@ -1,17 +1,16 @@
 import { InteractableCard } from '../../components/card/InteractableCard';
-import { DetailCard } from '../../components/card/DetailCard';
+import { DetailCard, DetailCardController } from '../../components/card/DetailCard';
 import { ActionSheet, ActionSheetController } from '../../components/overlays/ActionSheet';
 import { AutoSaveText } from '../../components/form/AutoSaveText';
 import { EditableSuite } from '../../components/form/EditableSuite';
 import { UndoNotification } from '../../components/feedback/UndoNotification';
-import { CircularProgress } from '../../components/progress/CircularProgress';
 import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
 import { ThemeMode } from '../../core/theme/ThemeManager';
 
 /**
  * 通用交互抽象层测试页。
- * 使用 CustomDialog 打开窗口级浮层，确保可覆盖 TabBar。
+ * 使用组件化浮层测试遮罩、卡片和关闭交互。
  */
 @ComponentV2
 export struct SharedInteractionTestPage {
@@ -21,29 +20,16 @@ export struct SharedInteractionTestPage {
   @Local private progress: number = 0.45;
   @Local private logs: string[] = [];
   @Param actionSheetVisible: boolean = false;
+  @Param detailCardVisible: boolean = false;
   @Param actionSheetController: ActionSheetController = new ActionSheetController();
+  @Param detailCardController: DetailCardController = new DetailCardController();
   @Event onOpenActionSheet: () => void = () => {};
   @Event onCloseActionSheet: () => void = () => {};
-
-  private detailDialogController: CustomDialogController = new CustomDialogController({
-    builder: this.buildDetailDialog,
-    customStyle: true,
-    autoCancel: true,
-    alignment: DialogAlignment.Center
-  });
+  @Event onOpenDetailCard: () => void = () => {};
+  @Event onCloseDetailCard: () => void = () => {};
 
   private pushLog(message: string): void {
     this.logs = [message, ...this.logs].slice(0, 6);
-  }
-
-  private cycleProgress(): void {
-    const next = this.progress + 0.15;
-    this.progress = next > 1 ? 0.1 : next;
-  }
-
-  private decreaseProgress(): void {
-    const next = this.progress - 0.15;
-    this.progress = next < 0 ? 1 : next;
   }
 
   @Builder
@@ -106,9 +92,11 @@ export struct SharedInteractionTestPage {
   @Builder
   private buildDetailDialog() {
     DetailCard({
-      controller: this.detailDialogController,
+      isVisible: this.detailCardVisible,
+      controller: this.detailCardController,
       content: this.buildDetailDialogContent,
-      onClose: () => {
+      onDismiss: () => {
+        this.onCloseDetailCard();
         this.pushLog('DetailCard 已关闭');
       }
     });
@@ -161,7 +149,7 @@ export struct SharedInteractionTestPage {
               this.pushLog('InteractableCard 右滑触发');
             },
             onCardTap: () => {
-              this.detailDialogController.open();
+              this.onOpenDetailCard();
               this.pushLog('InteractableCard 点击打开详情卡片');
             }
           }) {
@@ -190,17 +178,6 @@ export struct SharedInteractionTestPage {
                 this.pushLog('ActionSheet 打开');
               });
 
-            Button('打开详情卡片')
-              .type(ButtonType.Circle).width(56)
-              .fontSize(12)
-              .stateEffect(true)
-              .backgroundColor(this.app.theme.palette.primary)
-              .fontColor(this.app.theme.palette.surface)
-              .onClick(() => {
-                this.detailDialogController.open();
-                this.pushLog('通过 Button 打开详情卡片');
-              });
-
             Button('?')
               .type(ButtonType.Circle)
               .width(56)
@@ -223,44 +200,12 @@ export struct SharedInteractionTestPage {
               .backgroundColor(this.app.theme.palette.primary)
               .fontColor(this.app.theme.palette.surface)
               .onClick(() => {
-                this.detailDialogController.open();
-                this.pushLog('通过 CustomDialog 打开详情卡片');
-              });
-
-            Button('-')
-              .type(ButtonType.Circle)
-              .width(56)
-              .height(56)
-              .fontSize(24)
-              .stateEffect(true)
-              .backgroundColor(this.app.theme.palette.primary)
-              .fontColor(this.app.theme.palette.surface)
-              .onClick(() => {
-                this.decreaseProgress();
-                this.pushLog('CircularProgress 更新到 ' + Math.round(this.progress * 100).toString() + '%');
-              });
-
-            Button('+')
-              .type(ButtonType.Circle)
-              .width(56)
-              .height(56)
-              .fontSize(24)
-              .stateEffect(true)
-              .backgroundColor(this.app.theme.palette.primary)
-              .fontColor(this.app.theme.palette.surface)
-              .onClick(() => {
-                this.cycleProgress();
-                this.pushLog('CircularProgress 更新到 ' + Math.round(this.progress * 100).toString() + '%');
+                this.onOpenDetailCard();
+                this.pushLog('通过 DetailCard 组件打开详情卡片');
               });
           }
           .width('100%')
           .justifyContent(FlexAlign.SpaceBetween);
-
-          CircularProgress({
-            progress: this.progress,
-            diameter: 160,
-            strokeWidth: 10
-          });
 
           AutoSaveText({
             label: 'AutoSaveText 单组件测试',
@@ -333,6 +278,10 @@ export struct SharedInteractionTestPage {
 
       if (this.actionSheetVisible) {
         this.buildActionSheet();
+      }
+
+      if (this.detailCardVisible) {
+        this.buildDetailDialog();
       }
     }
     .width('100%')

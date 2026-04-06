@@ -1,4 +1,4 @@
-import { CircularProgress } from '../../../components/progress/CircularProgress';
+import { CircularProgress } from './CircularProgress';
 import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
