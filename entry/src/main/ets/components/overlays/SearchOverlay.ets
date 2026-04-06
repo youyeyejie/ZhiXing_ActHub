@@ -96,6 +96,7 @@ export struct SearchOverlay {
         SafeAreaInsetLayout({
           includeTop: true,
           extraTop: 20,
+          fillHeight: false,
           surfaceColor: this.resolveHeaderBackgroundColor()
         }) {
           Column() {

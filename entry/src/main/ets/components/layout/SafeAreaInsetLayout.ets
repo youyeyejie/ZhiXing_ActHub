@@ -10,6 +10,7 @@ export struct SafeAreaInsetLayout {
   @Param includeBottom: boolean = false;
   @Param extraTop: number = 0;
   @Param extraBottom: number = 0;
+  @Param fillHeight: boolean = true;
   @Param surfaceColor: ResourceColor = Color.Transparent;
   @BuilderParam content: () => void = this.emptyContent;
 
@@ -35,11 +36,13 @@ export struct SafeAreaInsetLayout {
       this.content();
     }
     .width('100%')
-    .height('100%')
     .padding({
       top: this.resolveTopPadding(),
       bottom: this.resolveBottomPadding()
     })
-    .backgroundColor(this.surfaceColor);
+    .backgroundColor(this.surfaceColor)
+    .constraintSize({
+      minHeight: this.fillHeight ? '100%' : undefined
+    });
   }
 }

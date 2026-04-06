@@ -1,5 +1,9 @@
 import { AppState, useAppState } from '../../app/AppStates';
 
+export class ActionSheetController {
+  dismiss: () => void = () => {};
+}
+
 /**
  * 半屏弹出容器。
  * 统一遮罩、半屏高度和键盘避让偏移。
@@ -10,6 +14,7 @@ export struct ActionSheet {
   @Param isVisible: boolean = false;
   @Param panelHeight: string = '62%';
   @Param keyboardOffset: number = 0;
+  @Param controller: ActionSheetController = new ActionSheetController();
   @Event onDismiss: () => void = () => {};
 
   @BuilderParam content: () => void = this.defaultContent;
@@ -31,6 +36,9 @@ export struct ActionSheet {
   }
 
   aboutToAppear(): void {
+    this.controller.dismiss = () => {
+      this.requestDismiss();
+    };
     this.panelOffsetY = 600;
     this.maskOpacity = 0;
     setTimeout(() => {

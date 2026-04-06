@@ -1,7 +1,7 @@
 import { CircleButton } from '../../components/buttons/CircleButton';
 import { InteractableCard } from '../../components/card/InteractableCard';
 import { DetailCard } from '../../components/card/DetailCard';
-import { ActionSheet } from '../../components/overlays/ActionSheet';
+import { ActionSheet, ActionSheetController } from '../../components/overlays/ActionSheet';
 import { AutoSaveText } from '../../components/form/AutoSaveText';
 import { EditableSuite } from '../../components/form/EditableSuite';
 import { UndoNotification } from '../../components/feedback/UndoNotification';
@@ -21,13 +21,10 @@ export struct SharedInteractionTestPage {
   @Local private undoVisible: boolean = false;
   @Local private progress: number = 0.45;
   @Local private logs: string[] = [];
-
-  private actionSheetDialogController: CustomDialogController = new CustomDialogController({
-    builder: this.buildActionSheetDialog,
-    customStyle: true,
-    autoCancel: false,
-    alignment: DialogAlignment.Bottom
-  });
+  @Param actionSheetVisible: boolean = false;
+  @Param actionSheetController: ActionSheetController = new ActionSheetController();
+  @Event onOpenActionSheet: () => void = () => {};
+  @Event onCloseActionSheet: () => void = () => {};
 
   private detailDialogController: CustomDialogController = new CustomDialogController({
     builder: this.buildDetailDialog,
@@ -51,36 +48,42 @@ export struct SharedInteractionTestPage {
   }
 
   @Builder
-  private buildActionSheetDialog() {
+  private buildActionSheetContent() {
+    Column({ space: 12 }) {
+      Text('ActionSheet 内容测试')
+        .fontSize(16)
+        .fontWeight(FontWeight.Medium);
+
+      EditableSuite({
+        title: '动作编辑套件',
+        onSaveField: (field: string, value: string) => {
+          this.pushLog('EditableSuite 已保存字段: ' + field + ' = ' + value);
+        }
+      });
+
+      Button('关闭弹层')
+        .width('100%')
+        .height(42)
+        .onClick(() => {
+          this.actionSheetController.dismiss();
+        });
+    }
+    .alignItems(HorizontalAlign.Start)
+    .width('100%');
+  }
+
+  @Builder
+  private buildActionSheet() {
     ActionSheet({
-      isVisible: true,
+      isVisible: this.actionSheetVisible,
       panelHeight: '70%',
       keyboardOffset: this.keyboardOffset,
+      controller: this.actionSheetController,
       onDismiss: () => {
-        this.actionSheetDialogController.close();
+        this.onCloseActionSheet();
       }
     }) {
-      Column({ space: 12 }) {
-        Text('ActionSheet 内容测试')
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium);
-
-        EditableSuite({
-          title: '动作编辑套件',
-          onSaveField: (field: string, value: string) => {
-            this.pushLog('EditableSuite 已保存字段: ' + field + ' = ' + value);
-          }
-        });
-
-        Button('关闭弹层')
-          .width('100%')
-          .height(42)
-          .onClick(() => {
-            this.actionSheetDialogController.close();
-          });
-      }
-      .alignItems(HorizontalAlign.Start)
-      .width('100%');
+      this.buildActionSheetContent();
     }
   }
 
@@ -179,7 +182,7 @@ export struct SharedInteractionTestPage {
               icon: '+',
               text: '打开弹层',
               onTap: () => {
-                this.actionSheetDialogController.open();
+                this.onOpenActionSheet();
                 this.pushLog('ActionSheet 打开');
               }
             });
@@ -200,7 +203,8 @@ export struct SharedInteractionTestPage {
               fillColor: this.app.theme.palette.primary,
               buttonSize: 52,
               onTap: () => {
-                this.pushLog('通过 openPlanDetail 打开路由详情卡片');
+                this.detailDialogController.open();
+                this.pushLog('通过 CustomDialog 打开详情卡片');
               }
             });
 
@@ -302,6 +306,10 @@ export struct SharedInteractionTestPage {
           }
         })
           .margin({ left: 16, right: 16, bottom: 16 });
+      }
+
+      if (this.actionSheetVisible) {
+        this.buildActionSheet();
       }
     }
     .width('100%')
