@@ -55,17 +55,5 @@ export class SearchRouteParam {
   }
 }
 
-export class DetailRouteParam {
-  moduleName: string;
-  recordId: string;
-  pageTitle: string;
-
-  constructor(moduleName: string, recordId: string, pageTitle: string) {
-    this.moduleName = moduleName;
-    this.recordId = recordId;
-    this.pageTitle = pageTitle;
-  }
-}
-
 export class FocusRouteParam {
 }

@@ -12,7 +12,7 @@ export class ActionSheetController {
 export struct ActionSheet {
   @Local private app: AppState = useAppState();
   @Param isVisible: boolean = false;
-  @Param panelHeight: string = '62%';
+  @Param panelHeight: string = '50%';
   @Param keyboardOffset: number = 0;
   @Param controller: ActionSheetController = new ActionSheetController();
   @Event onDismiss: () => void = () => {};

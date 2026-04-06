@@ -1,5 +1,4 @@
 import { AppState, useAppState } from '../../app/AppStates';
-import { CircleButton } from '../buttons/CircleButton';
 import { PageScrollLayout } from './PageScrollLayout';
 
 /**
@@ -12,7 +11,6 @@ export struct MainTabPageLayout {
   @Param title: string = '';
   @Param actionIcon: string = '';
   @Param actionText: string = '';
-  @Param actionButtonSize: number = 46;
   @Param actionFillColor: string = '';
   @Event onActionTap: () => void = () => {};
   @BuilderParam content: () => void = this.emptyBuilder;
@@ -31,13 +29,15 @@ export struct MainTabPageLayout {
             .layoutWeight(1);
 
           if (this.actionIcon.length > 0 || this.actionText.length > 0) {
-            CircleButton({
-              icon: this.actionIcon,
-              text: this.actionText,
-              buttonSize: this.actionButtonSize,
-              fillColor: this.actionFillColor.length > 0 ? this.actionFillColor : this.app.theme.palette.primary,
-              onTap: this.onActionTap
-            });
+            Button(this.actionIcon.length > 0 ? this.actionIcon : this.actionText)
+              .type(ButtonType.Circle)
+              .width(56)
+              .height(56)
+              .fontSize(24)
+              .stateEffect(true)
+              .backgroundColor(this.actionFillColor.length > 0 ? this.actionFillColor : this.app.theme.palette.primary)
+              .fontColor(this.app.theme.palette.surface)
+              .onClick(this.onActionTap);
           }
         }
         .width('100%')

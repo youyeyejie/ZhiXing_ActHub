@@ -1,4 +1,3 @@
-import { CircleButton } from '../../components/buttons/CircleButton';
 import { InteractableCard } from '../../components/card/InteractableCard';
 import { DetailCard } from '../../components/card/DetailCard';
 import { ActionSheet, ActionSheetController } from '../../components/overlays/ActionSheet';
@@ -76,7 +75,7 @@ export struct SharedInteractionTestPage {
   private buildActionSheet() {
     ActionSheet({
       isVisible: this.actionSheetVisible,
-      panelHeight: '70%',
+      panelHeight: '60%',
       keyboardOffset: this.keyboardOffset,
       controller: this.actionSheetController,
       onDismiss: () => {
@@ -178,57 +177,81 @@ export struct SharedInteractionTestPage {
           }
 
           Row({ space: 14 }) {
-            CircleButton({
-              icon: '+',
-              text: '打开弹层',
-              onTap: () => {
+            Button('+')
+              .type(ButtonType.Circle)
+              .width(56)
+              .height(56)
+              .fontSize(24)
+              .stateEffect(true)
+              .backgroundColor(this.app.theme.palette.primary)
+              .fontColor(this.app.theme.palette.surface)
+              .onClick(() => {
                 this.onOpenActionSheet();
                 this.pushLog('ActionSheet 打开');
-              }
-            });
+              });
 
-            CircleButton({
-              icon: '?',
-              text: '搜索遮罩',
-              fillColor: this.app.theme.palette.primary,
-              onTap: () => {
+            Button('打开详情卡片')
+              .type(ButtonType.Circle).width(56)
+              .fontSize(12)
+              .stateEffect(true)
+              .backgroundColor(this.app.theme.palette.primary)
+              .fontColor(this.app.theme.palette.surface)
+              .onClick(() => {
+                this.detailDialogController.open();
+                this.pushLog('通过 Button 打开详情卡片');
+              });
+
+            Button('?')
+              .type(ButtonType.Circle)
+              .width(56)
+              .height(56)
+              .fontSize(24)
+              .stateEffect(true)
+              .backgroundColor(this.app.theme.palette.primary)
+              .fontColor(this.app.theme.palette.surface)
+              .onClick(() => {
                 this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('todo', '搜索测试页'));
                 this.pushLog('Search overlay route 打开');
-              }
-            });
+              });
 
-            CircleButton({
-              icon: 'i',
-              text: '详情卡片',
-              fillColor: this.app.theme.palette.primary,
-              buttonSize: 52,
-              onTap: () => {
+            Button('i')
+              .type(ButtonType.Circle)
+              .width(56)
+              .height(56)
+              .fontSize(24)
+              .stateEffect(true)
+              .backgroundColor(this.app.theme.palette.primary)
+              .fontColor(this.app.theme.palette.surface)
+              .onClick(() => {
                 this.detailDialogController.open();
                 this.pushLog('通过 CustomDialog 打开详情卡片');
-              }
-            });
+              });
 
-            CircleButton({
-              icon: '-',
-              text: '进度-15%',
-              fillColor: this.app.theme.palette.primary,
-              buttonSize: 52,
-              onTap: () => {
+            Button('-')
+              .type(ButtonType.Circle)
+              .width(56)
+              .height(56)
+              .fontSize(24)
+              .stateEffect(true)
+              .backgroundColor(this.app.theme.palette.primary)
+              .fontColor(this.app.theme.palette.surface)
+              .onClick(() => {
                 this.decreaseProgress();
                 this.pushLog('CircularProgress 更新到 ' + Math.round(this.progress * 100).toString() + '%');
-              }
-            });
+              });
 
-            CircleButton({
-              icon: '+',
-              text: '进度+15%',
-              fillColor: this.app.theme.palette.primary,
-              buttonSize: 52,
-              onTap: () => {
+            Button('+')
+              .type(ButtonType.Circle)
+              .width(56)
+              .height(56)
+              .fontSize(24)
+              .stateEffect(true)
+              .backgroundColor(this.app.theme.palette.primary)
+              .fontColor(this.app.theme.palette.surface)
+              .onClick(() => {
                 this.cycleProgress();
                 this.pushLog('CircularProgress 更新到 ' + Math.round(this.progress * 100).toString() + '%');
-              }
-            });
+              });
           }
           .width('100%')
           .justifyContent(FlexAlign.SpaceBetween);
