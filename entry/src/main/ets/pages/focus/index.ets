@@ -1,9 +1,7 @@
 import { FocusTimerPanel } from './components/FocusTimerPanel';
 import { TodoPickerSheet } from './components/TodoPickerSheet';
 import { CircleButton } from '../../components/buttons/CircleButton';
-import { SearchOverlay } from '../../components/overlays/SearchOverlay';
-import { SearchScope } from '../../core/services/SearchService';
-import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
+import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
 
 /**
@@ -13,73 +11,44 @@ import { AppState, useAppState } from '../../app/AppStates';
 @ComponentV2
 export struct FocusPage {
   @Local private app: AppState = useAppState();
-  @Local private topInset: number = SafeAreaUtils.getSearchTopInset();
 
-  private searchDialogController: CustomDialogController = new CustomDialogController({
-    builder: this.buildSearchDialog,
-    customStyle: true,
-    autoCancel: false,
-    alignment: DialogAlignment.Top
-  });
+  build() {
+    Column() {
+      Scroll() {
+        Column({ space: 16 }) {
+          Row() {
+            Text('专注')
+              .fontSize(28)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(this.app.theme.palette.textPrimary)
+              .layoutWeight(1);
 
-  aboutToAppear(): void {
-    this.topInset = SafeAreaUtils.getSearchTopInset();
-  }
+            CircleButton({
+              icon: '?',
+              text: '搜索',
+              buttonSize: 46,
+              fillColor: this.app.theme.palette.primary,
+              onTap: () => {
+                this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('focus', '搜索专注'));
+              }
+            });
+          }
+          .width('100%');
 
-  @Builder
-  private buildSearchDialog() {
-    Stack() {
-      Column()
-        .width('100%')
-        .height('100%')
-        .backgroundColor(this.app.theme.palette.background);
+          Text('TODO: 在开始前选择待办或直接进入计时。')
+            .fontSize(14)
+            .fontColor(this.app.theme.palette.textSecondary);
 
-      SearchOverlay({
-        title: '专注搜索',
-        placeholder: '搜索专注记录/时长',
-        scope: SearchScope.Focus,
-        topInset: this.topInset,
-        onDismiss: () => {
-          this.searchDialogController.close();
+          FocusTimerPanel();
+          TodoPickerSheet();
         }
-      });
+        .alignItems(HorizontalAlign.Start)
+        .padding({ left: 20, right: 20, bottom: 20 });
+      }
+      .width('100%')
+      .layoutWeight(1);
     }
     .width('100%')
     .height('100%');
-  }
-
-  build() {
-    Scroll() {
-      Column({ space: 16 }) {
-        Row() {
-          Text('专注')
-            .fontSize(28)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(this.app.theme.palette.textPrimary)
-            .layoutWeight(1);
-
-          CircleButton({
-            icon: '?',
-            text: '搜索',
-            buttonSize: 46,
-            fillColor: this.app.theme.palette.primary,
-            onTap: () => {
-              this.searchDialogController.open();
-            }
-          });
-        }
-        .width('100%');
-        Text('TODO: 在开始前选择待办或直接进入计时。')
-          .fontSize(14)
-          .fontColor(this.app.theme.palette.textSecondary);
-        FocusTimerPanel();
-        TodoPickerSheet();
-      }
-      .alignItems(HorizontalAlign.Start)
-      .padding(20);
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(this.app.theme.palette.background);
   }
 }

@@ -40,31 +40,21 @@ export class AppNav extends NavPathStack {
    * 用于搜索页、测试页等叠加式目的页，不改变当前主页面选中状态。
    */
   pushOverlayByName(routeName: string, param: Object | undefined = undefined, animated: boolean = true): void {
-    this.hasOverlayRoute = true;
-    if (param === undefined) {
-      this.pushPathByName(routeName, undefined, animated);
-      return;
-    }
-    this.pushPath({
-      name: routeName,
-      param: param,
-      onPop: (_info: PopInfo): void => {}
-    }, animated);
+    this.pushOverlayRoute(routeName, param, animated);
   }
 
   openFocus(): void {
-    this.hasOverlayRoute = true;
-    this.pushPathByName(AppRoute.FOCUS, new FocusRouteParam(), false);
+    this.pushOverlayRoute(AppRoute.FOCUS, new FocusRouteParam(), false);
   }
 
   back(animated: boolean = true): void {
-    this.pop(animated);
     const pathNames = this.getAllPathName();
-    this.hasOverlayRoute = pathNames.length > 0;
-    if (pathNames.length === 0 ) {
-      this.detailModuleName = '';
-      this.detailRecordId = '';
+    const remainingCount = pathNames.length > 0 ? pathNames.length - 1 : 0;
+    this.hasOverlayRoute = remainingCount > 0;
+    if (remainingCount === 0) {
+      this.clearDetailState();
     }
+    this.pop(animated);
   }
 
   currentTab(): AppTab {
@@ -99,5 +89,29 @@ export class AppNav extends NavPathStack {
       return AppRoute.USER;
     }
     return AppRoute.PLAN;
+  }
+
+  private pushOverlayRoute(routeName: string, param: Object | undefined, animated: boolean): void {
+    this.hasOverlayRoute = true;
+    this.pushPath({
+      name: routeName,
+      param: param,
+      onPop: (_info: PopInfo): void => {
+        this.syncOverlayState();
+      }
+    }, animated);
+  }
+
+  private syncOverlayState(): void {
+    const pathNames = this.getAllPathName();
+    this.hasOverlayRoute = pathNames.length > 0;
+    if (pathNames.length === 0) {
+      this.clearDetailState();
+    }
+  }
+
+  private clearDetailState(): void {
+    this.detailModuleName = '';
+    this.detailRecordId = '';
   }
 }

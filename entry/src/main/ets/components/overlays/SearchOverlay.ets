@@ -1,6 +1,8 @@
 import { SearchResultItem, SearchScope, SearchService } from '../../core/services/SearchService';
 import { AppState, useAppState } from '../../app/AppStates';
 import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
+import { KeyboardAvoidMode } from '@kit.ArkUI';
+import { NavDialogOverlayController } from './NavDialogOverlay';
 
 /**
  * 搜索基类页面。
@@ -13,17 +15,56 @@ export struct SearchOverlay {
   @Param placeholder: string = '搜索';
   @Param scope: SearchScope = SearchScope.Plan;
   @Param topInset: number = SafeAreaUtils.getSearchTopInset();
-  @Event onDismiss: () => void = () => {};
-  @Event onSearch: (keyword: string) => void = (_keyword: string) => {};
+  @Param dismissController: NavDialogOverlayController = new NavDialogOverlayController();
 
   private searchService: SearchService = new SearchService();
   @Local private keyword: string = '';
   @Local private resultList: Array<SearchResultItem> = [];
   @Local private searching: boolean = false;
   @Local private requestVersion: number = 0;
+  @Local private keyboardAvoidModeChanged: boolean = false;
+  @Local private previousKeyboardAvoidMode: KeyboardAvoidMode = KeyboardAvoidMode.OFFSET;
 
   aboutToAppear(): void {
+    this.disableKeyboardAvoid();
     this.performSearch('');
+  }
+
+  aboutToDisappear(): void {
+    this.restoreKeyboardAvoid();
+  }
+
+  private resolveOverlayBackgroundColor(): string {
+    if (this.keyword.trim().length > 0) {
+      return this.app.theme.palette.background;
+    }
+    return this.app.theme.palette.searchOverlayMask;
+  }
+
+  private resolveHeaderBackgroundColor(): string {
+    return this.app.theme.isDark ? '#D91B222D' : '#D9FFFFFF';
+  }
+
+  private disableKeyboardAvoid(): void {
+    try {
+      const uiContext = this.getUIContext();
+      this.previousKeyboardAvoidMode = uiContext.getKeyboardAvoidMode();
+      uiContext.setKeyboardAvoidMode(KeyboardAvoidMode.NONE);
+      this.keyboardAvoidModeChanged = true;
+    } catch (_error) {
+      this.keyboardAvoidModeChanged = false;
+    }
+  }
+
+  private restoreKeyboardAvoid(): void {
+    if (!this.keyboardAvoidModeChanged) {
+      return;
+    }
+    try {
+      this.getUIContext().setKeyboardAvoidMode(this.previousKeyboardAvoidMode);
+    } catch (_error) {
+    }
+    this.keyboardAvoidModeChanged = false;
   }
 
   private async performSearch(keyword: string): Promise<void> {
@@ -47,11 +88,11 @@ export struct SearchOverlay {
   }
 
   build() {
-    Stack() {
+    Stack({ alignContent: Alignment.Top }) {
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor(this.app.theme.palette.background);
+        .backgroundColor(this.resolveOverlayBackgroundColor());
 
       Column({ space: 12 }) {
         Column({ space: 10 }) {
@@ -68,11 +109,9 @@ export struct SearchOverlay {
               .fontColor(this.app.theme.palette.textPrimary)
               .onChange((value: string) => {
                 this.keyword = value;
-                this.onSearch(value);
                 this.performSearch(value);
               })
               .onSubmit((_enterKey: EnterKeyType) => {
-                this.onSearch(this.keyword);
                 this.performSearch(this.keyword);
               });
 
@@ -80,7 +119,7 @@ export struct SearchOverlay {
               .fontSize(14)
               .fontColor(this.app.theme.palette.textSecondary)
               .onClick(() => {
-                this.onDismiss();
+                this.dismissController.dismiss();
               });
           }
           .width('100%');
@@ -91,7 +130,7 @@ export struct SearchOverlay {
         }
         .width('100%')
         .padding({ left: 16, right: 16, top: this.topInset, bottom: 8 })
-        .backgroundColor(this.app.theme.palette.background);
+        .backgroundColor(this.resolveHeaderBackgroundColor());
 
         Scroll() {
           Column({ space: 10 }) {
@@ -131,18 +170,17 @@ export struct SearchOverlay {
             }
           }
           .alignItems(HorizontalAlign.Start)
-          .padding({ left: 16, right: 16, bottom: 16 })
-          .backgroundColor(this.app.theme.palette.background);
+          .padding({ left: 16, right: 16, bottom: 16 });
         }
         .width('100%')
         .layoutWeight(1)
-        .backgroundColor(this.app.theme.palette.background);
+        .onClick(() => {
+          this.dismissController.dismiss();
+        });
       }
-      .width('100%')
-      .height('100%');
+      .width('100%');
     }
     .width('100%')
-    .height('100%')
-    .backgroundColor(this.app.theme.palette.background);
+    .height('100%');
   }
 }

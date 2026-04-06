@@ -3,9 +3,6 @@ import { TimelineView } from './components/TimelineView';
 import { PlanCard } from './components/PlanCard';
 import { PlanEditorSheet } from './components/PlanEditorSheet';
 import { CircleButton } from '../../components/buttons/CircleButton';
-import { SearchOverlay } from '../../components/overlays/SearchOverlay';
-import { SearchScope } from '../../core/services/SearchService';
-import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
 import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState  } from '../../app/AppStates';
 
@@ -16,40 +13,6 @@ import { AppState, useAppState  } from '../../app/AppStates';
 @ComponentV2
 export struct PlanPage {
   @Local private app: AppState = useAppState();
-  @Local private topInset: number = SafeAreaUtils.getSearchTopInset();
-
-  private searchDialogController: CustomDialogController = new CustomDialogController({
-    builder: this.buildSearchDialog,
-    customStyle: true,
-    autoCancel: false,
-    alignment: DialogAlignment.Top
-  });
-
-  aboutToAppear(): void {
-    this.topInset = SafeAreaUtils.getSearchTopInset();
-  }
-
-  @Builder
-  private buildSearchDialog() {
-    Stack() {
-      Column()
-        .width('100%')
-        .height('100%')
-        .backgroundColor(this.app.theme.palette.background);
-
-      SearchOverlay({
-        title: '日程搜索',
-        placeholder: '搜索日程内容/地点/描述',
-        scope: SearchScope.Plan,
-        topInset: this.topInset,
-        onDismiss: () => {
-          this.searchDialogController.close();
-        }
-      });
-    }
-    .width('100%')
-    .height('100%');
-  }
 
   build() {
     Scroll() {

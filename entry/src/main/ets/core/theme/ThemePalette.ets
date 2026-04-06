@@ -12,6 +12,7 @@ export class ThemePalette {
   textTertiary: string = '#98A2B3';
   border: string = '#E5E7EB';
   mask: string = '#66000000';
+  searchOverlayMask: string = '#73070A0F';
 
   static light(): ThemePalette {
     const palette = new ThemePalette();
@@ -24,6 +25,7 @@ export class ThemePalette {
     palette.textTertiary = '#98A2B3';
     palette.border = '#E5E7EB';
     palette.mask = '#66000000';
+    palette.searchOverlayMask = '#73070A0F';
     return palette;
   }
 
@@ -38,6 +40,7 @@ export class ThemePalette {
     palette.textTertiary = '#94A3B8';
     palette.border = '#334155';
     palette.mask = '#99000000';
+    palette.searchOverlayMask = '#800A0D12';
     return palette;
   }
 }

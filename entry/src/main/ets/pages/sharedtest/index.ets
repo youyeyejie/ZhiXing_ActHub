@@ -5,10 +5,8 @@ import { ActionSheet } from '../../components/overlays/ActionSheet';
 import { AutoSaveText } from '../../components/form/AutoSaveText';
 import { EditableSuite } from '../../components/form/EditableSuite';
 import { UndoNotification } from '../../components/feedback/UndoNotification';
-import { SearchOverlay } from '../../components/overlays/SearchOverlay';
 import { CircularProgress } from '../../components/progress/CircularProgress';
-import { SearchScope } from '../../core/services/SearchService';
-import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
+import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
 import { ThemeMode } from '../../core/theme/ThemeManager';
 
@@ -23,7 +21,6 @@ export struct SharedInteractionTestPage {
   @Local private undoVisible: boolean = false;
   @Local private progress: number = 0.45;
   @Local private logs: string[] = [];
-  @Local private topInset: number = SafeAreaUtils.getSearchTopInset();
 
   private actionSheetDialogController: CustomDialogController = new CustomDialogController({
     builder: this.buildActionSheetDialog,
@@ -32,23 +29,12 @@ export struct SharedInteractionTestPage {
     alignment: DialogAlignment.Bottom
   });
 
-  private searchDialogController: CustomDialogController = new CustomDialogController({
-    builder: this.buildSearchDialog,
-    customStyle: true,
-    autoCancel: false,
-    alignment: DialogAlignment.Top
-  });
-
   private detailDialogController: CustomDialogController = new CustomDialogController({
     builder: this.buildDetailDialog,
     customStyle: true,
     autoCancel: true,
     alignment: DialogAlignment.Center
   });
-
-  aboutToAppear(): void {
-    this.topInset = SafeAreaUtils.getSearchTopInset();
-  }
 
   private pushLog(message: string): void {
     this.logs = [message, ...this.logs].slice(0, 6);
@@ -96,31 +82,6 @@ export struct SharedInteractionTestPage {
       .alignItems(HorizontalAlign.Start)
       .width('100%');
     }
-  }
-
-  @Builder
-  private buildSearchDialog() {
-    Stack() {
-      Column()
-        .width('100%')
-        .height('100%')
-        .backgroundColor(this.app.theme.palette.background);
-
-      SearchOverlay({
-        title: '搜索测试页',
-        placeholder: '输入关键字进行测试',
-        scope: SearchScope.Todo,
-        topInset: this.topInset,
-        onDismiss: () => {
-          this.searchDialogController.close();
-        },
-        onSearch: (keyword: string) => {
-          this.pushLog('SearchOverlay 搜索: ' + keyword);
-        }
-      });
-    }
-    .width('100%')
-    .height('100%');
   }
 
   @Builder
@@ -228,8 +189,8 @@ export struct SharedInteractionTestPage {
               text: '搜索遮罩',
               fillColor: this.app.theme.palette.primary,
               onTap: () => {
-                this.searchDialogController.open();
-                this.pushLog('SearchOverlay 打开');
+                this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('todo', '搜索测试页'));
+                this.pushLog('Search overlay route 打开');
               }
             });
 
