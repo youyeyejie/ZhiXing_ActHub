@@ -1,7 +1,6 @@
 import { FocusTimerPanel } from './components/FocusTimerPanel';
 import { TodoPickerSheet } from './components/TodoPickerSheet';
-import { CircleButton } from '../../components/buttons/CircleButton';
-import { AppOverlayRoute } from '../../app/AppConstants';
+import { PageScrollLayout } from '../../components/layout/PageScrollLayout';
 import { AppState, useAppState } from '../../app/AppStates';
 
 /**
@@ -14,41 +13,29 @@ export struct FocusPage {
 
   build() {
     Column() {
-      Scroll() {
-        Column({ space: 16 }) {
-          Row() {
-            Text('专注')
-              .fontSize(28)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(this.app.theme.palette.textPrimary)
-              .layoutWeight(1);
-
-            CircleButton({
-              icon: '?',
-              text: '搜索',
-              buttonSize: 46,
-              fillColor: this.app.theme.palette.primary,
-              onTap: () => {
-                this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('focus', '搜索专注'));
-              }
-            });
-          }
-          .width('100%');
-
-          Text('TODO: 在开始前选择待办或直接进入计时。')
-            .fontSize(14)
-            .fontColor(this.app.theme.palette.textSecondary);
-
-          FocusTimerPanel();
-          TodoPickerSheet();
+      PageScrollLayout({
+        paddingTop: 0,
+        paddingBottom: 20
+      }) {
+        Row() {
+          Text('专注')
+            .fontSize(28)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(this.app.theme.palette.textPrimary)
+            .layoutWeight(1);
         }
-        .alignItems(HorizontalAlign.Start)
-        .padding({ left: 20, right: 20, bottom: 20 });
+        .width('100%');
+
+        Text('TODO: 在开始前选择待办或直接进入计时。')
+          .fontSize(14)
+          .fontColor(this.app.theme.palette.textSecondary);
+
+        FocusTimerPanel();
+        TodoPickerSheet();
       }
-      .width('100%')
-      .layoutWeight(1);
     }
     .width('100%')
-    .height('100%');
+    .height('100%')
+    .backgroundColor(this.app.theme.palette.background);
   }
 }

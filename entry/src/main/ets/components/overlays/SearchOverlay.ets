@@ -1,6 +1,6 @@
 import { SearchResultItem, SearchScope, SearchService } from '../../core/services/SearchService';
 import { AppState, useAppState } from '../../app/AppStates';
-import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
+import { SafeAreaInsetLayout } from '../layout/SafeAreaInsetLayout';
 import { KeyboardAvoidMode } from '@kit.ArkUI';
 import { NavDialogOverlayController } from './NavDialogOverlay';
 
@@ -11,10 +11,8 @@ import { NavDialogOverlayController } from './NavDialogOverlay';
 @ComponentV2
 export struct SearchOverlay {
   @Local private app: AppState = useAppState();
-  @Param title: string = '搜索';
   @Param placeholder: string = '搜索';
   @Param scope: SearchScope = SearchScope.Plan;
-  @Param topInset: number = SafeAreaUtils.getSearchTopInset();
   @Param dismissController: NavDialogOverlayController = new NavDialogOverlayController();
 
   private searchService: SearchService = new SearchService();
@@ -42,7 +40,7 @@ export struct SearchOverlay {
   }
 
   private resolveHeaderBackgroundColor(): string {
-    return this.app.theme.isDark ? '#D91B222D' : '#D9FFFFFF';
+    return this.app.theme.palette.background;
   }
 
   private disableKeyboardAvoid(): void {
@@ -95,10 +93,14 @@ export struct SearchOverlay {
         .backgroundColor(this.resolveOverlayBackgroundColor());
 
       Column({ space: 12 }) {
-        Column({ space: 10 }) {
-          Row({ space: 10 }) {
+        SafeAreaInsetLayout({
+          includeTop: true,
+          extraTop: 20,
+          surfaceColor: this.resolveHeaderBackgroundColor()
+        }) {
+          Column() {
             TextInput({ text: this.keyword, placeholder: this.placeholder })
-              .layoutWeight(1)
+              .width('100%')
               .height(44)
               .borderRadius(12)
               .backgroundColor(this.app.theme.palette.surface)
@@ -114,32 +116,15 @@ export struct SearchOverlay {
               .onSubmit((_enterKey: EnterKeyType) => {
                 this.performSearch(this.keyword);
               });
-
-            Text('取消')
-              .fontSize(14)
-              .fontColor(this.app.theme.palette.textSecondary)
-              .onClick(() => {
-                this.dismissController.dismiss();
-              });
           }
-          .width('100%');
-
-          Text(this.title)
-            .fontSize(13)
-            .fontColor(this.app.theme.palette.textTertiary);
+          .width('100%')
+          .padding({ left: 16, right: 16, bottom: 12 });
         }
-        .width('100%')
-        .padding({ left: 16, right: 16, top: this.topInset, bottom: 8 })
-        .backgroundColor(this.resolveHeaderBackgroundColor());
 
         Scroll() {
           Column({ space: 10 }) {
             if (this.searching) {
               Text('搜索中...')
-                .fontSize(13)
-                .fontColor(this.app.theme.palette.textTertiary);
-            } else if (this.keyword.trim().length === 0) {
-              Text('输入关键字开始搜索')
                 .fontSize(13)
                 .fontColor(this.app.theme.palette.textTertiary);
             } else if (this.resultList.length === 0) {

@@ -1,7 +1,7 @@
 import { ActivityHeatmap } from '../idea/components/ActivityHeatmap';
 import { FocusStatsChart } from './components/FocusStatsChart';
 import { SettingsPanel } from './components/SettingsPanel';
-import { CircleButton } from '../../components/buttons/CircleButton';
+import { MainTabPageLayout } from '../../components/layout/MainTabPageLayout';
 import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
 
@@ -14,38 +14,21 @@ export struct UserPage {
   @Local private app: AppState = useAppState();
 
   build() {
-    Scroll() {
-      Column({ space: 16 }) {
-        Row() {
-          Text('我的')
-            .fontSize(28)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(this.app.theme.palette.textPrimary)
-            .layoutWeight(1);
-
-          CircleButton({
-            icon: '!',
-            text: '测试',
-            buttonSize: 46,
-            fillColor: this.app.theme.palette.primary,
-            onTap: () => {
-              this.app.nav.pushOverlayByName(AppOverlayRoute.SHARED_TEST);
-            }
-          });
-        }
-        .width('100%');
-        Text('TODO: 用户信息区与主题切换入口。')
-          .fontSize(14)
-          .fontColor(this.app.theme.palette.textSecondary);
-        FocusStatsChart();
-        ActivityHeatmap();
-        SettingsPanel();
+    MainTabPageLayout({
+      title: '我的',
+      actionIcon: '!',
+      actionText: '测试',
+      actionFillColor: this.app.theme.palette.primary,
+      onActionTap: () => {
+        this.app.nav.pushOverlayByName(AppOverlayRoute.SHARED_TEST);
       }
-      .alignItems(HorizontalAlign.Start)
-      .padding(20);
+    }) {
+      Text('TODO: 用户信息区与主题切换入口。')
+        .fontSize(14)
+        .fontColor(this.app.theme.palette.textSecondary);
+      FocusStatsChart();
+      ActivityHeatmap();
+      SettingsPanel();
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(this.app.theme.palette.background);
   }
 }

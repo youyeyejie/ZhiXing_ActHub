@@ -1,4 +1,5 @@
 import { AppState, useAppState } from '../../app/AppStates';
+import { SafeAreaInsetLayout } from '../../components/layout/SafeAreaInsetLayout';
 import { SharedInteractionTestPage } from '../sharedtest';
 
 /**
@@ -11,10 +12,16 @@ export struct SharedTestDestinationPage {
 
   build() {
     NavDestination() {
-      SharedInteractionTestPage();
+      SafeAreaInsetLayout({
+        includeTop: true,
+        surfaceColor: this.app.theme.palette.background
+      }) {
+        SharedInteractionTestPage();
+      }
     }
     .width('100%')
     .height('100%')
+    .backgroundColor(this.app.theme.palette.background)
     .onBackPressed(() => {
       this.app.nav.back();
       return true;

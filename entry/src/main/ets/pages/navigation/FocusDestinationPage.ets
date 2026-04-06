@@ -1,5 +1,6 @@
 import { FocusPage } from '../focus';
 import { AppState, useAppState } from '../../app/AppStates';
+import { SafeAreaInsetLayout } from '../../components/layout/SafeAreaInsetLayout';
 import { NavDialogOverlay, NavDialogOverlayController } from '../../components/overlays/NavDialogOverlay';
 
 /**
@@ -11,35 +12,6 @@ export struct FocusDestinationPage {
   @Local private app: AppState = useAppState();
   private overlayController: NavDialogOverlayController = new NavDialogOverlayController();
 
-  @Builder
-  private buildFocusPanel() {
-    Column() {
-      Column({ space: 8 }) {
-        Row() {
-          Button('返回')
-            .type(ButtonType.Normal)
-            .onClick(() => {
-              this.overlayController.dismiss();
-            });
-        }
-        .width('100%')
-
-        Text('进入专注')
-          .fontSize(13)
-          .fontColor(this.app.theme.palette.textTertiary);
-      }
-      .width('100%')
-      .padding({ left: 20, right: 20, top: 18, bottom: 8 });
-
-      FocusPage();
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(this.app.theme.palette.background)
-    .borderRadius({ topLeft: 28, topRight: 28, bottomLeft: 0, bottomRight: 0 })
-    .clip(true);
-  }
-
   build() {
     NavDialogOverlay({
       controller: this.overlayController,
@@ -47,14 +19,12 @@ export struct FocusDestinationPage {
         this.app.nav.back(false);
       }
     }) {
-      Column() {
-        Blank()
-          .layoutWeight(1);
-
-        this.buildFocusPanel();
+      SafeAreaInsetLayout({
+        includeTop: true,
+        surfaceColor: this.app.theme.palette.background
+      }) {
+        FocusPage();
       }
-      .width('100%')
-      .height('100%');
     }
   }
 }

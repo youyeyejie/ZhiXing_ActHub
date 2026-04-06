@@ -1,7 +1,7 @@
 import { BottomTabBar } from '../components/navigation/BottomTabBar';
+import { SafeAreaInsetLayout } from '../components/layout/SafeAreaInsetLayout';
 import { AppRoute, AppTab } from './AppConstants';
 import { AppState, useAppState } from './AppStates';
-import { SafeAreaUtils } from '../core/theme/SafeAreaUtils';
 import { PlanPage } from '../pages/plan';
 import { TodoPage } from '../pages/todo';
 import { IdeaPage } from '../pages/idea';
@@ -14,13 +14,6 @@ import { UserPage } from '../pages/user';
 @ComponentV2
 export struct MainShell {
   @Local private app: AppState = useAppState();
-  @Local private topInset: number = SafeAreaUtils.getTopInset();
-  @Local private bottomInset: number = SafeAreaUtils.getBottomInset();
-
-  aboutToAppear(): void {
-    this.topInset = SafeAreaUtils.getTopInset();
-    this.bottomInset = SafeAreaUtils.getBottomInset();
-  }
 
   @Builder
   private buildCurrentTabPage() {
@@ -36,26 +29,30 @@ export struct MainShell {
   }
 
   build() {
-    Column({ space: 12 }) {
-      Column() {
-        this.buildCurrentTabPage();
-      }
-      .layoutWeight(1)
-      .width('100%');
-
-      BottomTabBar({
-        currentTab: this.app.nav.currentTab(),
-        onTabChange: (tab: AppTab): void => {
-          this.app.nav.selectTab(tab);
-        },
-        onFocusTap: (): void => {
-          this.app.nav.openFocus();
+    SafeAreaInsetLayout({
+      includeTop: true,
+      includeBottom: true,
+      surfaceColor: this.app.theme.palette.background
+    }) {
+      Column({ space: 12 }) {
+        Column() {
+          this.buildCurrentTabPage();
         }
-      });
+        .layoutWeight(1)
+        .width('100%');
+
+        BottomTabBar({
+          currentTab: this.app.nav.currentTab(),
+          onTabChange: (tab: AppTab): void => {
+            this.app.nav.selectTab(tab);
+          },
+          onFocusTap: (): void => {
+            this.app.nav.openFocus();
+          }
+        });
+      }
+      .width('100%')
+      .height('100%');
     }
-    .width('100%')
-    .height('100%')
-    .padding({ top: this.topInset, bottom: this.bottomInset })
-    .backgroundColor(this.app.theme.palette.background);
   }
 }

@@ -2,7 +2,7 @@ import { WeekCalendar } from './components/WeekCalendar';
 import { TimelineView } from './components/TimelineView';
 import { PlanCard } from './components/PlanCard';
 import { PlanEditorSheet } from './components/PlanEditorSheet';
-import { CircleButton } from '../../components/buttons/CircleButton';
+import { MainTabPageLayout } from '../../components/layout/MainTabPageLayout';
 import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState  } from '../../app/AppStates';
 
@@ -15,36 +15,19 @@ export struct PlanPage {
   @Local private app: AppState = useAppState();
 
   build() {
-    Scroll() {
-      Column({ space: 16 }) {
-        Row() {
-          Text('日程')
-            .fontSize(28)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(this.app.theme.palette.textPrimary)
-            .layoutWeight(1);
-
-          CircleButton({
-            icon: '?',
-            text: '搜索',
-            buttonSize: 46,
-            fillColor: this.app.theme.palette.primary,
-            onTap: () => {
-              this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('plan', '搜索日程'));
-            }
-          });
-        }
-        .width('100%');
-        WeekCalendar();
-        TimelineView();
-        PlanCard();
-        PlanEditorSheet();
+    MainTabPageLayout({
+      title: '日程',
+      actionIcon: '?',
+      actionText: '搜索',
+      actionFillColor: this.app.theme.palette.primary,
+      onActionTap: () => {
+        this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('plan', '搜索日程'));
       }
-      .alignItems(HorizontalAlign.Start)
-      .padding(20);
+    }) {
+      WeekCalendar();
+      TimelineView();
+      PlanCard();
+      PlanEditorSheet();
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(this.app.theme.palette.background);
   }
 }

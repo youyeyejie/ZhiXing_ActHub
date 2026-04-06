@@ -1,7 +1,6 @@
 import { SearchRouteParam } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
 import { SearchScope } from '../../core/services/SearchService';
-import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
 import { SearchOverlay } from '../../components/overlays/SearchOverlay';
 import { NavDialogOverlay, NavDialogOverlayController } from '../../components/overlays/NavDialogOverlay';
 /**
@@ -64,10 +63,8 @@ export struct SearchPlaceholderPage {
       }
     }) {
       SearchOverlay({
-        title: this.resolveTitle(),
         placeholder: this.resolvePlaceholder(),
         scope: this.resolveScope(),
-        topInset: SafeAreaUtils.getSearchTopInset(),
         dismissController: this.overlayController
       });
     }

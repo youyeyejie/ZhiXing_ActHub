@@ -2,7 +2,7 @@ import { HitokotoCard } from './components/HitokotoCard';
 import { IdeaCard } from './components/IdeaCard';
 import { IdeaEditorSheet } from './components/IdeaEditorSheet';
 import { ActivityHeatmap } from './components/ActivityHeatmap';
-import { CircleButton } from '../../components/buttons/CircleButton';
+import { MainTabPageLayout } from '../../components/layout/MainTabPageLayout';
 import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
 
@@ -15,39 +15,19 @@ export struct IdeaPage {
   @Local private app: AppState = useAppState();
 
   build() {
-    Scroll() {
-      Column({ space: 16 }) {
-        Row() {
-          Text('闪记')
-            .fontSize(28)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(this.app.theme.palette.textPrimary)
-            .layoutWeight(1);
-
-          Blank();
-
-          CircleButton({
-              icon: '?',
-              text: '搜索',
-              buttonSize: 46,
-              fillColor: this.app.theme.palette.primary,
-              onTap: () => {
-                this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('idea', '搜索闪记'));
-              }
-            });
-          }
-          .width('100%')
-          .alignItems(VerticalAlign.Center);
-        HitokotoCard();
-        IdeaCard();
-        ActivityHeatmap();
-        IdeaEditorSheet();
+    MainTabPageLayout({
+      title: '闪记',
+      actionIcon: '?',
+      actionText: '搜索',
+      actionFillColor: this.app.theme.palette.primary,
+      onActionTap: () => {
+        this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('idea', '搜索闪记'));
       }
-      .alignItems(HorizontalAlign.Start)
-      .padding(20);
+    }) {
+      HitokotoCard();
+      IdeaCard();
+      ActivityHeatmap();
+      IdeaEditorSheet();
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(this.app.theme.palette.background);
   }
 }
