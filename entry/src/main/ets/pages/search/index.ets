@@ -1,18 +1,18 @@
-import { SearchResultItem, SearchScope, SearchService } from '../../core/services/SearchService';
+import { SearchRouteParam } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
-import { SafeAreaInsetLayout } from '../layout/SafeAreaInsetLayout';
+import { SearchResultItem, SearchScope, SearchService } from '../../core/services/SearchService';
+import { SafeAreaInsetLayout } from '../../components/layout/SafeAreaInsetLayout';
 import { KeyboardAvoidMode } from '@kit.ArkUI';
-import { NavDialogOverlayController } from './NavDialogOverlay';
+import { NavDialogOverlayController } from '../../components/navigation/NavDialogOverlay';
 
 /**
- * 搜索基类页面。
- * 统一承接各页面搜索入口，并实时更新数据库搜索结果。
+ * 搜索页面。
+ * 在 pages 层实现搜索输入、结果渲染与模块范围切换。
  */
 @ComponentV2
-export struct SearchOverlay {
+export struct SearchPage {
   @Local private app: AppState = useAppState();
-  @Param placeholder: string = '搜索';
-  @Param scope: SearchScope = SearchScope.Plan;
+  @Param routeParam: SearchRouteParam = new SearchRouteParam('', '搜索');
   @Param dismissController: NavDialogOverlayController = new NavDialogOverlayController();
 
   private searchService: SearchService = new SearchService();
@@ -30,6 +30,41 @@ export struct SearchOverlay {
 
   aboutToDisappear(): void {
     this.restoreKeyboardAvoid();
+  }
+
+  private resolvePlaceholder(): string {
+    if (this.routeParam.moduleName === 'plan') {
+      return '搜索日程内容/地点/描述';
+    }
+    if (this.routeParam.moduleName === 'todo') {
+      return '搜索待办内容/分类';
+    }
+    if (this.routeParam.moduleName === 'idea') {
+      return '搜索闪记标题/内容';
+    }
+    if (this.routeParam.moduleName === 'focus') {
+      return '搜索专注记录/时长';
+    }
+    if (this.routeParam.moduleName === 'user') {
+      return '搜索用户信息/设置';
+    }
+    return '输入关键字开始搜索';
+  }
+
+  private resolveScope(): SearchScope {
+    if (this.routeParam.moduleName === 'todo') {
+      return SearchScope.Todo;
+    }
+    if (this.routeParam.moduleName === 'idea') {
+      return SearchScope.Idea;
+    }
+    if (this.routeParam.moduleName === 'focus') {
+      return SearchScope.Focus;
+    }
+    if (this.routeParam.moduleName === 'user') {
+      return SearchScope.User;
+    }
+    return SearchScope.Plan;
   }
 
   private resolveOverlayBackgroundColor(): string {
@@ -76,7 +111,7 @@ export struct SearchOverlay {
     }
 
     this.searching = true;
-    const result = await this.searchService.search(this.scope, normalized);
+    const result = await this.searchService.search(this.resolveScope(), normalized);
     if (version !== this.requestVersion) {
       return;
     }
@@ -100,7 +135,7 @@ export struct SearchOverlay {
           surfaceColor: this.resolveHeaderBackgroundColor()
         }) {
           Column() {
-            TextInput({ text: this.keyword, placeholder: this.placeholder })
+            TextInput({ text: this.keyword, placeholder: this.resolvePlaceholder() })
               .width('100%')
               .height(44)
               .borderRadius(12)

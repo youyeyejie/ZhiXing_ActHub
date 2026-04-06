@@ -3,9 +3,8 @@ import { AppState, useAppState } from './AppStates';
 import { MainShell } from './MainShell';
 import { SplashPage } from '../pages/splash';
 import { LoginPage } from '../pages/login';
-import { FocusDestinationPage } from '../pages/navigation/FocusDestinationPage';
-import { SearchPlaceholderPage } from '../pages/navigation/SearchPlaceholderPage';
-import { SharedTestDestinationPage } from '../pages/navigation/SharedTestDestinationPage';
+import { SharedTestDestinationPage } from '../pages/sharedtest/SharedTestDestinationPage';
+import { FocusOverlayDestination, SearchOverlayDestination } from '../components/navigation/OverlayDestinations';
 import { SearchRouteParam } from './AppConstants';
 
 /**
@@ -34,13 +33,13 @@ export struct AppShell {
   @Builder
   private buildDestination(name: string) {
     if (name === AppRoute.FOCUS) {
-      FocusDestinationPage();
+      FocusOverlayDestination();
     } else if (name === AppOverlayRoute.SEARCH) {
-      SearchPlaceholderPage({ routeParam: this.createFallbackSearchParam(name) });
+      SearchOverlayDestination({ routeParam: this.createFallbackSearchParam(name) });
     } else if (name === AppOverlayRoute.SHARED_TEST) {
       SharedTestDestinationPage();
     } else {
-      SearchPlaceholderPage({ routeParam: this.createFallbackSearchParam(name) });
+      SearchOverlayDestination({ routeParam: this.createFallbackSearchParam(name) });
     }
   }
 

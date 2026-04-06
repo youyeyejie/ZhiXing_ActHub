@@ -1,6 +1,6 @@
 import { AppState, useAppState } from '../../app/AppStates';
 import { SafeAreaInsetLayout } from '../../components/layout/SafeAreaInsetLayout';
-import { ActionSheetController } from '../../components/overlays/ActionSheet';
+import { ActionSheetController } from '../../components/card/ActionSheet';
 import { DetailCardController } from '../../components/card/DetailCard';
 import { SharedInteractionTestPage } from '../sharedtest';
 
