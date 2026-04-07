@@ -4,4 +4,5 @@
  * 各实体会显式声明自身字段，确保 @ibestservices/ibest-orm 可以稳定收集列定义。
  */
 export abstract class BaseEntity {
+  id: string = '';
 }

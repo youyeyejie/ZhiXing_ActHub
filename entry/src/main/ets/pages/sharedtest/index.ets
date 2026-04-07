@@ -7,6 +7,13 @@ import { UndoNotification } from '../../components/feedback/UndoNotification';
 import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
 import { ThemeMode } from '../../core/theme/ThemeManager';
+import { hilog } from '@kit.PerformanceAnalysisKit';
+import { AppDatabase } from '../../core/database/AppDatabase';
+import { Todo } from '../../core/models/Todo';
+import { TodoRepository } from '../../core/repositories/TodoRepository';
+
+const SHARED_TEST_LOG_DOMAIN: number = 0x0000;
+const SHARED_TEST_LOG_TAG: string = 'SharedTestPage';
 
 /**
  * 通用交互抽象层测试页。
@@ -19,6 +26,7 @@ export struct SharedInteractionTestPage {
   @Local private undoVisible: boolean = false;
   @Local private progress: number = 0.45;
   @Local private logs: string[] = [];
+  private todoRepository: TodoRepository = new TodoRepository();
   @Param actionSheetVisible: boolean = false;
   @Param detailCardVisible: boolean = false;
   @Param actionSheetController: ActionSheetController = new ActionSheetController();
@@ -28,8 +36,76 @@ export struct SharedInteractionTestPage {
   @Event onOpenDetailCard: () => void = () => {};
   @Event onCloseDetailCard: () => void = () => {};
 
-  private pushLog(message: string): void {
-    this.logs = [message, ...this.logs].slice(0, 6);
+  private logToConsole(message: string): void {
+    hilog.info(SHARED_TEST_LOG_DOMAIN, SHARED_TEST_LOG_TAG, '%{public}s', message);
+  }
+
+  private formatTodo(todo: Todo | null): string {
+    if (todo === null) {
+      return 'null';
+    }
+    return `id=${todo.id}, content=${todo.content}, isDone=${todo.isDone}, updatedAt=${todo.updatedAt}`;
+  }
+
+  private async runTodoRepositoryCrudTest(): Promise<void> {
+    if (!AppDatabase.getInstance().isReady()) {
+      const notReadyMessage: string = 'TodoRepository CRUD 测试中止: 数据库尚未初始化';
+      this.logs.push(notReadyMessage);
+      hilog.error(SHARED_TEST_LOG_DOMAIN, SHARED_TEST_LOG_TAG, '%{public}s', notReadyMessage);
+      return;
+    }
+
+    const now: number = Date.now();
+    const todoId: string = `shared_test_todo_${now}`;
+    const todo: Todo = new Todo();
+    todo.id = todoId;
+    todo.content = `SharedTest Todo ${now}`;
+    todo.timestamp = now;
+    todo.createdAt = now;
+    todo.updatedAt = now;
+
+    const startMessage: string = `开始执行 TodoRepository CRUD 测试: ${todoId}`;
+    this.logs.push(startMessage);
+    this.logToConsole(startMessage);
+
+    try {
+      await this.todoRepository.save(todo);
+      const persistedId: string = todo.id;
+      const createMessage: string = `Create 成功: ${this.formatTodo(todo)}`;
+      this.logs.push(createMessage);
+      this.logToConsole(createMessage);
+
+      const createdTodo: Todo | null = await this.todoRepository.findById(persistedId);
+      const readMessage: string = `Read 成功: ${this.formatTodo(createdTodo)}`;
+      this.logs.push(readMessage);
+      this.logToConsole(readMessage);
+      if (createdTodo === null) {
+        throw new Error('Create 后 findById 返回 null');
+      }
+
+      createdTodo.content = `${createdTodo.content} (updated)`;
+      createdTodo.isDone = 1;
+      createdTodo.updatedAt = Date.now();
+      await this.todoRepository.save(createdTodo);
+      const updateMessage: string = `Update 成功: ${this.formatTodo(createdTodo)}`;
+      this.logs.push(updateMessage);
+      this.logToConsole(updateMessage);
+
+      const allTodos: Array<Todo> = await this.todoRepository.findAll();
+      const listMessage: string = `List 成功: 当前 Todo 总数 = ${allTodos.length}`;
+      this.logs.push(listMessage);
+      this.logToConsole(listMessage);
+
+      await this.todoRepository.removeById(persistedId);
+      const deletedTodo: Todo | null = await this.todoRepository.findById(persistedId);
+      const deleteMessage: string = `Delete 成功: 删除后查询结果 = ${this.formatTodo(deletedTodo)}`;
+      this.logs.push(deleteMessage);
+      this.logToConsole(deleteMessage);
+    } catch (err) {
+      const errorMessage: string = `TodoRepository CRUD 测试失败: ${JSON.stringify(err)}`;
+      this.logs.push(errorMessage);
+      hilog.error(SHARED_TEST_LOG_DOMAIN, SHARED_TEST_LOG_TAG, '%{public}s', errorMessage);
+    }
   }
 
   @Builder
@@ -42,7 +118,7 @@ export struct SharedInteractionTestPage {
       EditableSuite({
         title: '动作编辑套件',
         onSaveField: (field: string, value: string) => {
-          this.pushLog('EditableSuite 已保存字段: ' + field + ' = ' + value);
+          this.logs.push('EditableSuite 已保存字段: ' + field + ' = ' + value);
         }
       });
 
@@ -97,7 +173,7 @@ export struct SharedInteractionTestPage {
       content: this.buildDetailDialogContent,
       onDismiss: () => {
         this.onCloseDetailCard();
-        this.pushLog('DetailCard 已关闭');
+        this.logs.push('DetailCard 已关闭');
       }
     });
   }
@@ -122,7 +198,7 @@ export struct SharedInteractionTestPage {
               .backgroundColor(this.app.theme.palette.primary)
               .onClick(() => {
                 this.app.theme.set(ThemeMode.LIGHT);
-                this.pushLog('主题切换: LIGHT');
+                this.logs.push('主题切换: LIGHT');
               });
 
             Button('深色')
@@ -131,7 +207,7 @@ export struct SharedInteractionTestPage {
               .backgroundColor(this.app.theme.palette.primary)
               .onClick(() => {
                 this.app.theme.set(ThemeMode.DARK);
-                this.pushLog('主题切换: DARK');
+                this.logs.push('主题切换: DARK');
               });
           }
           .width('100%');
@@ -143,14 +219,14 @@ export struct SharedInteractionTestPage {
             enableSwipeRight: false,
             onSwipeLeft: () => {
               this.undoVisible = true;
-              this.pushLog('InteractableCard 左滑触发');
+              this.logs.push('InteractableCard 左滑触发');
             },
             onSwipeRight: () => {
-              this.pushLog('InteractableCard 右滑触发');
+              this.logs.push('InteractableCard 右滑触发');
             },
             onCardTap: () => {
               this.onOpenDetailCard();
-              this.pushLog('InteractableCard 点击打开详情卡片');
+              this.logs.push('InteractableCard 点击打开详情卡片');
             }
           }) {
             Column({ space: 8 }) {
@@ -175,7 +251,7 @@ export struct SharedInteractionTestPage {
               .fontColor(this.app.theme.palette.surface)
               .onClick(() => {
                 this.onOpenActionSheet();
-                this.pushLog('ActionSheet 打开');
+                this.logs.push('ActionSheet 打开');
               });
 
             Button('?')
@@ -188,7 +264,7 @@ export struct SharedInteractionTestPage {
               .fontColor(this.app.theme.palette.surface)
               .onClick(() => {
                 this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('todo', '搜索测试页'));
-                this.pushLog('Search overlay route 打开');
+                this.logs.push('Search overlay route 打开');
               });
 
             Button('i')
@@ -201,7 +277,7 @@ export struct SharedInteractionTestPage {
               .fontColor(this.app.theme.palette.surface)
               .onClick(() => {
                 this.onOpenDetailCard();
-                this.pushLog('通过 DetailCard 组件打开详情卡片');
+                this.logs.push('通过 DetailCard 组件打开详情卡片');
               });
           }
           .width('100%')
@@ -211,9 +287,19 @@ export struct SharedInteractionTestPage {
             label: 'AutoSaveText 单组件测试',
             placeholder: '停止输入后自动保存',
             onAutoSave: (value: string) => {
-              this.pushLog('AutoSaveText 自动保存: ' + value);
+              this.logs.push('AutoSaveText 自动保存: ' + value);
             }
           });
+
+          Button('测试 TodoRepository CRUD')
+            .width('100%')
+            .height(44)
+            .fontSize(14)
+            .fontColor(this.app.theme.palette.surface)
+            .backgroundColor(this.app.theme.palette.primary)
+            .onClick(() => {
+              this.runTodoRepositoryCrudTest();
+            });
 
           Row({ space: 12 }) {
             Text('模拟键盘避让')
@@ -264,10 +350,10 @@ export struct SharedInteractionTestPage {
           actionText: '撤销',
           durationMs: 4000,
           onUndo: () => {
-            this.pushLog('UndoNotification 执行撤销');
+            this.logs.push('UndoNotification 执行撤销');
           },
           onTimeout: () => {
-            this.pushLog('UndoNotification 倒计时结束');
+            this.logs.push('UndoNotification 倒计时结束');
           },
           onClose: () => {
             this.undoVisible = false;
