@@ -16,6 +16,30 @@ import promptAction from '@ohos.promptAction';
 const SHARED_TEST_LOG_DOMAIN: number = 0x0000;
 const SHARED_TEST_LOG_TAG: string = 'SharedTestPage';
 
+class DemoInteractableItem {
+  id: string;
+  title: string;
+  subtitle: string;
+
+  constructor(id: string, title: string, subtitle: string) {
+    this.id = id;
+    this.title = title;
+    this.subtitle = subtitle;
+  }
+}
+
+class UndoDeleteTask {
+  taskId: string;
+  item: DemoInteractableItem;
+  originalIndex: number;
+
+  constructor(taskId: string, item: DemoInteractableItem, originalIndex: number) {
+    this.taskId = taskId;
+    this.item = item;
+    this.originalIndex = originalIndex;
+  }
+}
+
 /**
  * 通用交互抽象层测试页。
  * 使用组件化浮层测试遮罩、卡片和关闭交互。
@@ -24,9 +48,15 @@ const SHARED_TEST_LOG_TAG: string = 'SharedTestPage';
 export struct SharedInteractionTestPage {
   @Local private app: AppState = useAppState();
   @Local private keyboardOffset: number = 0;
-  @Local private undoVisible: boolean = false;
   @Local private progress: number = 0.45;
   @Local private logs: string[] = [];
+  @Local private cardItems: Array<DemoInteractableItem> = [
+    new DemoInteractableItem('card_1', '交互卡片 #1', '左滑删除后可在通知中撤销'),
+    new DemoInteractableItem('card_2', '交互卡片 #2', '每张卡片都会生成独立撤销任务'),
+    new DemoInteractableItem('card_3', '交互卡片 #3', '超时不撤销则执行 onTimeout 逻辑')
+  ];
+  @Local private undoTasks: Array<UndoDeleteTask> = [];
+  @Local private undoTaskSeq: number = 0;
   private todoRepository: TodoRepository = new TodoRepository();
   @Param actionSheetVisible: boolean = false;
   @Param detailCardVisible: boolean = false;
@@ -39,6 +69,83 @@ export struct SharedInteractionTestPage {
 
   private logToConsole(message: string): void {
     hilog.info(SHARED_TEST_LOG_DOMAIN, SHARED_TEST_LOG_TAG, '%{public}s', message);
+  }
+
+  private removeCardById(cardId: string): void {
+    let foundIndex: number = -1;
+    for (let i = 0; i < this.cardItems.length; i++) {
+      if (this.cardItems[i].id === cardId) {
+        foundIndex = i;
+        break;
+      }
+    }
+    if (foundIndex < 0) {
+      return;
+    }
+
+    const removedItem: DemoInteractableItem = this.cardItems[foundIndex];
+    const taskId: string = `undo_task_${this.undoTaskSeq}`;
+    this.undoTaskSeq = this.undoTaskSeq + 1;
+    this.cardItems = this.cardItems.filter((item: DemoInteractableItem) => {
+      return item.id !== cardId;
+    });
+    this.undoTasks = [...this.undoTasks, new UndoDeleteTask(taskId, removedItem, foundIndex)];
+    this.logs.push(`${removedItem.title} 左滑删除，等待撤销`);
+  }
+
+  private findUndoTask(taskId: string): UndoDeleteTask | null {
+    for (let i = 0; i < this.undoTasks.length; i++) {
+      if (this.undoTasks[i].taskId === taskId) {
+        return this.undoTasks[i];
+      }
+    }
+    return null;
+  }
+
+  private restoreCardFromTask(taskId: string): void {
+    const task: UndoDeleteTask | null = this.findUndoTask(taskId);
+    if (task === null) {
+      return;
+    }
+    const insertIndex: number = Math.max(0, Math.min(task.originalIndex, this.cardItems.length));
+    const before: Array<DemoInteractableItem> = this.cardItems.slice(0, insertIndex);
+    const after: Array<DemoInteractableItem> = this.cardItems.slice(insertIndex);
+    this.cardItems = [...before, task.item, ...after];
+    this.logs.push(`${task.item.title} 已撤销恢复`);
+  }
+
+  private closeUndoTask(taskId: string): void {
+    this.undoTasks = this.undoTasks.filter((task: UndoDeleteTask) => {
+      return task.taskId !== taskId;
+    });
+  }
+
+  @Builder
+  private buildUndoStack() {
+    Stack({ alignContent: Alignment.Bottom }) {
+      ForEach(this.undoTasks, (task: UndoDeleteTask, index: number) => {
+        UndoNotification({
+          message: `${task.item.title} 已删除`,
+          actionText: '撤销',
+          durationMs: 4000,
+          onUndo: () => {
+            this.restoreCardFromTask(task.taskId);
+          },
+          onTimeout: () => {
+            this.logs.push(task.item.title + ' 删除已生效');
+          },
+          onClose: () => {
+            this.closeUndoTask(task.taskId);
+          }
+        })
+          .id(task.taskId)
+          .zIndex(this.undoTasks.length + 1 - index)
+          .translate({ x: 0, y: -(this.undoTasks.length - 1 - index) * 14 })
+          .opacity(Math.max(0.56, 1 - (this.undoTasks.length - 1 - index) * 0.12))
+          .margin({ left: 16, right: 16, bottom: 16 });
+      }, (task: UndoDeleteTask) => task.taskId);
+    }
+    .width('100%');
   }
 
   private formatTodo(todo: Todo | null): string {
@@ -213,32 +320,43 @@ export struct SharedInteractionTestPage {
           }
           .width('100%');
 
-          InteractableCard({
-            leftHint: '左滑: 删除',
-            rightHint: '右滑: 启动专注',
-            enableSwipeLeft: true,
-            enableSwipeRight: false,
-            onSwipeLeft: () => {
-              this.undoVisible = true;
-              this.logs.push('InteractableCard 左滑触发');
-            },
-            onSwipeRight: () => {
-              this.logs.push('InteractableCard 右滑触发');
-            },
-            onCardTap: () => {
-              this.onOpenDetailCard();
-              this.logs.push('InteractableCard 点击打开详情卡片');
+          ForEach(this.cardItems, (item: DemoInteractableItem) => {
+            InteractableCard({
+              leftHint: '左滑: 删除',
+              rightHint: '右滑: 启动专注',
+              enableSwipeLeft: true,
+              enableSwipeRight: false,
+              onSwipeLeft: () => {
+                this.removeCardById(item.id);
+              },
+              onSwipeRight: () => {
+                this.logs.push(item.title + ' 右滑触发');
+              },
+              onCardTap: () => {
+                this.onOpenDetailCard();
+                this.logs.push(item.title + ' 点击打开详情卡片');
+              }
+            }) {
+              Column({ space: 8 }) {
+                Text(item.title)
+                  .fontSize(16)
+                  .fontWeight(FontWeight.Medium);
+                Text(item.subtitle)
+                  .fontSize(12)
+                  .fontColor(this.app.theme.palette.textSecondary);
+              }
+              .alignItems(HorizontalAlign.Start);
             }
-          }) {
-            Column({ space: 8 }) {
-              Text('交互卡片手势测试')
-                .fontSize(16)
-                .fontWeight(FontWeight.Medium);
-              Text('左右滑动达到阈值后触发回调。')
-                .fontSize(12)
-                .fontColor(this.app.theme.palette.textSecondary);
-            }
-            .alignItems(HorizontalAlign.Start);
+          }, (item: DemoInteractableItem) => item.id);
+
+          if (this.cardItems.length === 0) {
+            Text('所有交互卡片均已删除，可通过撤销通知逐个恢复。')
+              .width('100%')
+              .fontSize(12)
+              .fontColor(this.app.theme.palette.textTertiary)
+              .padding(12)
+              .backgroundColor(this.app.theme.palette.surface)
+              .borderRadius(12);
           }
 
           Row({ space: 14 }) {
@@ -350,22 +468,8 @@ export struct SharedInteractionTestPage {
       .height('100%')
       .backgroundColor(this.app.theme.palette.background);
 
-      if (this.undoVisible) {
-        UndoNotification({
-          message: '已删除一条测试记录',
-          actionText: '撤销',
-          durationMs: 4000,
-          onUndo: () => {
-            this.logs.push('UndoNotification 执行撤销');
-          },
-          onTimeout: () => {
-            this.logs.push('UndoNotification 倒计时结束');
-          },
-          onClose: () => {
-            this.undoVisible = false;
-          }
-        })
-          .margin({ left: 16, right: 16, bottom: 16 });
+      if (this.undoTasks.length > 0) {
+        this.buildUndoStack();
       }
 
       if (this.actionSheetVisible) {
