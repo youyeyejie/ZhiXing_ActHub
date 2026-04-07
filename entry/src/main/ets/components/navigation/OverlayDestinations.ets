@@ -1,10 +1,10 @@
-import { AppState, useAppState } from '../../app/AppStates';
-import { SearchRouteParam } from '../../app/AppConstants';
-import { FocusPage } from '../../pages/focus';
-import { SearchPage } from '../../pages/search';
-import { StatusBarService } from '../../core/services/StatusBarService';
-import { SafeAreaInsetLayout } from '../layout/SafeAreaInsetLayout';
-import { NavDialogOverlay, NavDialogOverlayController } from '../navigation/NavDialogOverlay';
+import { AppState, useAppState } from "../../app/AppStates";
+import { SearchRouteParam } from "../../app/AppConstants";
+import { FocusPage } from "../../pages/focus";
+import { SearchPage } from "../../pages/search";
+import { StatusBarService } from "../../core/services/StatusBarService";
+import { SafeAreaInsetLayout } from "../layout/SafeAreaInsetLayout";
+import { NavDialogOverlay, NavDialogOverlayController } from "../navigation/NavDialogOverlay";
 
 @ComponentV2
 export struct FocusOverlayDestination {
@@ -43,22 +43,21 @@ export struct FocusOverlayDestination {
       },
       onDismiss: () => {
         this.app.nav.back(false);
-      }
+      },
     }) {
       SafeAreaInsetLayout({
         includeTop: true,
-        surfaceColor: this.app.theme.palette.background
+        surfaceColor: this.app.theme.palette.background,
       }) {
-        FocusPage();
+        FocusPage()
       }
-    }
+    };
   }
 }
-
 @ComponentV2
 export struct SearchOverlayDestination {
   @Local private app: AppState = useAppState();
-  @Param routeParam: SearchRouteParam = new SearchRouteParam('', '搜索');
+  @Param routeParam: SearchRouteParam = new SearchRouteParam("", "搜索");
   private overlayController: NavDialogOverlayController = new NavDialogOverlayController();
 
   build() {
@@ -66,12 +65,17 @@ export struct SearchOverlayDestination {
       controller: this.overlayController,
       onDismiss: () => {
         this.app.nav.back(false);
-      }
+      },
     }) {
-      SearchPage({
-        routeParam: this.routeParam,
-        dismissController: this.overlayController
-      });
-    }
+      SafeAreaInsetLayout({
+        includeTop: false,
+        surfaceColor: this.app.theme.palette.background,
+      }) {
+        SearchPage({
+          routeParam: this.routeParam,
+          dismissController: this.overlayController,
+        })
+      }
+    };
   }
 }
