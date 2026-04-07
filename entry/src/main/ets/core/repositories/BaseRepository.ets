@@ -6,18 +6,31 @@ import { BaseEntity } from '../models/BaseEntity';
  * 当前阶段提供基于 IBest-ORM 的最小 CRUD 能力，支撑各模块逐步落地。
  */
 export abstract class BaseRepository<T extends BaseEntity> {
-  protected tableName: string = '';
   protected orm = getORM();
-  constructor(tableName: string) {
-    this.tableName = tableName;
+  protected entityClass: Class<T>;
+
+  constructor(entityClass: Class<T>) {
+    this.entityClass = entityClass;
   }
 
   get query(): QueryBuilder<T> {
-    return this.orm.table(this.tableName) as QueryBuilder<T>
+    return this.orm.query(this.entityClass);
   }
 
   save(entity: T): Promise<void> {
-    this.orm.save<T>(entity);
+    const id: string = entity.id;
+
+    if (id.length === 0) {
+      this.orm.insert<T>(entity);
+      return Promise.resolve();
+    }
+
+    const existed: T | null = this.query.where('id', id).first();
+    if (existed === null) {
+      this.orm.insert<T>(entity);
+    } else {
+      this.orm.save<T>(entity);
+    }
     return Promise.resolve();
   }
 

@@ -1,4 +1,3 @@
-import { DatabaseConfig } from '../database/DatabaseConfig';
 import { TodoCategory } from '../models/TodoCategory';
 import { BaseRepository } from './BaseRepository';
 
@@ -8,6 +7,6 @@ import { BaseRepository } from './BaseRepository';
  */
 export class TodoCategoryRepository extends BaseRepository<TodoCategory> {
   constructor() {
-    super(DatabaseConfig.TODO_CATEGORY_TABLE);
+    super(TodoCategory);
   }
 }
