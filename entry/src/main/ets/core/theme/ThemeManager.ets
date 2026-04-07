@@ -12,7 +12,7 @@ export enum ThemeMode {
 
 @ObservedV2
 export class ThemeManager {
-  @Trace private _mode: ThemeMode = ThemeMode.LIGHT;
+  @Trace private _mode: ThemeMode = ThemeMode.SYSTEM;
   @Trace private _systemDark: boolean = false;
 
   set(mode: ThemeMode): void {

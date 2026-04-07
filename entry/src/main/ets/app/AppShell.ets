@@ -6,6 +6,7 @@ import { LoginPage } from '../pages/login';
 import { SharedTestDestinationPage } from '../pages/sharedtest/SharedTestDestinationPage';
 import { FocusOverlayDestination, SearchOverlayDestination } from '../components/navigation/OverlayDestinations';
 import { SearchRouteParam } from './AppConstants';
+import { ThemeMode } from '../core/theme/ThemeManager';
 
 /**
  * 应用总壳层。
@@ -17,6 +18,31 @@ export struct AppShell {
 
   private createFallbackSearchParam(routeName: string): SearchRouteParam {
     return new SearchRouteParam(routeName, '搜索');
+  }
+
+  private readPreferredThemeMode(): ThemeMode {
+    const value: Object | undefined = AppStorage.get('preferredThemeMode');
+    if (value === ThemeMode.DARK) {
+      return ThemeMode.DARK;
+    }
+    if (value === ThemeMode.LIGHT) {
+      return ThemeMode.LIGHT;
+    }
+    return ThemeMode.SYSTEM;
+  }
+
+  private readSystemDarkMode(): boolean {
+    const value: Object | undefined = AppStorage.get('systemDarkMode');
+    return value === true;
+  }
+
+  aboutToAppear(): void {
+    this.app.applyThemePreference(this.readPreferredThemeMode(), this.readSystemDarkMode());
+  }
+
+  private resolveBackgroundColor(): ResourceColor {
+    this.app.applyThemePreference(this.readPreferredThemeMode(), this.readSystemDarkMode());
+    return this.app.theme.palette.background;
   }
 
   @Builder
@@ -60,6 +86,6 @@ export struct AppShell {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.app.theme.palette.background);
+    .backgroundColor(this.resolveBackgroundColor());
   }
 }

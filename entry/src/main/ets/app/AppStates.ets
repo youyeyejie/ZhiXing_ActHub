@@ -1,4 +1,4 @@
-import { ThemeManager } from '../core/theme/ThemeManager';
+import { ThemeManager, ThemeMode } from '../core/theme/ThemeManager';
 import { AppNav } from './AppNav';
 import { AppFlow } from './AppConstants';
 
@@ -14,6 +14,11 @@ export class AppState {
 
   get nav(): AppNav {
     return this._nav;
+  }
+
+  applyThemePreference(mode: ThemeMode, systemDarkMode: boolean): void {
+    this.themeManager.set(mode);
+    this.themeManager.setSystemDark(systemDarkMode);
   }
 
   enterSplash(): void {

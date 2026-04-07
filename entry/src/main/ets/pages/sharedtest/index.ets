@@ -7,6 +7,7 @@ import { UndoNotification } from '../../components/feedback/UndoNotification';
 import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
 import { ThemeMode } from '../../core/theme/ThemeManager';
+import promptAction from '@ohos.promptAction';
 
 /**
  * 通用交互抽象层测试页。
@@ -165,7 +166,7 @@ export struct SharedInteractionTestPage {
           }
 
           Row({ space: 14 }) {
-            Button('+')
+            Button('sheet')
               .type(ButtonType.Circle)
               .width(56)
               .height(56)
@@ -178,7 +179,7 @@ export struct SharedInteractionTestPage {
                 this.pushLog('ActionSheet 打开');
               });
 
-            Button('?')
+            Button('search')
               .type(ButtonType.Circle)
               .width(56)
               .height(56)
@@ -191,7 +192,7 @@ export struct SharedInteractionTestPage {
                 this.pushLog('Search overlay route 打开');
               });
 
-            Button('i')
+            Button('detail')
               .type(ButtonType.Circle)
               .width(56)
               .height(56)
@@ -202,6 +203,23 @@ export struct SharedInteractionTestPage {
               .onClick(() => {
                 this.onOpenDetailCard();
                 this.pushLog('通过 DetailCard 组件打开详情卡片');
+              });
+
+            Button('toast')
+              .type(ButtonType.Circle)
+              .width(56)
+              .height(56)
+              .fontSize(24)
+              .stateEffect(true)
+              .backgroundColor(this.app.theme.palette.primary)
+              .fontColor(this.app.theme.palette.surface)
+              .onClick(() => {
+                this.getUIContext().getPromptAction().showToast({
+                  message: '这是一个通过 UIContext 调用的提示框。',
+                  duration: 2000,
+                  showMode: promptAction.ToastShowMode.DEFAULT,
+                  bottom: 80
+                })
               });
           }
           .width('100%')
@@ -214,6 +232,20 @@ export struct SharedInteractionTestPage {
               this.pushLog('AutoSaveText 自动保存: ' + value);
             }
           });
+         
+          Toggle({ type: ToggleType.Checkbox, isOn: false }).id('test-toggle')
+            .onChange((value: boolean) => {
+              this.pushLog('Toggle 组件状态: ' + (value ? 'ON' : 'OFF'));
+            });
+          Toggle({ type: ToggleType.Switch, isOn: false }).id('test-switch')
+            .onChange((value: boolean) => {
+              if (value) {
+                this.app.theme.set(ThemeMode.DARK);
+              } else {
+                this.app.theme.set(ThemeMode.LIGHT);
+              }
+              this.pushLog('Toggle 组件状态: ' + (value ? 'ON' : 'OFF'));
+            });
 
           Column({ space: 8 }) {
             Text('最近日志')
