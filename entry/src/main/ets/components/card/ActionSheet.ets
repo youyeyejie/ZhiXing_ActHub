@@ -62,6 +62,7 @@ export struct ActionSheet {
         Column()
           .width('100%')
           .height('100%')
+          .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
           .backgroundColor(this.app.theme.palette.mask)
           .opacity(this.maskOpacity)
           .onClick(() => {
@@ -81,6 +82,7 @@ export struct ActionSheet {
       }
     }
     .width('100%')
-    .height('100%');
+    .height('100%')
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM]);
   }
 }

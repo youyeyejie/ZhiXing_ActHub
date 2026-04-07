@@ -12,6 +12,15 @@ import { AppState, useAppState  } from '../../app/AppStates';
 @ComponentV2
 export struct TodoPage {
   @Local private app: AppState = useAppState();
+  @Event onBottomBarVisibleChange: (visible: boolean) => void = (_visible: boolean): void => {};
+
+  aboutToAppear(): void {
+    this.onBottomBarVisibleChange(true);
+  }
+
+  aboutToDisappear(): void {
+    this.onBottomBarVisibleChange(true);
+  }
 
   build() {
     MainTabPageLayout({

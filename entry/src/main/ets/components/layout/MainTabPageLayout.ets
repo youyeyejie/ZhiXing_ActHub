@@ -1,5 +1,6 @@
 import { AppState, useAppState } from '../../app/AppStates';
 import { PageScrollLayout } from './PageScrollLayout';
+import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
 
 /**
  * 主标签页统一布局容器。
@@ -39,7 +40,12 @@ export struct MainTabPageLayout {
               .onClick(this.onActionTap);
           }
         }
-        .padding(20)
+        .padding({
+          top: SafeAreaUtils.getTopInset() + 20,
+          right: 20,
+          bottom: 20,
+          left: 20
+        })
         .alignItems(VerticalAlign.Center)
         .expandSafeArea([SafeAreaType.KEYBOARD])
         .backgroundColor(this.app.theme.palette.background)

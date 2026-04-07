@@ -90,6 +90,7 @@ export struct DetailCard {
         Column()
           .width('100%')
           .height('100%')
+          .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
           .backgroundColor(this.app.theme.palette.mask)
           .opacity(this.maskOpacity)
           .animation({ duration: 200, curve: Curve.EaseOut, playMode: PlayMode.Normal })
@@ -120,6 +121,7 @@ export struct DetailCard {
     }
     .width('100%')
     .height('100%')
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .focusable(this.isVisible)
     .onKeyEvent((event: KeyEvent) => {
       if (this.isVisible && event.type === KeyType.Down && event.keyCode === 2) {

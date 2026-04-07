@@ -2,6 +2,7 @@ import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want 
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { AppDatabase } from '../core/database/AppDatabase';
+import { StatusBarService } from '../core/services/StatusBarService';
 import { ThemeMode } from '../core/theme/ThemeManager';
 import { useAppState } from './AppStates';
 
@@ -60,6 +61,7 @@ export default class EntryAbility extends UIAbility {
 
     try {
       const mainWindow: window.Window = windowStage.getMainWindowSync();
+      StatusBarService.bindMainWindow(mainWindow);
       mainWindow.setWindowLayoutFullScreen(true);
       mainWindow.setWindowSystemBarProperties({
         statusBarColor: '#00000000',
@@ -91,6 +93,7 @@ export default class EntryAbility extends UIAbility {
   onWindowStageDestroy(): void {
     // Main window is destroyed, release UI related resources
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageDestroy');
+    StatusBarService.unbindMainWindow();
     AppDatabase.getInstance().close();
   }
 

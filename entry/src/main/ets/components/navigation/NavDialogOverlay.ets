@@ -12,6 +12,8 @@ export class NavDialogOverlayController {
 export struct NavDialogOverlay {
   @Param controller: NavDialogOverlayController = new NavDialogOverlayController();
   @Event onDismiss: () => void = () => {};
+  @Event onWillDismiss: () => void = () => {};
+  @Event onEnterAnimationEnd: () => void = () => {};
   @Param enterDuration: number = 600;
   @Param exitDuration: number = 600;
   @BuilderParam content: () => void = this.emptyContent;
@@ -20,11 +22,13 @@ export struct NavDialogOverlay {
   @Local private panelTravelY: number = 1200;
   @Local private closing: boolean = false;
   @Local private entered: boolean = false;
+  private enterDoneTimerId: number = -1;
 
   @Builder
   private emptyContent() {}
 
   aboutToAppear(): void {
+    this.clearEnterDoneTimer();
     this.panelTravelY = this.resolveOffscreenOffset();
     this.panelOffsetY = this.panelTravelY;
     this.closing = false;
@@ -35,6 +39,17 @@ export struct NavDialogOverlay {
     setTimeout(() => {
       this.startEnterAnimation();
     }, 16);
+  }
+
+  aboutToDisappear(): void {
+    this.clearEnterDoneTimer();
+  }
+
+  private clearEnterDoneTimer(): void {
+    if (this.enterDoneTimerId >= 0) {
+      clearTimeout(this.enterDoneTimerId);
+      this.enterDoneTimerId = -1;
+    }
   }
 
   private resolveOffscreenOffset(): number {
@@ -52,12 +67,21 @@ export struct NavDialogOverlay {
     }
     this.entered = true;
     this.panelOffsetY = 0;
+    this.clearEnterDoneTimer();
+    this.enterDoneTimerId = setTimeout(() => {
+      if (!this.closing) {
+        this.onEnterAnimationEnd();
+      }
+      this.enterDoneTimerId = -1;
+    }, this.enterDuration);
   }
 
   private requestDismiss(): void {
     if (this.closing) {
       return;
     }
+    this.clearEnterDoneTimer();
+    this.onWillDismiss();
     this.closing = true;
     this.panelOffsetY = this.panelTravelY;
     setTimeout(() => {

@@ -66,12 +66,11 @@ export struct UndoNotification {
           .style({
             strokeWidth: 3,
             enableSmoothEffect: true,
-            content: this.actionText, // 在进度条上显示操作文本，增强提示效果。
+            content: this.actionText,
             font: { size: 13, style: FontStyle.Normal },
             fontColor: this.app.theme.palette.textPrimary,
           })
           .onClick(() => {
-            // 点击进度条同样触发撤销，提供更大点击区域。
             this.stopCountdown();
             this.onUndo();
             this.onClose();

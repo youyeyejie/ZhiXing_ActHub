@@ -6,6 +6,7 @@ import { PlanPage } from '../pages/plan';
 import { TodoPage } from '../pages/todo';
 import { IdeaPage } from '../pages/idea';
 import { UserPage } from '../pages/user';
+import { SafeAreaUtils } from '../core/theme/SafeAreaUtils';
 
 /**
  * 主应用壳层。
@@ -14,24 +15,41 @@ import { UserPage } from '../pages/user';
 @ComponentV2
 export struct MainShell {
   @Local private app: AppState = useAppState();
+  @Local private bottomTabBarVisible: boolean = true;
 
   @Builder
   private buildCurrentTabPage() {
     if (this.app.nav.mainRouteName === AppRoute.PLAN) {
-      PlanPage();
+      PlanPage({
+        onBottomBarVisibleChange: (visible: boolean): void => {
+          this.bottomTabBarVisible = visible;
+        }
+      });
     } else if (this.app.nav.mainRouteName === AppRoute.TODO) {
-      TodoPage();
+      TodoPage({
+        onBottomBarVisibleChange: (visible: boolean): void => {
+          this.bottomTabBarVisible = visible;
+        }
+      });
     } else if (this.app.nav.mainRouteName === AppRoute.IDEA) {
-      IdeaPage();
+      IdeaPage({
+        onBottomBarVisibleChange: (visible: boolean): void => {
+          this.bottomTabBarVisible = visible;
+        }
+      });
     } else {
-      UserPage();
+      UserPage({
+        onBottomBarVisibleChange: (visible: boolean): void => {
+          this.bottomTabBarVisible = visible;
+        }
+      });
     }
   }
 
   build() {
     SafeAreaInsetLayout({
-      includeTop: true,
-      includeBottom: true,
+      includeTop: false,
+      includeBottom: false,
       surfaceColor: this.app.theme.palette.background
     }) {
       Column({ space: 12 }) {
@@ -41,15 +59,18 @@ export struct MainShell {
         .layoutWeight(1)
         .width('100%');
 
-        BottomTabBar({
-          currentTab: this.app.nav.currentTab(),
-          onTabChange: (tab: AppTab): void => {
-            this.app.nav.selectTab(tab);
-          },
-          onFocusTap: (): void => {
-            this.app.nav.openFocus();
-          }
-        });
+        if (this.bottomTabBarVisible) {
+          BottomTabBar({
+            currentTab: this.app.nav.currentTab(),
+            onTabChange: (tab: AppTab): void => {
+              this.app.nav.selectTab(tab);
+            },
+            onFocusTap: (): void => {
+              this.app.nav.openFocus();
+            }
+          })
+            .margin({ bottom: SafeAreaUtils.getBottomInset() });
+        }
       }
       .width('100%')
       .height('100%');
