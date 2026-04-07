@@ -20,7 +20,6 @@ export struct MainTabPageLayout {
 
   build() {
     Column() {
-      PageScrollLayout() {
         Row() {
           Text(this.title)
             .fontSize(28)
@@ -40,9 +39,12 @@ export struct MainTabPageLayout {
               .onClick(this.onActionTap);
           }
         }
-        .width('100%')
-        .alignItems(VerticalAlign.Center);
-
+        .padding(20)
+        .alignItems(VerticalAlign.Center)
+        .expandSafeArea([SafeAreaType.KEYBOARD])
+        .backgroundColor(this.app.theme.palette.background)
+        .zIndex(1);
+      PageScrollLayout() {
         this.content();
       }
     }
