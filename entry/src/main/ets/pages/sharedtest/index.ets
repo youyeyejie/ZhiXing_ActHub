@@ -269,6 +269,23 @@ export struct SharedInteractionTestPage {
           .padding(12)
           .borderRadius(14)
           .backgroundColor(this.app.theme.palette.surface);
+
+          AutoSaveText({
+            label: 'AutoSaveText 单组件测试',
+            placeholder: '停止输入后自动保存',
+            onAutoSave: (value: string) => {
+              this.pushLog('AutoSaveText 自动保存: ' + value);
+            }
+          });
+
+
+          AutoSaveText({
+            label: 'AutoSaveText 单组件测试',
+            placeholder: '停止输入后自动保存',
+            onAutoSave: (value: string) => {
+              this.pushLog('AutoSaveText 自动保存: ' + value);
+            }
+          });
         }
         .alignItems(HorizontalAlign.Start)
         .padding(20);

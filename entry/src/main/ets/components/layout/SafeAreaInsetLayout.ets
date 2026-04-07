@@ -32,15 +32,30 @@ export struct SafeAreaInsetLayout {
   }
 
   build() {
-    Column() {
-      this.content();
+   Stack({ alignContent: Alignment.TopStart }) {
+      Column() {
+        this.content();
+      }
+      .width('100%')
+      .padding({
+        top: this.resolveTopPadding(),
+        bottom: this.resolveBottomPadding()
+      })
+      .backgroundColor(this.surfaceColor)
+      .constraintSize({
+        minHeight: this.fillHeight ? '100%' : undefined
+      });
+
+      if (this.resolveTopPadding() > 0) {
+        Column() {}
+          .width('100%')
+          .height(this.resolveTopPadding())
+          .backgroundColor(this.surfaceColor)
+          .expandSafeArea([SafeAreaType.KEYBOARD])
+          .zIndex(1);
+      }
     }
     .width('100%')
-    .padding({
-      top: this.resolveTopPadding(),
-      bottom: this.resolveBottomPadding()
-    })
-    .backgroundColor(this.surfaceColor)
     .constraintSize({
       minHeight: this.fillHeight ? '100%' : undefined
     });
