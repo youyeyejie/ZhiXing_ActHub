@@ -55,7 +55,7 @@ export struct FocusTimerPanel {
           .width(180)
           .height(180)
           .color(this.app.theme.palette.primary)
-          .style({ strokeWidth: 15 })
+          .style({ strokeWidth: 15, enableSmoothEffect: true });
         Column() {
           Text(`${Math.floor(this.value / 60).toString().padStart(2, '0')}:${(this.value % 60).toString().padStart(2, '0')}`)
             .fontSize(36)

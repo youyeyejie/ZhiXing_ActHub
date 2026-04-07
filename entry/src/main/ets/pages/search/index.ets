@@ -135,7 +135,16 @@ export struct SearchPage {
           surfaceColor: this.resolveHeaderBackgroundColor()
         }) {
           Column() {
-            TextInput({ text: this.keyword, placeholder: this.resolvePlaceholder() })
+            Search({ value: this.keyword, placeholder: this.resolvePlaceholder() })
+              .searchIcon({
+                src: $r('sys.media.ohos_ic_public_search_filled')
+                })
+              .cancelButton({
+                style: CancelButtonStyle.CONSTANT,
+                icon: {
+                  src: $r('sys.media.ohos_ic_public_cancel_filled')
+                }
+              })
               .width('100%')
               .height(44)
               .borderRadius(12)
@@ -143,14 +152,13 @@ export struct SearchPage {
               .padding({ left: 12, right: 12 })
               .defaultFocus(true)
               .placeholderColor(this.app.theme.palette.textTertiary)
-              .caretColor(this.app.theme.palette.textTertiary)
               .fontColor(this.app.theme.palette.textPrimary)
               .onChange((value: string) => {
                 this.keyword = value;
                 this.performSearch(value);
               })
-              .onSubmit((_enterKey: EnterKeyType) => {
-                this.performSearch(this.keyword);
+              .onSubmit(() => {
+                // 软键盘提交时不做额外处理，保持搜索结果不变。
               });
           }
           .width('100%')

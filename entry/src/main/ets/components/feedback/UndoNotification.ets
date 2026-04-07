@@ -1,4 +1,4 @@
-import { AppState, useAppState } from '../../app/AppStates';
+import { AppState, useAppState } from "../../app/AppStates";
 
 /**
  * 撤销提示条。
@@ -7,8 +7,8 @@ import { AppState, useAppState } from '../../app/AppStates';
 @ComponentV2
 export struct UndoNotification {
   @Local private app: AppState = useAppState();
-  @Param message: string = '操作已执行';
-  @Param actionText: string = '撤销';
+  @Param message: string = "操作已执行";
+  @Param actionText: string = "撤销";
   @Param durationMs: number = 5000;
   @Event onUndo: () => void = () => {};
   @Event onTimeout: () => void = () => {};
@@ -56,28 +56,29 @@ export struct UndoNotification {
       Row({ space: 10 }) {
         Text(this.message)
           .fontSize(14)
-          .fontColor(this.app.theme.palette.surface)
+          .fontColor(this.app.theme.palette.textPrimary)
           .fontWeight(FontWeight.Medium)
-          .layoutWeight(1);
-
-        Text(this.actionText)
-          .fontSize(13)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.app.theme.palette.primary)
+          .layoutWeight(1)
+        Progress({ value: this.getProgressPercent(), total: 100, type: ProgressType.Capsule })
+          .width(60)
+          .height(30)
+          .color(this.app.theme.palette.primary)
+          .style({
+            strokeWidth: 3,
+            enableSmoothEffect: true,
+            content: this.actionText, // 在进度条上显示操作文本，增强提示效果。
+            font: { size: 13, style: FontStyle.Normal },
+            fontColor: this.app.theme.palette.textPrimary,
+          })
           .onClick(() => {
+            // 点击进度条同样触发撤销，提供更大点击区域。
             this.stopCountdown();
             this.onUndo();
             this.onClose();
-          });
-      }
-      .width('100%');
-
-      Progress({ value: this.getProgressPercent(), total: 100, type: ProgressType.Linear })
-        .width('100%')
-        .color(this.app.theme.palette.primary)
-        .style({ strokeWidth: 3 });
+          })
+      }.width("100%")
     }
-    .width('100%')
+    .width("100%")
     .padding(16)
     .borderRadius(18)
     .backgroundColor(this.app.theme.palette.surfaceSecondary)

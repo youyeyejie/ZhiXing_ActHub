@@ -215,19 +215,6 @@ export struct SharedInteractionTestPage {
             }
           });
 
-          Row({ space: 12 }) {
-            Text('模拟键盘避让')
-              .fontSize(13)
-              .fontColor(this.app.theme.palette.textSecondary);
-
-            Slider({ value: this.keyboardOffset, min: 0, max: 220, step: 10 })
-              .layoutWeight(1)
-              .onChange((value: number) => {
-                this.keyboardOffset = value;
-              });
-          }
-          .width('100%');
-
           Column({ space: 8 }) {
             Text('最近日志')
               .fontSize(14)
