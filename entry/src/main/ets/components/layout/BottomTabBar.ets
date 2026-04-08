@@ -13,10 +13,17 @@ export struct BottomTabBar {
   @Event onFocusTap: () => void = (): void => {};
 
   @Builder
-  private buildTabItem(tab: AppTab, label: string) {
+  private buildTabItem(tab: AppTab, label: string, icon: Resource) {
     Column({ space: 6 }) {
+      SymbolGlyph(icon)
+        .fontSize(18)
+        .renderingStrategy(SymbolRenderingStrategy.SINGLE)
+        .fontColor([
+          this.currentTab === tab ? this.app.theme.palette.textPrimary : this.app.theme.palette.textSecondary
+        ])
+
       Text(label)
-        .fontSize(14)
+        .fontSize(12)
         .fontWeight(this.currentTab === tab ? FontWeight.Medium : FontWeight.Regular)
         .fontColor(this.currentTab === tab ? this.app.theme.palette.textPrimary : this.app.theme.palette.textSecondary);
 
@@ -27,7 +34,7 @@ export struct BottomTabBar {
         .backgroundColor(this.currentTab === tab ? this.app.theme.palette.primary : this.app.theme.palette.surface);
     }
     .layoutWeight(1)
-    .padding({ top: 10, bottom: 10 })
+    .padding({ top: 4, bottom: 10 })
     .alignItems(HorizontalAlign.Center)
     .onClick(() => {
       this.onTabChange(tab);
@@ -40,11 +47,11 @@ export struct BottomTabBar {
       Row() {
         Image($r("app.media.foreground"))
       }
-      .width(60)
-      .height(60)
+      .width(70)
+      .height(70)
       .borderColor(this.app.theme.palette.primary)
-      .borderWidth(5)
-      .borderRadius(30)
+      .borderWidth(8)
+      .borderRadius(35)
       .justifyContent(FlexAlign.Center)
       .backgroundColor(this.app.theme.palette.surfaceSecondary);
     }
@@ -58,11 +65,11 @@ export struct BottomTabBar {
 
   build() {
     Row() {
-      this.buildTabItem(AppTab.PLAN, '日程');
-      this.buildTabItem(AppTab.TODO, '待办');
+      this.buildTabItem(AppTab.PLAN, '日程', $r('sys.symbol.calendar'));
+      this.buildTabItem(AppTab.TODO, '待办', $r('sys.symbol.checkmark_circle'));
       this.buildFocusAction(); // 专注入口
-      this.buildTabItem(AppTab.IDEA, '闪记');
-      this.buildTabItem(AppTab.USER, '我的');
+      this.buildTabItem(AppTab.IDEA, '闪记', $r('sys.symbol.lightbulb'));
+      this.buildTabItem(AppTab.USER, '我的', $r('sys.symbol.person'));
     }
     .height(60)
     .width('100%')

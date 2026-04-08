@@ -2,7 +2,6 @@ import { SearchRouteParam } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
 import { SearchResultItem, SearchScope, SearchService } from "../../core/services/SearchService";
 import { KeyboardAvoidMode } from "@kit.ArkUI";
-import { NavDialogOverlayController } from "../../components/overlays/NavDialogOverlay";
 import { SafeAreaUtils } from "../../core/theme/SafeAreaUtils";
 
 /**
@@ -13,7 +12,7 @@ import { SafeAreaUtils } from "../../core/theme/SafeAreaUtils";
 export struct SearchPage {
   @Local private app: AppState = useAppState();
   @Param routeParam: SearchRouteParam = new SearchRouteParam("", "搜索");
-  @Param dismissController: NavDialogOverlayController = new NavDialogOverlayController();
+  @Param onRequestDismiss: () => void = () => {};
 
   private searchService: SearchService = new SearchService();
   @Local private keyword: string = "";
@@ -25,7 +24,6 @@ export struct SearchPage {
 
   aboutToAppear(): void {
     this.disableKeyboardAvoid();
-    this.performSearch("");
   }
 
   aboutToDisappear(): void {
@@ -65,13 +63,6 @@ export struct SearchPage {
       return SearchScope.User;
     }
     return SearchScope.Plan;
-  }
-
-  private resolveOverlayBackgroundColor(): string {
-    if (this.keyword.trim().length > 0) {
-      return this.app.theme.palette.background;
-    }
-    return this.app.theme.palette.searchOverlayMask;
   }
 
   private disableKeyboardAvoid(): void {
@@ -117,12 +108,7 @@ export struct SearchPage {
 
   build() {
     Stack({ alignContent: Alignment.Top }) {
-      Column()
-        .width("100%")
-        .height("100%")
-        .backgroundColor(this.resolveOverlayBackgroundColor())
       Column({ space: 12 }) {
-        Column() {
           Search({ value: this.keyword, placeholder: this.resolvePlaceholder() })
             .searchIcon({
               src: $r("sys.media.ohos_ic_public_search_filled"),
@@ -133,11 +119,12 @@ export struct SearchPage {
                 src: $r("sys.media.ohos_ic_public_cancel_filled"),
               },
             })
-            .width("100%")
+            .width("90%")
             .height(44)
             .borderRadius(12)
             .backgroundColor(this.app.theme.palette.surface)
             .padding({ left: 12, right: 12 })
+            .margin({ left: 16, right: 16, bottom: 16, top: SafeAreaUtils.getTopInset() + 16 })
             .defaultFocus(true)
             .placeholderColor(this.app.theme.palette.textTertiary)
             .fontColor(this.app.theme.palette.textPrimary)
@@ -148,9 +135,6 @@ export struct SearchPage {
             .onSubmit(() => {
               // 软键盘提交时不做额外处理，保持搜索结果不变。
             })
-        }
-        .width("100%")
-        .padding({ left: 16, right: 16, bottom: 16, top: SafeAreaUtils.getTopInset() + 16 })
 
         Scroll() {
           Column({ space: 10 }) {
@@ -186,7 +170,7 @@ export struct SearchPage {
         .width("100%")
         .layoutWeight(1)
         .onClick(() => {
-          this.dismissController.dismiss();
+          this.onRequestDismiss();
         })
       }.width("100%")
     }

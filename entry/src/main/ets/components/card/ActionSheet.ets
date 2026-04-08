@@ -11,7 +11,6 @@ export class ActionSheetController {
 @ComponentV2
 export struct ActionSheet {
   @Local private app: AppState = useAppState();
-  @Param isVisible: boolean = false;
   @Param panelHeight: string = '50%';
   @Param keyboardOffset: number = 0;
   @Param controller: ActionSheetController = new ActionSheetController();
@@ -58,28 +57,26 @@ export struct ActionSheet {
 
   build() {
     Stack({ alignContent: Alignment.Bottom }) {
-      if (this.isVisible) {
-        Column()
-          .width('100%')
-          .height('100%')
-          .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-          .backgroundColor(this.app.theme.palette.mask)
-          .opacity(this.maskOpacity)
-          .onClick(() => {
-            this.requestDismiss();
-          });
+			Column()
+				.width('100%')
+				.height('100%')
+				.expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+				.backgroundColor(this.app.theme.palette.mask)
+				.opacity(this.maskOpacity)
+				.onClick(() => {
+					this.requestDismiss();
+				});
 
-        Column({ space: 12 }) {
-          this.content();
-        }
-        .width('100%')
-        .height(this.panelHeight)
-        .padding({ left: 20, right: 20, top: 12, bottom: 20 + this.keyboardOffset })
-        .borderRadius({ topLeft: 24, topRight: 24 })
-        .backgroundColor(this.app.theme.palette.surface)
-        .translate({ x: 0, y: this.panelOffsetY - this.keyboardOffset })
-        .animation({ duration: 220, curve: Curve.EaseOut, playMode: PlayMode.Normal });
-      }
+			Column({ space: 12 }) {
+				this.content();
+			}
+			.width('100%')
+			.height(this.panelHeight)
+			.padding({ left: 20, right: 20, top: 12, bottom: 20 + this.keyboardOffset })
+			.borderRadius({ topLeft: 24, topRight: 24 })
+			.backgroundColor(this.app.theme.palette.surface)
+			.translate({ x: 0, y: this.panelOffsetY - this.keyboardOffset })
+			.animation({ duration: 220, curve: Curve.EaseOut, playMode: PlayMode.Normal });
     }
     .width('100%')
     .height('100%')

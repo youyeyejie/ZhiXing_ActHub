@@ -1,14 +1,33 @@
+import display from '@ohos.display';
 import { AppState, useAppState } from '../../app/AppStates';
 import { FocusPage } from '../../pages/focus';
 import { StatusBarService } from '../../core/services/StatusBarService';
 import { SafeAreaInsetLayout } from '../layout/SafeAreaInsetLayout';
-import { NavDialogOverlay, NavDialogOverlayController } from './NavDialogOverlay';
 
 @ComponentV2
 export struct FocusOverlayDestination {
   @Local private app: AppState = useAppState();
   @Local private statusBarHidden: boolean = false;
-  private overlayController: NavDialogOverlayController = new NavDialogOverlayController();
+  @Local private panelOffsetY: number = 1200;
+  @Local private panelTravelY: number = 1200;
+  @Local private closing: boolean = false;
+  @Local private entered: boolean = false;
+  private enterDoneTimerId: number = -1;
+  private dismissDoneTimerId: number = -1;
+  private enterDuration: number = 300;
+  private exitDuration: number = 200;
+
+  aboutToAppear(): void {
+    this.clearEnterDoneTimer();
+    this.clearDismissDoneTimer();
+    this.panelTravelY = this.resolveOffscreenOffset();
+    this.panelOffsetY = this.panelTravelY;
+    this.closing = false;
+    this.entered = false;
+    setTimeout(() => {
+      this.startEnterAnimation();
+    }, 16);
+  }
 
   private hideStatusBarAfterEnter(): void {
     if (this.statusBarHidden) {
@@ -27,28 +46,91 @@ export struct FocusOverlayDestination {
   }
 
   aboutToDisappear(): void {
+    this.clearEnterDoneTimer();
+    this.clearDismissDoneTimer();
     this.restoreStatusBarBeforeDismiss();
   }
 
-  build() {
-    NavDialogOverlay({
-      controller: this.overlayController,
-      onWillDismiss: () => {
-        this.restoreStatusBarBeforeDismiss();
-      },
-      onEnterAnimationEnd: () => {
+  private clearEnterDoneTimer(): void {
+    if (this.enterDoneTimerId >= 0) {
+      clearTimeout(this.enterDoneTimerId);
+      this.enterDoneTimerId = -1;
+    }
+  }
+
+  private clearDismissDoneTimer(): void {
+    if (this.dismissDoneTimerId >= 0) {
+      clearTimeout(this.dismissDoneTimerId);
+      this.dismissDoneTimerId = -1;
+    }
+  }
+
+  private resolveOffscreenOffset(): number {
+    try {
+      const info = display.getDefaultDisplaySync();
+      return Math.max(info.width, info.height);
+    } catch (_error) {
+      return 1200;
+    }
+  }
+
+  private startEnterAnimation(): void {
+    if (this.entered) {
+      return;
+    }
+    this.entered = true;
+    this.panelOffsetY = 0;
+    this.clearEnterDoneTimer();
+    this.enterDoneTimerId = setTimeout(() => {
+      if (!this.closing) {
         this.hideStatusBarAfterEnter();
-      },
-      onDismiss: () => {
-        this.app.nav.back(false);
-      },
-    }) {
-      SafeAreaInsetLayout({
-        includeTop: true,
-        surfaceColor: this.app.theme.palette.background,
-      }) {
-        FocusPage()
       }
-    };
+      this.enterDoneTimerId = -1;
+    }, this.enterDuration);
+  }
+
+  private requestDismiss(): void {
+    if (this.closing) {
+      return;
+    }
+    this.clearEnterDoneTimer();
+    this.clearDismissDoneTimer();
+    this.restoreStatusBarBeforeDismiss();
+    this.closing = true;
+    this.panelOffsetY = this.panelTravelY;
+    this.dismissDoneTimerId = setTimeout(() => {
+      this.dismissDoneTimerId = -1;
+      this.closing = false;
+      this.app.nav.back(false);
+    }, this.exitDuration);
+  }
+
+  build() {
+    NavDestination() {
+      Column() {
+        SafeAreaInsetLayout({
+          includeTop: true,
+          surfaceColor: this.app.theme.palette.background,
+        }) {
+          FocusPage()
+        }
+      }
+      .width('100%')
+      .height('100%')
+      .translate({ x: 0, y: this.panelOffsetY })
+      .animation({
+        duration: this.closing ? this.exitDuration : this.enterDuration,
+        curve: Curve.EaseInOut,
+        playMode: PlayMode.Normal,
+      })
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(Color.Transparent)
+    .mode(NavDestinationMode.DIALOG)
+    .onBackPressed(() => {
+      this.requestDismiss();
+      return true;
+    });
   }
 }

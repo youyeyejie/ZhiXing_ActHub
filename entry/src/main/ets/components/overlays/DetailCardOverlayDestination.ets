@@ -13,7 +13,6 @@ export struct DetailCardOverlayDestination {
   build() {
     NavDestination() {
       DetailCard({
-        isVisible: true,
         controller: this.detailCardController,
         onDismiss: () => {
           this.app.nav.back(false);

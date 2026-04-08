@@ -1,6 +1,6 @@
-import { AppState, useAppState } from '../../app/AppStates';
-import { PageScrollLayout } from './PageScrollLayout';
-import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
+import { AppState, useAppState } from "../../app/AppStates";
+import { PageScrollLayout } from "./PageScrollLayout";
+import { SafeAreaUtils } from "../../core/theme/SafeAreaUtils";
 
 /**
  * 主标签页统一布局容器。
@@ -9,53 +9,66 @@ import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
 @ComponentV2
 export struct MainTabPageLayout {
   @Local private app: AppState = useAppState();
-  @Param title: string = '';
-  @Param actionIcon: string = '';
-  @Param actionText: string = '';
-  @Param actionFillColor: string = '';
+  @Param title: string = "";
+  @Param actionIcon: ResourceStr = "";
+  @Param actionText: string = "";
   @Event onActionTap: () => void = () => {};
   @BuilderParam content: () => void = this.emptyBuilder;
 
   @Builder
   private emptyBuilder() {}
 
+  private hasActionIcon(): boolean {
+    return typeof this.actionIcon === 'string' ? this.actionIcon.length > 0 : true;
+  }
+
   build() {
     Column() {
-        Row() {
-          Text(this.title)
-            .fontSize(28)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(this.app.theme.palette.textPrimary)
-            .layoutWeight(1);
+      Row() {
+        Text(this.title)
+          .fontSize(28)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.app.theme.palette.textPrimary)
+          .layoutWeight(1)
 
-          if (this.actionIcon.length > 0 || this.actionText.length > 0) {
-            Button(this.actionIcon.length > 0 ? this.actionIcon : this.actionText)
-              .type(ButtonType.Circle)
-              .width(56)
-              .height(56)
-              .fontSize(24)
-              .stateEffect(true)
-              .backgroundColor(this.actionFillColor.length > 0 ? this.actionFillColor : this.app.theme.palette.primary)
-              .fontColor(this.app.theme.palette.surface)
-              .onClick(this.onActionTap);
+        if (this.hasActionIcon() || this.actionText.length > 0) {
+          Button() {
+            if (this.hasActionIcon()) {
+              Image(this.actionIcon)
+                .width(24)
+                .height(24)
+                .objectFit(ImageFit.Contain);
+            } else {
+              Text(this.actionText)
+                .fontSize(14)
+                .fontColor(this.app.theme.palette.textSecondary);
+            }
           }
+            .type(ButtonType.Circle)
+            .width(40)
+            .height(40)
+            .stateEffect(true)
+            .backgroundColor(Color.Transparent)
+            .onClick(this.onActionTap);
         }
-        .padding({
-          top: SafeAreaUtils.getTopInset() + 20,
-          right: 20,
-          bottom: 20,
-          left: 20
-        })
-        .alignItems(VerticalAlign.Center)
-        .expandSafeArea([SafeAreaType.KEYBOARD])
-        .backgroundColor(this.app.theme.palette.background)
-        .zIndex(1);
+      }
+      .padding({
+        top: SafeAreaUtils.getTopInset() + 20,
+        right: 20,
+        bottom: 20,
+        left: 20,
+      })
+      .alignItems(VerticalAlign.Center)
+      .backgroundColor(this.app.theme.palette.background)
+      .zIndex(1)
+
       PageScrollLayout() {
-        this.content();
+        this.content()
       }
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(this.app.theme.palette.background);
+    .width("100%")
+    .height("100%")
+    .backgroundColor(this.app.theme.palette.background)
+    .expandSafeArea([SafeAreaType.KEYBOARD]);
   }
 }

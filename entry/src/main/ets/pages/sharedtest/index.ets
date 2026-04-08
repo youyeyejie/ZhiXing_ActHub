@@ -244,7 +244,6 @@ export struct SharedInteractionTestPage {
   @Builder
   private buildActionSheet() {
     ActionSheet({
-      isVisible: this.actionSheetVisible,
       panelHeight: '60%',
       keyboardOffset: this.keyboardOffset,
       controller: this.actionSheetController,
@@ -276,7 +275,6 @@ export struct SharedInteractionTestPage {
   @Builder
   private buildDetailDialog() {
     DetailCard({
-      isVisible: this.detailCardVisible,
       controller: this.detailCardController,
       content: this.buildDetailDialogContent,
       onDismiss: () => {

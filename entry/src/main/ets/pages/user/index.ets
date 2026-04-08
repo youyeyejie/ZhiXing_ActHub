@@ -25,9 +25,7 @@ export struct UserPage {
   build() {
     MainTabPageLayout({
       title: '我的',
-      actionIcon: '!',
-      actionText: '测试',
-      actionFillColor: this.app.theme.palette.primary,
+      actionIcon: $r('sys.media.ohos_ic_public_search_filled'),
       onActionTap: () => {
         this.app.nav.pushOverlayByName(AppOverlayRoute.SHARED_TEST);
       }

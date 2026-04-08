@@ -30,8 +30,13 @@ export struct PageScrollLayout {
         right: this.paddingRight,
         bottom: this.paddingBottom,
         left: this.paddingLeft
+      })
+      .constraintSize({
+        minHeight: '100%'
       });
     }
+    .scrollable(ScrollDirection.Vertical)
+    .layoutWeight(1)
     .width('100%')
     .backgroundColor(this.app.theme.palette.background)
   }

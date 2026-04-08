@@ -13,7 +13,6 @@ export struct ActionSheetOverlayDestination {
   build() {
     NavDestination() {
       ActionSheet({
-        isVisible: true,
         panelHeight: '56%',
         controller: this.actionSheetController,
         onDismiss: () => {

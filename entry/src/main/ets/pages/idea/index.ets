@@ -26,9 +26,7 @@ export struct IdeaPage {
   build() {
     MainTabPageLayout({
       title: '闪记',
-      actionIcon: '?',
-      actionText: '搜索',
-      actionFillColor: this.app.theme.palette.primary,
+      actionIcon: $r('sys.media.ohos_ic_public_search_filled'),
       onActionTap: () => {
         this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('idea', '搜索闪记'));
       }

@@ -56,9 +56,7 @@ export struct PlanPage {
   build() {
     MainTabPageLayout({
       title: '日程',
-      actionIcon: '?',
-      actionText: '搜索',
-      actionFillColor: this.app.theme.palette.primary,
+      actionIcon: $r('sys.media.ohos_ic_public_search_filled'),
       onActionTap: () => {
         this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('plan', '搜索日程'));
       }
@@ -70,13 +68,12 @@ export struct PlanPage {
             this.app.nav.openActionSheet(this.buildPlanActionSheetContent);
           });
 
-        Button('测试 DetailCard')
-          .height(36)
-          .onClick(() => {
-            this.app.nav.openDetailCard(this.buildPlanDetailCardContent);
-          });
+      Button('测试 DetailCard')
+        .height(36)
+        .onClick(() => {
+          this.app.nav.openDetailCard(this.buildPlanDetailCardContent);
+        });
       }
-      .width('100%');
 
       WeekCalendar();
       TimelineView();

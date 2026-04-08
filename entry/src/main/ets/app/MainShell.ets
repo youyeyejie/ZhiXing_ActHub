@@ -1,4 +1,4 @@
-import { BottomTabBar } from '../components/navigation/BottomTabBar';
+import { BottomTabBar } from '../components/layout/BottomTabBar';
 import { SafeAreaInsetLayout } from '../components/layout/SafeAreaInsetLayout';
 import { AppRoute, AppTab } from './AppConstants';
 import { AppState, useAppState } from './AppStates';
