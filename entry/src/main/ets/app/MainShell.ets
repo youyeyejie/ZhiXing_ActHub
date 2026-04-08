@@ -15,34 +15,17 @@ import { SafeAreaUtils } from '../core/theme/SafeAreaUtils';
 @ComponentV2
 export struct MainShell {
   @Local private app: AppState = useAppState();
-  @Local private bottomTabBarVisible: boolean = true;
 
   @Builder
   private buildCurrentTabPage() {
     if (this.app.nav.mainRouteName === AppRoute.PLAN) {
-      PlanPage({
-        onBottomBarVisibleChange: (visible: boolean): void => {
-          this.bottomTabBarVisible = visible;
-        }
-      });
+      PlanPage();
     } else if (this.app.nav.mainRouteName === AppRoute.TODO) {
-      TodoPage({
-        onBottomBarVisibleChange: (visible: boolean): void => {
-          this.bottomTabBarVisible = visible;
-        }
-      });
+      TodoPage();
     } else if (this.app.nav.mainRouteName === AppRoute.IDEA) {
-      IdeaPage({
-        onBottomBarVisibleChange: (visible: boolean): void => {
-          this.bottomTabBarVisible = visible;
-        }
-      });
+      IdeaPage();
     } else {
-      UserPage({
-        onBottomBarVisibleChange: (visible: boolean): void => {
-          this.bottomTabBarVisible = visible;
-        }
-      });
+      UserPage();
     }
   }
 
@@ -59,18 +42,16 @@ export struct MainShell {
         .layoutWeight(1)
         .width('100%');
 
-        if (this.bottomTabBarVisible) {
-          BottomTabBar({
-            currentTab: this.app.nav.currentTab(),
-            onTabChange: (tab: AppTab): void => {
-              this.app.nav.selectTab(tab);
-            },
-            onFocusTap: (): void => {
-              this.app.nav.openFocus();
-            }
-          })
-            .margin({ bottom: SafeAreaUtils.getBottomInset() });
-        }
+        BottomTabBar({
+          currentTab: this.app.nav.currentTab(),
+          onTabChange: (tab: AppTab): void => {
+            this.app.nav.selectTab(tab);
+          },
+          onFocusTap: (): void => {
+            this.app.nav.openFocus();
+          }
+        })
+          .margin({ bottom: SafeAreaUtils.getBottomInset() });
       }
       .width('100%')
       .height('100%');

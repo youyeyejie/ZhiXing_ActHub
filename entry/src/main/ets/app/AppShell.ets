@@ -4,7 +4,10 @@ import { MainShell } from './MainShell';
 import { SplashPage } from '../pages/splash';
 import { LoginPage } from '../pages/login';
 import { SharedTestDestinationPage } from '../pages/sharedtest/SharedTestDestinationPage';
-import { FocusOverlayDestination, SearchOverlayDestination } from '../components/navigation/OverlayDestinations';
+import { FocusOverlayDestination } from '../components/overlays/FocusOverlayDestination';
+import { SearchOverlayDestination } from '../components/overlays/SearchOverlayDestination';
+import { ActionSheetOverlayDestination } from '../components/overlays/ActionSheetOverlayDestination';
+import { DetailCardOverlayDestination } from '../components/overlays/DetailCardOverlayDestination';
 import { SearchRouteParam } from './AppConstants';
 import { ThemeMode } from '../core/theme/ThemeManager';
 
@@ -62,6 +65,10 @@ export struct AppShell {
       FocusOverlayDestination();
     } else if (name === AppOverlayRoute.SEARCH) {
       SearchOverlayDestination({ routeParam: this.createFallbackSearchParam(name) });
+    } else if (name === AppOverlayRoute.ACTION_SHEET) {
+      ActionSheetOverlayDestination({ content: this.app.nav.actionSheetContentBuilder });
+    } else if (name === AppOverlayRoute.DETAIL_CARD) {
+      DetailCardOverlayDestination({ content: this.app.nav.detailCardContentBuilder });
     } else if (name === AppOverlayRoute.SHARED_TEST) {
       SharedTestDestinationPage();
     } else {

@@ -1,10 +1,8 @@
-import { AppState, useAppState } from "../../app/AppStates";
-import { SearchRouteParam } from "../../app/AppConstants";
-import { FocusPage } from "../../pages/focus";
-import { SearchPage } from "../../pages/search";
-import { StatusBarService } from "../../core/services/StatusBarService";
-import { SafeAreaInsetLayout } from "../layout/SafeAreaInsetLayout";
-import { NavDialogOverlay, NavDialogOverlayController } from "../navigation/NavDialogOverlay";
+import { AppState, useAppState } from '../../app/AppStates';
+import { FocusPage } from '../../pages/focus';
+import { StatusBarService } from '../../core/services/StatusBarService';
+import { SafeAreaInsetLayout } from '../layout/SafeAreaInsetLayout';
+import { NavDialogOverlay, NavDialogOverlayController } from './NavDialogOverlay';
 
 @ComponentV2
 export struct FocusOverlayDestination {
@@ -50,31 +48,6 @@ export struct FocusOverlayDestination {
         surfaceColor: this.app.theme.palette.background,
       }) {
         FocusPage()
-      }
-    };
-  }
-}
-@ComponentV2
-export struct SearchOverlayDestination {
-  @Local private app: AppState = useAppState();
-  @Param routeParam: SearchRouteParam = new SearchRouteParam("", "搜索");
-  private overlayController: NavDialogOverlayController = new NavDialogOverlayController();
-
-  build() {
-    NavDialogOverlay({
-      controller: this.overlayController,
-      onDismiss: () => {
-        this.app.nav.back(false);
-      },
-    }) {
-      SafeAreaInsetLayout({
-        includeTop: false,
-        surfaceColor: this.app.theme.palette.background,
-      }) {
-        SearchPage({
-          routeParam: this.routeParam,
-          dismissController: this.overlayController,
-        })
       }
     };
   }

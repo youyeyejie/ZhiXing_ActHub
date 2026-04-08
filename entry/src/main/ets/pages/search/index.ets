@@ -2,7 +2,7 @@ import { SearchRouteParam } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
 import { SearchResultItem, SearchScope, SearchService } from "../../core/services/SearchService";
 import { KeyboardAvoidMode } from "@kit.ArkUI";
-import { NavDialogOverlayController } from "../../components/navigation/NavDialogOverlay";
+import { NavDialogOverlayController } from "../../components/overlays/NavDialogOverlay";
 import { SafeAreaUtils } from "../../core/theme/SafeAreaUtils";
 
 /**

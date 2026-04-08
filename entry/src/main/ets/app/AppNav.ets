@@ -1,4 +1,4 @@
-import { AppRoute, AppTab, FocusRouteParam, SearchRouteParam } from './AppConstants';
+import { AppOverlayRoute, AppRoute, AppTab, FocusRouteParam, SearchRouteParam } from './AppConstants';
 
 /**
  * 应用主导航状态。
@@ -11,6 +11,8 @@ export class AppNav extends NavPathStack {
   @Trace public hasOverlayRoute: boolean = false;
   @Trace public detailModuleName: string = '';
   @Trace public detailRecordId: string = '';
+  public actionSheetContentBuilder: () => void = () => {};
+  public detailCardContentBuilder: () => void = () => {};
 
   selectTab(tab: AppTab): void {
     this.navigateByName(this.resolveMainRouteByTab(tab));
@@ -45,6 +47,16 @@ export class AppNav extends NavPathStack {
 
   openFocus(): void {
     this.pushOverlayRoute(AppRoute.FOCUS, new FocusRouteParam(), false);
+  }
+
+  openActionSheet(contentBuilder: () => void = () => {}): void {
+    this.actionSheetContentBuilder = contentBuilder;
+    this.pushOverlayRoute(AppOverlayRoute.ACTION_SHEET, undefined, true);
+  }
+
+  openDetailCard(contentBuilder: () => void = () => {}): void {
+    this.detailCardContentBuilder = contentBuilder;
+    this.pushOverlayRoute(AppOverlayRoute.DETAIL_CARD, undefined, true);
   }
 
   back(animated: boolean = true): void {
@@ -113,5 +125,7 @@ export class AppNav extends NavPathStack {
   private clearDetailState(): void {
     this.detailModuleName = '';
     this.detailRecordId = '';
+    this.actionSheetContentBuilder = () => {};
+    this.detailCardContentBuilder = () => {};
   }
 }
