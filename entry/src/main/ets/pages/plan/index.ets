@@ -3,10 +3,8 @@ import { TimelineView } from './components/TimelineView';
 import { PlanCard } from './components/PlanCard';
 import { PlanEditorSheet } from './components/PlanEditorSheet';
 import { MainTabPageLayout } from '../../components/layout/MainTabPageLayout';
-import { ActionSheet, ActionSheetController } from '../../components/card/ActionSheet';
-import { DetailCard, DetailCardController } from '../../components/card/DetailCard';
 import { AppOverlayRoute } from '../../app/AppConstants';
-import { AppState, useAppState  } from '../../app/AppStates';
+import { AppState, useAppState } from '../../app/AppStates';
 import { EditableSuite } from '../../components/form/EditableSuite';
 
 /**
@@ -16,41 +14,23 @@ import { EditableSuite } from '../../components/form/EditableSuite';
 @ComponentV2
 export struct PlanPage {
   @Local private app: AppState = useAppState();
-  @Local private actionSheetVisible: boolean = false;
-  @Local private detailCardVisible: boolean = false;
-  private actionSheetController: ActionSheetController = new ActionSheetController();
-  private detailCardController: DetailCardController = new DetailCardController();
-  @Event onBottomBarVisibleChange: (visible: boolean) => void = (_visible: boolean): void => {};
-
-  private syncBottomBarVisibility(): void {
-    const hasOverlay: boolean = this.actionSheetVisible || this.detailCardVisible;
-    this.onBottomBarVisibleChange(!hasOverlay);
-  }
-
-  aboutToAppear(): void {
-    this.syncBottomBarVisibility();
-  }
-
-  aboutToDisappear(): void {
-    this.onBottomBarVisibleChange(true);
-  }
 
   @Builder
-  private buildActionSheetContent() {
+  private buildPlanActionSheetContent() {
     Column({ space: 12 }) {
-      Text('ActionSheet 内容测试')
+      Text('日程 ActionSheet 测试')
         .fontSize(16)
         .fontWeight(FontWeight.Medium);
 
       EditableSuite({
-        title: '动作编辑套件'
+        title: '日程动作编辑套件'
       });
 
-      Button('关闭弹层')
+      Button('关闭 ActionSheet')
         .width('100%')
         .height(42)
         .onClick(() => {
-          this.actionSheetController.dismiss();
+          this.app.nav.back(false);
         });
     }
     .alignItems(HorizontalAlign.Start)
@@ -58,14 +38,14 @@ export struct PlanPage {
   }
 
   @Builder
-  private buildDetailCardContent() {
+  private buildPlanDetailCardContent() {
     Column({ space: 8 }) {
-      Text('Plan DetailCard 测试')
+      Text('日程 DetailCard 测试')
         .fontSize(16)
         .fontWeight(FontWeight.Medium)
         .fontColor(this.app.theme.palette.textPrimary);
 
-      Text('用于验证详情卡片动画、遮罩点击与返回键关闭。')
+      Text('通过 AppNav 调用时已传入完整自定义 Builder 内容。')
         .fontSize(12)
         .fontColor(this.app.theme.palette.textSecondary);
     }
@@ -74,67 +54,34 @@ export struct PlanPage {
   }
 
   build() {
-    Stack({ alignContent: Alignment.Bottom }) {
-      MainTabPageLayout({
-        title: '日程',
-        actionIcon: '?',
-        actionText: '搜索',
-        actionFillColor: this.app.theme.palette.primary,
-        onActionTap: () => {
-          this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('plan', '搜索日程'));
-        }
-      }) {
-        Row({ space: 10 }) {
-          Button('测试 ActionSheet')
-            .height(36)
-            .onClick(() => {
-              this.actionSheetVisible = true;
-              this.syncBottomBarVisibility();
-            });
-
-          Button('测试 DetailCard')
-            .height(36)
-            .onClick(() => {
-              this.detailCardVisible = true;
-              this.syncBottomBarVisibility();
-            });
-        }
-        .width('100%');
-
-        WeekCalendar();
-        TimelineView();
-        PlanCard();
-        PlanEditorSheet();
+    MainTabPageLayout({
+      title: '日程',
+      actionIcon: '?',
+      actionText: '搜索',
+      actionFillColor: this.app.theme.palette.primary,
+      onActionTap: () => {
+        this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('plan', '搜索日程'));
       }
+    }) {
+      Row({ space: 10 }) {
+        Button('测试 ActionSheet')
+          .height(36)
+          .onClick(() => {
+            this.app.nav.openActionSheet(this.buildPlanActionSheetContent);
+          });
 
-      if (this.actionSheetVisible) {
-        ActionSheet({
-          isVisible: this.actionSheetVisible,
-          panelHeight: '56%',
-          controller: this.actionSheetController,
-          onDismiss: () => {
-            this.actionSheetVisible = false;
-            this.syncBottomBarVisibility();
-          }
-        }) {
-          this.buildActionSheetContent();
-        }
+        Button('测试 DetailCard')
+          .height(36)
+          .onClick(() => {
+            this.app.nav.openDetailCard(this.buildPlanDetailCardContent);
+          });
       }
+      .width('100%');
 
-      if (this.detailCardVisible) {
-        DetailCard({
-          isVisible: this.detailCardVisible,
-          controller: this.detailCardController,
-          onDismiss: () => {
-            this.detailCardVisible = false;
-            this.syncBottomBarVisibility();
-          }
-        }) {
-          this.buildDetailCardContent();
-        }
-      }
+      WeekCalendar();
+      TimelineView();
+      PlanCard();
+      PlanEditorSheet();
     }
-    .width('100%')
-    .height('100%');
   }
 }

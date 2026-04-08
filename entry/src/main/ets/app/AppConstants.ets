@@ -43,6 +43,8 @@ export class AppRoute {
 export class AppOverlayRoute {
   static readonly SEARCH: string = 'search';
   static readonly SHARED_TEST: string = 'sharedTest';
+  static readonly ACTION_SHEET: string = 'actionSheet';
+  static readonly DETAIL_CARD: string = 'detailCard';
 }
 
 export class SearchRouteParam {
