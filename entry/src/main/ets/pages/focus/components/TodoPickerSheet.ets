@@ -1,8 +1,18 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
- * 专注前待办选择骨架。
- * TODO: 后续以 ActionSheet 形式展示未完成待办列表。
+ * 组件功能简介：
+ * - 专注前待办选择占位组件。
+ * - TODO: 尚未接入未完成待办列表与选择确认流程。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 渲染待办选择占位卡片。
+ *
+ * 副作用：
+ * - 无业务副作用。
  */
 @ComponentV2
 export struct TodoPickerSheet {

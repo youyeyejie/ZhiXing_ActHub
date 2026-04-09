@@ -2,8 +2,18 @@ import { AppState, useAppState } from '../../../app/AppStates';
 import { InteractableCard } from '../../../components/card/InteractableCard';
 
 /**
- * 日程卡片骨架。
- * TODO: 后续在此继承通用卡片交互并呈现时间、地点与类型。
+ * 组件功能简介：
+ * - 日程卡片占位组件，用于承载单条日程信息展示。
+ * - TODO: 尚未接入时间、地点、类型与交互行为。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 渲染一张占位卡片。
+ *
+ * 副作用：
+ * - 无业务副作用。
  */
 @ComponentV2
 export struct PlanCard {

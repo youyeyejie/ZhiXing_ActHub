@@ -17,6 +17,19 @@ export enum SearchScope {
   User = 'user'
 }
 
+/**
+ * 类功能简介：
+ * - 统一搜索结果数据结构。
+ *
+ * 可传入项：
+ * - 通过实例字段赋值写入 id、title、subtitle 和 scope。
+ *
+ * 返回行为：
+ * - 作为搜索结果 DTO 在页面层渲染。
+ *
+ * 副作用：
+ * - 无副作用（数据承载类）。
+ */
 export class SearchResultItem {
   id: string = '';
   title: string = '';
@@ -25,8 +38,17 @@ export class SearchResultItem {
 }
 
 /**
- * 统一搜索服务。
- * 按页面类别查询本地仓储，并返回统一结果结构。
+ * 类功能简介：
+ * - 统一搜索服务，按模块范围查询本地仓储并返回标准结果。
+ *
+ * 可传入项：
+ * - `search(scope, keyword)` 传入搜索范围与关键字。
+ *
+ * 返回行为：
+ * - 返回匹配项列表，关键字为空时返回空数组。
+ *
+ * 副作用：
+ * - 会访问各模块仓储执行读查询。
  */
 export class SearchService {
   private planRepository: PlanRepository = new PlanRepository();

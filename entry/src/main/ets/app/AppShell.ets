@@ -12,17 +12,33 @@ import { SearchRouteParam } from './AppConstants';
 import { ThemeMode } from '../core/theme/ThemeManager';
 
 /**
- * 应用总壳层。
- * 负责分发启动、登录与主壳流程，并承载进入式页面路由。
+ * 组件功能简介：
+ * - 应用总壳层，负责在启动页、认证页、主页面之间分发。
+ * - 承载 overlay 路由容器并根据路由名渲染对应目的页。
+ *
+ * 可传入项：
+ * - 无（通过 AppState 与 AppStorage 读取全局状态）。
+ *
+ * 返回行为：
+ * - 返回全屏 Stack，包含基础流程页面与可选的 Navigation overlay 容器。
+ *
+ * 副作用：
+ * - `aboutToAppear` 与 `resolveBackgroundColor` 会同步主题偏好到全局状态。
  */
 @ComponentV2
 export struct AppShell {
   @Local private app: AppState = useAppState();
 
+  /**
+   * 当 overlay 缺少参数时创建兜底搜索参数。
+   */
   private createFallbackSearchParam(routeName: string): SearchRouteParam {
     return new SearchRouteParam(routeName, '搜索');
   }
 
+  /**
+   * 读取用户偏好主题模式。
+   */
   private readPreferredThemeMode(): ThemeMode {
     const value: Object | undefined = AppStorage.get('preferredThemeMode');
     if (value === ThemeMode.DARK) {
@@ -34,21 +50,33 @@ export struct AppShell {
     return ThemeMode.SYSTEM;
   }
 
+  /**
+   * 读取系统深色状态缓存。
+   */
   private readSystemDarkMode(): boolean {
     const value: Object | undefined = AppStorage.get('systemDarkMode');
     return value === true;
   }
 
+  /**
+   * 页面出现时主动同步主题，避免冷启动闪烁。
+   */
   aboutToAppear(): void {
     this.app.applyThemePreference(this.readPreferredThemeMode(), this.readSystemDarkMode());
   }
 
+  /**
+   * 计算并返回壳层背景色。
+   */
   private resolveBackgroundColor(): ResourceColor {
     this.app.applyThemePreference(this.readPreferredThemeMode(), this.readSystemDarkMode());
     return this.app.theme.palette.background;
   }
 
   @Builder
+  /**
+   * 渲染基础流程页面（启动/认证/主流程）。
+   */
   private buildBaseContent() {
     if (this.app.flow === AppFlow.SPLASH) {
       SplashPage();
@@ -60,6 +88,9 @@ export struct AppShell {
   }
 
   @Builder
+  /**
+   * 根据 route 名渲染对应 overlay 目的页。
+   */
   private buildDestination(name: string) {
     if (name === AppRoute.FOCUS) {
       FocusOverlayDestination();
@@ -76,6 +107,9 @@ export struct AppShell {
     }
   }
 
+  /**
+   * 渲染应用壳层和 overlay 容器。
+   */
   build() {
     Stack() {
       this.buildBaseContent();

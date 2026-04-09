@@ -1,12 +1,37 @@
 import { AppState, useAppState } from '../../app/AppStates';
 
+/**
+ * 类功能简介：
+ * - DetailCard 外部控制器，提供主动关闭能力。
+ *
+ * 可传入项：
+ * - 无（直接调用实例方法字段 `dismiss`）。
+ *
+ * 返回行为：
+ * - 调用 `dismiss` 时执行组件内部注册的关闭流程。
+ *
+ * 副作用：
+ * - 触发 DetailCard 关闭动画与 onDismiss 回调。
+ */
 export class DetailCardController {
   dismiss: () => void = () => {};
 }
 
 /**
- * 详情卡片基础组件。
- * 使用页面内遮罩承载内容，统一遮罩点击、右上角关闭与系统返回关闭行为。
+ * 组件功能简介：
+ * - 详情卡片容器组件，统一遮罩、缩放动画和关闭入口。
+ *
+ * 可传入项：
+ * - @Param controller: 外部控制器，用于主动关闭。
+ * - @Event onDismiss: 卡片关闭完成后的回调。
+ * - @BuilderParam content: 详情主体内容。
+ *
+ * 返回行为：
+ * - 返回全屏遮罩与居中详情卡片。
+ *
+ * 副作用：
+ * - 组件出现时注册控制器关闭函数并启动入场动画。
+ * - 关闭时触发延时 onDismiss 回调。
  */
 @ComponentV2
 export struct DetailCard {

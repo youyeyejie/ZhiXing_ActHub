@@ -2,8 +2,19 @@ import { AppState, useAppState } from '../../../app/AppStates';
 import { ThemeMode } from '../../../core/theme/ThemeManager';
 
 /**
- * 设置面板骨架。
- * TODO: 后续放入主题切换、提醒开关、导入导出和退出登录入口。
+ * 组件功能简介：
+ * - 设置面板组件，当前提供主题模式切换能力。
+ * - TODO: 尚未接入提醒开关、导入导出和退出登录入口。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 渲染设置项容器与主题模式切换按钮。
+ *
+ * 副作用：
+ * - 读取并写入 AppStorage 主题偏好。
+ * - 会调用 AppState 同步全局主题。
  */
 @ComponentV2
 export struct SettingsPanel {

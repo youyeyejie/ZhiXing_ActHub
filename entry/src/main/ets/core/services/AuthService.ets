@@ -2,8 +2,17 @@ import { User } from '../models/User';
 import { UserRepository } from '../repositories/UserRepository';
 
 /**
- * 本地认证服务。
- * 当前版本仅使用本地数据库完成注册与登录，不接入远端后端。
+ * 类功能简介：
+ * - 本地认证服务，封装注册、登录与当前用户状态管理。
+ *
+ * 可传入项：
+ * - `login/register` 需传入账号与密码。
+ *
+ * 返回行为：
+ * - 返回登录/注册是否成功与当前登录用户信息。
+ *
+ * 副作用：
+ * - 成功登录或注册时会更新 `currentUser` 状态。
  */
 export class AuthService {
   private userRepository: UserRepository = new UserRepository();

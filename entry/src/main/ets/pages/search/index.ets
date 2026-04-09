@@ -5,8 +5,19 @@ import { KeyboardAvoidMode } from "@kit.ArkUI";
 import { SafeAreaUtils } from "../../core/theme/SafeAreaUtils";
 
 /**
- * 搜索页面。
- * 在 pages 层实现搜索输入、结果渲染与模块范围切换。
+ * 组件功能简介：
+ * - 搜索页面，负责输入关键字并按模块范围查询与展示结果。
+ *
+ * 可传入项：
+ * - @Param routeParam: 搜索来源模块与标题参数。
+ * - @Param onRequestDismiss: 请求关闭当前搜索 overlay 的回调。
+ *
+ * 返回行为：
+ * - 渲染搜索输入框与结果列表。
+ *
+ * 副作用：
+ * - 会调用 SearchService 发起异步查询并更新本地结果状态。
+ * - 生命周期会调整并恢复键盘避让模式。
  */
 @ComponentV2
 export struct SearchPage {
@@ -22,14 +33,23 @@ export struct SearchPage {
   @Local private keyboardAvoidModeChanged: boolean = false;
   @Local private previousKeyboardAvoidMode: KeyboardAvoidMode = KeyboardAvoidMode.OFFSET;
 
+  /**
+   * 页面出现时关闭键盘避让，避免 overlay 场景下产生额外顶起。
+   */
   aboutToAppear(): void {
     this.disableKeyboardAvoid();
   }
 
+  /**
+   * 页面离开时恢复原键盘避让模式。
+   */
   aboutToDisappear(): void {
     this.restoreKeyboardAvoid();
   }
 
+  /**
+   * 按模块返回搜索框提示文案。
+   */
   private resolvePlaceholder(): string {
     if (this.routeParam.moduleName === "plan") {
       return "搜索日程内容/地点/描述";
@@ -49,6 +69,9 @@ export struct SearchPage {
     return "输入关键字开始搜索";
   }
 
+  /**
+   * 将路由模块名映射为搜索域枚举。
+   */
   private resolveScope(): SearchScope {
     if (this.routeParam.moduleName === "todo") {
       return SearchScope.Todo;
@@ -65,6 +88,9 @@ export struct SearchPage {
     return SearchScope.Plan;
   }
 
+  /**
+   * 关闭键盘避让并缓存原状态。
+   */
   private disableKeyboardAvoid(): void {
     try {
       const uiContext = this.getUIContext();
@@ -76,6 +102,9 @@ export struct SearchPage {
     }
   }
 
+  /**
+   * 恢复进入页面前的键盘避让模式。
+   */
   private restoreKeyboardAvoid(): void {
     if (!this.keyboardAvoidModeChanged) {
       return;
@@ -86,6 +115,9 @@ export struct SearchPage {
     this.keyboardAvoidModeChanged = false;
   }
 
+  /**
+   * 执行一次搜索请求并做版本竞态保护。
+   */
   private async performSearch(keyword: string): Promise<void> {
     const version = this.requestVersion + 1;
     this.requestVersion = version;
@@ -106,6 +138,9 @@ export struct SearchPage {
     this.searching = false;
   }
 
+  /**
+   * 渲染搜索输入框与结果列表。
+   */
   build() {
     Stack({ alignContent: Alignment.Top }) {
       Column({ space: 12 }) {

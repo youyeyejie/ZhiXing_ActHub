@@ -4,6 +4,20 @@ import { FocusPage } from '../../pages/focus';
 import { StatusBarService } from '../../core/services/StatusBarService';
 import { SafeAreaInsetLayout } from '../layout/SafeAreaInsetLayout';
 
+/**
+ * 组件功能简介：
+ * - 专注页 overlay 路由容器，负责页面滑入滑出动画和状态栏显隐控制。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 返回对话式目的页容器并渲染 FocusPage。
+ *
+ * 副作用：
+ * - 会在入场后隐藏状态栏、关闭前恢复状态栏。
+ * - 会管理入场/出场计时器并在关闭后调用 `app.nav.back(false)`。
+ */
 @ComponentV2
 export struct FocusOverlayDestination {
   @Local private app: AppState = useAppState();

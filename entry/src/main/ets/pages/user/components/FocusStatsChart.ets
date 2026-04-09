@@ -1,8 +1,18 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
- * 专注时长柱状图骨架。
- * TODO: 后续补充周/月统计和图表渲染。
+ * 组件功能简介：
+ * - 专注统计图占位组件。
+ * - TODO: 尚未接入周/月维度统计与图表渲染。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 渲染统计图占位卡片。
+ *
+ * 副作用：
+ * - 无业务副作用。
  */
 @ComponentV2
 export struct FocusStatsChart {

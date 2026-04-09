@@ -2,8 +2,22 @@ import { AppState, useAppState } from "../../app/AppStates";
 import { SafeAreaUtils } from "../../core/theme/SafeAreaUtils";
 
 /**
- * 主标签页统一布局容器。
- * 统一处理整页背景、顶部标题栏和顶部起排的滚动内容。
+ * 组件功能简介：
+ * - 主标签页统一布局容器，封装标题栏、右上角动作入口与悬浮新建按钮。
+ *
+ * 可传入项：
+ * - @Param title: 页面标题。
+ * - @Param actionIcon/actionText: 右上角动作图标或文本（二选一显示）。
+ * - @Param showFloatButton: 是否显示右下角悬浮新建按钮。
+ * - @Event onActionTap: 点击右上角动作入口回调。
+ * - @Event onClickFloatingButton: 点击悬浮按钮回调。
+ * - @BuilderParam content: 页面主体内容。
+ *
+ * 返回行为：
+ * - 返回全屏页面骨架并渲染头部与主体内容。
+ *
+ * 副作用：
+ * - 点击头部动作与悬浮按钮会触发外部事件回调。
  */
 @ComponentV2
 export struct MainTabPageLayout {

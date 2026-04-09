@@ -1,8 +1,18 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
- * 周视图日历骨架。
- * TODO: 后续补充横向滑动、周吸附、双击回今日与选中态同步。
+ * 组件功能简介：
+ * - 周视图日历占位组件，预留周切换与日期选中能力。
+ * - TODO: 尚未接入横滑切周、回到今日和选中态同步。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 渲染周历占位卡片。
+ *
+ * 副作用：
+ * - 无业务副作用。
  */
 @ComponentV2
 export struct WeekCalendar {

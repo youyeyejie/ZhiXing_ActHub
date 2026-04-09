@@ -2,8 +2,19 @@ import { AppTab } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
 
 /**
- * 主导航底栏骨架。
- * 当前阶段采用四个主标签页加中间专注入口的结构。
+ * 组件功能简介：
+ * - 主导航底栏组件，包含四个标签入口和中间专注入口。
+ *
+ * 可传入项：
+ * - @Param currentTab: 当前激活标签。
+ * - @Event onTabChange: 点击标签时回调。
+ * - @Event onFocusTap: 点击中间专注入口时回调。
+ *
+ * 返回行为：
+ * - 返回底部导航栏布局。
+ *
+ * 副作用：
+ * - 点击事件会触发外部标签切换与专注入口回调。
  */
 @ComponentV2
 export struct BottomTabBar {

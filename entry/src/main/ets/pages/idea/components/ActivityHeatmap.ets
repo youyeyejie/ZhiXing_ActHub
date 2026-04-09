@@ -1,13 +1,27 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
- * 闪记热力图骨架。
- * TODO: 后续根据每日创建数量映射颜色深浅。
+ * 组件功能简介：
+ * - 闪记活跃热力图占位组件。
+ * - TODO: 尚未接入按日统计与颜色映射策略。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 渲染热力图占位卡片。
+ *
+ * 副作用：
+ * - 无业务副作用。
  */
 @ComponentV2
 export struct ActivityHeatmap {
   @Local private app: AppState = useAppState();
 
+  /**
+   * 渲染活跃度热力图占位。
+   * TODO: 后续接入日期维度统计数据和色阶映射。
+   */
   build() {
     Column({ space: 8 }) {
       Text('ActivityHeatmap')

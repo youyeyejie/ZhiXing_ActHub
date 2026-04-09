@@ -1,8 +1,18 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
- * 闪记卡片骨架。
- * TODO: 后续补充标题、省略内容、创建时间和点击展开详情。
+ * 组件功能简介：
+ * - 闪记列表卡片占位组件。
+ * - TODO: 尚未接入标题、省略正文、创建时间和详情展开交互。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 渲染闪记卡片占位内容。
+ *
+ * 副作用：
+ * - 无业务副作用。
  */
 @ComponentV2
 export struct IdeaCard {

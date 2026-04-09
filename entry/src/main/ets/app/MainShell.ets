@@ -9,14 +9,26 @@ import { UserPage } from '../pages/user';
 import { SafeAreaUtils } from '../core/theme/SafeAreaUtils';
 
 /**
- * 主应用壳层。
- * 负责底部四个主标签页的分发，以及专注入口等一级导航交互。
+ * 组件功能简介：
+ * - 主流程壳层，负责四个主标签页内容分发与底部栏展示。
+ *
+ * 可传入项：
+ * - 无（通过 AppState 读取当前主路由与主题状态）。
+ *
+ * 返回行为：
+ * - 返回带安全区处理的页面容器，内部按当前路由渲染对应模块页面。
+ *
+ * 副作用：
+ * - 底部栏交互会触发 AppNav 的路由切换与专注页打开。
  */
 @ComponentV2
 export struct MainShell {
   @Local private app: AppState = useAppState();
 
   @Builder
+  /**
+   * 根据当前主路由渲染对应标签页内容。
+   */
   private buildCurrentTabPage() {
     if (this.app.nav.mainRouteName === AppRoute.PLAN) {
       PlanPage();
@@ -29,6 +41,9 @@ export struct MainShell {
     }
   }
 
+  /**
+   * 渲染主壳层页面与底部导航栏。
+   */
   build() {
     SafeAreaInsetLayout({
       includeTop: false,

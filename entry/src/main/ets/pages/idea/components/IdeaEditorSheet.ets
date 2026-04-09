@@ -1,8 +1,18 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
- * 闪记新建/编辑半屏页骨架。
- * TODO: 后续承载标题、正文和自动保存编辑能力。
+ * 组件功能简介：
+ * - 闪记编辑半屏占位组件。
+ * - TODO: 尚未接入标题、正文与自动保存流程。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 渲染闪记编辑占位容器。
+ *
+ * 副作用：
+ * - 无业务副作用。
  */
 @ComponentV2
 export struct IdeaEditorSheet {

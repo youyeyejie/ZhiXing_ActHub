@@ -1,8 +1,18 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
- * 时间轴容器骨架。
- * TODO: 后续负责纵向时间刻度和日程卡片布局对齐。
+ * 组件功能简介：
+ * - 日程时间轴占位组件，预留按时间排列日程卡片能力。
+ * - TODO: 尚未接入刻度计算、冲突布局和吸附滚动。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 渲染时间轴占位卡片。
+ *
+ * 副作用：
+ * - 无业务副作用。
  */
 @ComponentV2
 export struct TimelineView {

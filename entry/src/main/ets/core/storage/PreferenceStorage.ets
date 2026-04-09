@@ -1,6 +1,16 @@
 /**
- * 偏好设置存储占位。
- * TODO: 后续封装登录态、主题模式和用户配置持久化。
+ * 类功能简介：
+ * - 偏好设置存储占位类，预留字符串与布尔配置读写接口。
+ * - TODO: 尚未接入真实持久化实现。
+ *
+ * 可传入项：
+ * - 读写方法入参为键名与对应值。
+ *
+ * 返回行为：
+ * - 当前返回 Promise 占位。
+ *
+ * 副作用：
+ * - 当前无实际副作用。
  */
 export class PreferenceStorage {
   setString(key: string, value: string): Promise<void> {

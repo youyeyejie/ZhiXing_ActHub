@@ -5,8 +5,17 @@ import { DetailCardController } from '../../components/card/DetailCard';
 import { SharedInteractionTestPage } from '../sharedtest';
 
 /**
- * 共享测试页路由容器。
- * 通过 NavDestination 承载测试页，避免普通页面直接作为目的页时出现空白节点。
+ * 组件功能简介：
+ * - 共享测试页的 NavDestination 容器，负责承载测试页面与浮层状态。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 返回全屏目的页容器并渲染 `SharedInteractionTestPage`。
+ *
+ * 副作用：
+ * - `onBackPressed` 会优先关闭详情/动作弹层，再执行导航返回。
  */
 @ComponentV2
 export struct SharedTestDestinationPage {

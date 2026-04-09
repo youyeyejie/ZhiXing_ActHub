@@ -21,6 +21,11 @@ class DemoInteractableItem {
   title: string;
   subtitle: string;
 
+  /**
+   * @param id 卡片唯一标识
+   * @param title 卡片标题
+   * @param subtitle 卡片描述
+   */
   constructor(id: string, title: string, subtitle: string) {
     this.id = id;
     this.title = title;
@@ -33,6 +38,11 @@ class UndoDeleteTask {
   item: DemoInteractableItem;
   originalIndex: number;
 
+  /**
+   * @param taskId 撤销任务 ID
+   * @param item 被删除的卡片项
+   * @param originalIndex 删除前索引
+   */
   constructor(taskId: string, item: DemoInteractableItem, originalIndex: number) {
     this.taskId = taskId;
     this.item = item;
@@ -41,8 +51,24 @@ class UndoDeleteTask {
 }
 
 /**
- * 通用交互抽象层测试页。
- * 使用组件化浮层测试遮罩、卡片和关闭交互。
+ * 组件功能简介：
+ * - 通用交互抽象层测试页面，用于集中验证卡片、弹层、自动保存与仓储测试流程。
+ *
+ * 可传入项：
+ * - @Param actionSheetVisible: 控制 ActionSheet 是否显示。
+ * - @Param detailCardVisible: 控制 DetailCard 是否显示。
+ * - @Param actionSheetController: 外部传入的 ActionSheet 控制器。
+ * - @Param detailCardController: 外部传入的 DetailCard 控制器。
+ * - @Event onOpenActionSheet/onCloseActionSheet: ActionSheet 打开与关闭事件。
+ * - @Event onOpenDetailCard/onCloseDetailCard: DetailCard 打开与关闭事件。
+ *
+ * 返回行为：
+ * - 返回可滚动测试页，按状态渲染撤销通知、ActionSheet 与 DetailCard。
+ *
+ * 副作用：
+ * - 会更新本地日志、卡片数据与撤销任务栈。
+ * - 会调用仓储执行 CRUD 测试并写入日志。
+ * - 会通过 AppNav 触发搜索 overlay 路由。
  */
 @ComponentV2
 export struct SharedInteractionTestPage {

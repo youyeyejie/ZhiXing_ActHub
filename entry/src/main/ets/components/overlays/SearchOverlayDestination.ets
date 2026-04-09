@@ -4,6 +4,19 @@ import { AppState, useAppState } from '../../app/AppStates';
 import { SearchPage } from '../../pages/search';
 import { SafeAreaInsetLayout } from '../layout/SafeAreaInsetLayout';
 
+/**
+ * 组件功能简介：
+ * - 搜索 overlay 路由容器，负责搜索页滑入滑出动画与返回处理。
+ *
+ * 可传入项：
+ * - @Param routeParam: 传递给 SearchPage 的模块与标题参数。
+ *
+ * 返回行为：
+ * - 返回对话式目的页容器并渲染 SearchPage。
+ *
+ * 副作用：
+ * - 会管理入场/出场计时器并在关闭后调用 `app.nav.back(false)`。
+ */
 @ComponentV2
 export struct SearchOverlayDestination {
   @Local private app: AppState = useAppState();

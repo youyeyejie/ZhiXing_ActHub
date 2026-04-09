@@ -3,8 +3,17 @@ import { DatabaseConfig } from '../database/DatabaseConfig';
 import { BaseEntity } from './BaseEntity';
 
 /**
- * 待办实体定义。
- * 对齐详细设计中的 todos 表，当前仅保留分类与专注记录所需外键字段。
+ * 类功能简介：
+ * - 待办实体模型，对应 `todos` 表。
+ *
+ * 可传入项：
+ * - 通过实例字段赋值写入内容、分类、完成态与专注关联状态。
+ *
+ * 返回行为：
+ * - 作为 ORM 实体参与持久化读写与查询映射。
+ *
+ * 副作用：
+ * - 无副作用（数据承载类）。
  */
 @Table({ name: DatabaseConfig.TODO_TABLE })
 export class Todo extends BaseEntity {

@@ -1,13 +1,27 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
- * 待办分类筛选骨架。
- * TODO: 后续补充横向滚动、选中态和颜色映射。
+ * 组件功能简介：
+ * - 待办分类筛选占位组件。
+ * - TODO: 尚未接入分类数据源、选中态与筛选回调。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 渲染分类筛选占位卡片。
+ *
+ * 副作用：
+ * - 无业务副作用。
  */
 @ComponentV2
 export struct CategoryFilter {
   @Local private app: AppState = useAppState();
 
+  /**
+   * 渲染分类筛选占位。
+   * TODO: 后续接入分类列表、选中态和筛选回调。
+   */
   build() {
     Column({ space: 8 }) {
       Text('CategoryFilter')

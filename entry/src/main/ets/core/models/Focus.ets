@@ -3,8 +3,17 @@ import { DatabaseConfig } from '../database/DatabaseConfig';
 import { BaseEntity } from './BaseEntity';
 
 /**
- * 专注记录实体定义。
- * 对齐详细设计中的专注记录表，并保留与待办绑定所需外键字段。
+ * 类功能简介：
+ * - 专注记录实体模型，对应 `focus_records` 表。
+ *
+ * 可传入项：
+ * - 通过实例字段赋值写入待办关联、时长与起止时间信息。
+ *
+ * 返回行为：
+ * - 作为 ORM 实体参与专注记录持久化与查询。
+ *
+ * 副作用：
+ * - 无副作用（数据承载类）。
  */
 @Table({ name: DatabaseConfig.FOCUS_TABLE })
 export class Focus extends BaseEntity {

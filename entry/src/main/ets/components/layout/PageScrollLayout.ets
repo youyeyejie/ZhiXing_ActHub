@@ -1,8 +1,19 @@
 import { AppState, useAppState } from '../../app/AppStates';
 
 /**
- * 页面滚动布局容器。
- * 统一承接主页面的顶部起排、滚动区域和内容边距。
+ * 组件功能简介：
+ * - 页面滚动布局容器，统一滚动区域间距和内边距配置。
+ *
+ * 可传入项：
+ * - @Param space: 子元素垂直间距。
+ * - @Param paddingTop/paddingRight/paddingBottom/paddingLeft: 四周内边距。
+ * - @BuilderParam content: 滚动区域主体内容。
+ *
+ * 返回行为：
+ * - 返回垂直可滚动的页面内容容器。
+ *
+ * 副作用：
+ * - 无业务副作用。
  */
 @ComponentV2
 export struct PageScrollLayout {

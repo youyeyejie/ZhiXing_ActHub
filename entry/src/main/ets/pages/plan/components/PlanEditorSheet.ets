@@ -1,8 +1,18 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
- * 日程新建/编辑半屏页骨架。
- * TODO: 后续组合 ActionSheet 与 AutoSaveText 完成表单编辑。
+ * 组件功能简介：
+ * - 日程编辑半屏页占位组件。
+ * - TODO: 尚未接入真实表单字段、校验与保存。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 渲染半屏占位编辑容器。
+ *
+ * 副作用：
+ * - 无业务副作用。
  */
 @ComponentV2
 export struct PlanEditorSheet {

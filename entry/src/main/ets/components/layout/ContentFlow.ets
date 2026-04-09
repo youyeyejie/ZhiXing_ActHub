@@ -1,8 +1,18 @@
 import { AppState, useAppState } from '../../app/AppStates';
 
 /**
- * 内容流容器骨架。
- * TODO: 后续负责同类卡片的懒加载、分页和统一间距管理。
+ * 组件功能简介：
+ * - 内容流容器占位组件，预留列表懒加载与分页能力。
+ * - TODO: 尚未接入数据源、分页策略和统一间距规则。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 渲染内容流占位卡片。
+ *
+ * 副作用：
+ * - 无业务副作用。
  */
 @ComponentV2
 export struct ContentFlow {

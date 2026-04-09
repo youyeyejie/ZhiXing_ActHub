@@ -1,9 +1,17 @@
 import { AppOverlayRoute, AppRoute, AppTab, FocusRouteParam, SearchRouteParam } from './AppConstants';
 
 /**
- * 应用主导航状态。
- * 基于 Navigation 控制器扩展应用级导航能力。
- * 当前 MVP 阶段负责维护主标签页状态，并为后续搜索、详情和专注页提供统一入口。
+ * 类功能简介：
+ * - 应用主导航状态管理器，封装主页面切换与 overlay 路由操作。
+ *
+ * 可传入项：
+ * - 公开方法可接收标签枚举、路由名、覆盖页参数与内容 Builder。
+ *
+ * 返回行为：
+ * - 提供主路由状态、当前标签、覆盖页开关与导航操作能力。
+ *
+ * 副作用：
+ * - 会修改导航栈与响应式路由状态字段。
  */
 @ObservedV2
 export class AppNav extends NavPathStack {
@@ -14,6 +22,9 @@ export class AppNav extends NavPathStack {
   public actionSheetContentBuilder: () => void = () => {};
   public detailCardContentBuilder: () => void = () => {};
 
+  /**
+   * 按标签切换主页面。
+   */
   selectTab(tab: AppTab): void {
     this.navigateByName(this.resolveMainRouteByTab(tab));
   }
@@ -45,20 +56,32 @@ export class AppNav extends NavPathStack {
     this.pushOverlayRoute(routeName, param, animated);
   }
 
+  /**
+   * 打开专注覆盖页。
+   */
   openFocus(): void {
     this.pushOverlayRoute(AppRoute.FOCUS, new FocusRouteParam(), false);
   }
 
+  /**
+   * 打开 ActionSheet 覆盖页。
+   */
   openActionSheet(contentBuilder: () => void = () => {}): void {
     this.actionSheetContentBuilder = contentBuilder;
     this.pushOverlayRoute(AppOverlayRoute.ACTION_SHEET, undefined, true);
   }
 
+  /**
+   * 打开 DetailCard 覆盖页。
+   */
   openDetailCard(contentBuilder: () => void = () => {}): void {
     this.detailCardContentBuilder = contentBuilder;
     this.pushOverlayRoute(AppOverlayRoute.DETAIL_CARD, undefined, true);
   }
 
+  /**
+   * 返回上一级路由并同步覆盖页状态。
+   */
   back(animated: boolean = true): void {
     const pathNames = this.getAllPathName();
     const remainingCount = pathNames.length > 0 ? pathNames.length - 1 : 0;
@@ -69,6 +92,9 @@ export class AppNav extends NavPathStack {
     this.pop(animated);
   }
 
+  /**
+   * 根据当前主路由反查选中标签。
+   */
   currentTab(): AppTab {
     if (this.mainRouteName === AppRoute.TODO) {
       return AppTab.TODO;
@@ -90,6 +116,9 @@ export class AppNav extends NavPathStack {
     return new SearchRouteParam(moduleName, pageTitle);
   }
 
+  /**
+   * 将标签枚举映射到主路由名。
+   */
   private resolveMainRouteByTab(tab: AppTab): string {
     if (tab === AppTab.TODO) {
       return AppRoute.TODO;
@@ -103,6 +132,9 @@ export class AppNav extends NavPathStack {
     return AppRoute.PLAN;
   }
 
+  /**
+   * 统一压入覆盖页并附带 onPop 同步逻辑。
+   */
   private pushOverlayRoute(routeName: string, param: Object | undefined, animated: boolean): void {
     this.hasOverlayRoute = true;
     this.pushPath({
@@ -114,6 +146,9 @@ export class AppNav extends NavPathStack {
     }, animated);
   }
 
+  /**
+   * 根据栈状态刷新 hasOverlayRoute。
+   */
   private syncOverlayState(): void {
     const pathNames = this.getAllPathName();
     this.hasOverlayRoute = pathNames.length > 0;
@@ -122,6 +157,9 @@ export class AppNav extends NavPathStack {
     }
   }
 
+  /**
+   * 清理覆盖页内容 builder 与详情状态。
+   */
   private clearDetailState(): void {
     this.detailModuleName = '';
     this.detailRecordId = '';

@@ -3,8 +3,17 @@ import { User } from '../models/User';
 import { BaseRepository } from './BaseRepository';
 
 /**
- * 用户仓储。
- * 使用本地数据库完成账号注册、登录校验和用户查询。
+ * 类功能简介：
+ * - 用户仓储实现，封装本地注册、登录与用户资料更新能力。
+ *
+ * 可传入项：
+ * - 方法入参包括账号、密码、头像与用户实体对象。
+ *
+ * 返回行为：
+ * - 返回用户查询结果、注册/登录结果与更新执行结果。
+ *
+ * 副作用：
+ * - 注册、登录、更新会写入数据库并更新时间戳。
  */
 export class UserRepository extends BaseRepository<User> {
   constructor() {

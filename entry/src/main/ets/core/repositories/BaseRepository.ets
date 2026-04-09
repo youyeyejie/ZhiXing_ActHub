@@ -2,8 +2,17 @@ import { QueryBuilder, getORM, Class } from '@ibestservices/ibest-orm';
 import { BaseEntity } from '../models/BaseEntity';
 
 /**
- * 通用仓储基类。
- * 当前阶段提供基于 IBest-ORM 的最小 CRUD 能力，支撑各模块逐步落地。
+ * 类功能简介：
+ * - 通用仓储基类，封装 IBest-ORM 的基础 CRUD 能力。
+ *
+ * 可传入项：
+ * - 构造参数 `entityClass`：当前仓储对应的实体类型。
+ *
+ * 返回行为：
+ * - 提供 `save/removeById/findById/findAll` 与 `query` 访问能力。
+ *
+ * 副作用：
+ * - `save/removeById` 会直接写入或删除数据库记录。
  */
 export abstract class BaseRepository<T extends BaseEntity> {
   protected orm = getORM();

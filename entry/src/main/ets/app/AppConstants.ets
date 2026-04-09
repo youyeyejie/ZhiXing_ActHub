@@ -1,6 +1,16 @@
 /**
- * 应用级常量。
- * TODO: 后续统一维护路由名、数据库名、通知通道等全局常量。
+ * 类功能简介：
+ * - 应用级静态常量集合。
+ * - TODO: 后续补充通知通道、键名与全局配置常量。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 提供可复用常量值。
+ *
+ * 副作用：
+ * - 无副作用。
  */
 export class AppConstants {
   static readonly APP_NAME: string = 'ZhiXing ActHub';
@@ -8,12 +18,38 @@ export class AppConstants {
   static readonly PREFERENCE_NAME: string = 'acthub.preference';
 }
 
+/**
+ * 类型功能简介：
+ * - 应用流程状态枚举（启动/认证/主流程）。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 为流程分发逻辑提供状态值约束。
+ *
+ * 副作用：
+ * - 无副作用。
+ */
 export enum AppFlow {
   SPLASH = 'SPLASH',
   AUTH = 'AUTH',
   MAIN = 'MAIN'
 }
 
+/**
+ * 类型功能简介：
+ * - 主标签页枚举类型。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 为主页面切换提供标签值约束。
+ *
+ * 副作用：
+ * - 无副作用。
+ */
 export enum AppTab {
   PLAN = 'PLAN',
   TODO = 'TODO',
@@ -21,12 +57,20 @@ export enum AppTab {
   USER = 'USER'
 }
 
+/**
+ * 类功能简介：
+ * - 应用主页面路由常量集合。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 提供主页面路由名常量。
+ *
+ * 副作用：
+ * - 无副作用。
+ */
 export class AppRoute {
-  /**
-   * 应用主页面路由名。
-   * 这些路由由应用壳层直接分发，属于代码内显式支持的基础页面跳转：
-   * 四个主标签页，以及从底部中间入口进入的专注页。
-   */
   static readonly PLAN: string = 'plan';
   static readonly TODO: string = 'todo';
   static readonly IDEA: string = 'idea';
@@ -35,10 +79,17 @@ export class AppRoute {
 }
 
 /**
- * 栈内覆盖页路由名。
- * 当前仅作为单页内动态元素的命名规范，
- * 用于搜索页、共享测试页等“叠加在主页面之上”的目的页；
- * 这类页面保留动态 push/pop 能力，但不作为应用主导航中的直接跳转目标。
+ * 类功能简介：
+ * - 覆盖页路由常量集合，定义 overlay 目的页命名。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 提供 overlay 路由名常量。
+ *
+ * 副作用：
+ * - 无副作用。
  */
 export class AppOverlayRoute {
   static readonly SEARCH: string = 'search';
@@ -47,15 +98,46 @@ export class AppOverlayRoute {
   static readonly DETAIL_CARD: string = 'detailCard';
 }
 
+/**
+ * 类功能简介：
+ * - 搜索页路由参数对象。
+ *
+ * 可传入项：
+ * - 构造参数 `moduleName` 与 `pageTitle`。
+ *
+ * 返回行为：
+ * - 构造后返回可直接传给搜索 overlay 的参数对象。
+ *
+ * 副作用：
+ * - 无副作用。
+ */
 export class SearchRouteParam {
   moduleName: string;
   pageTitle: string;
 
+  /**
+  * @param moduleName 搜索来源模块名
+  * @param pageTitle 搜索页标题
+   */
   constructor(moduleName: string, pageTitle: string) {
     this.moduleName = moduleName;
     this.pageTitle = pageTitle;
   }
 }
 
+/**
+ * 类功能简介：
+ * - 专注页路由参数占位对象。
+ * - TODO: 尚未补充来源场景、默认时长和关联待办 ID。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 作为专注页路由参数占位类型。
+ *
+ * 副作用：
+ * - 无副作用。
+ */
 export class FocusRouteParam {
 }

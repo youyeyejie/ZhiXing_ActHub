@@ -1,8 +1,21 @@
 import { AppState, useAppState } from "../../app/AppStates";
 
 /**
- * 撤销提示条。
- * 提供倒计时进度、撤销动作和自动关闭。
+ * 组件功能简介：
+ * - 撤销提示条组件，提供倒计时进度、撤销按钮和自动关闭机制。
+ *
+ * 可传入项：
+ * - @Param message/actionText: 提示文案与动作按钮文案。
+ * - @Param durationMs: 自动关闭倒计时。
+ * - @Event onUndo: 点击撤销时回调。
+ * - @Event onTimeout: 倒计时结束时回调。
+ * - @Event onClose: 组件关闭时回调（撤销或超时都会触发）。
+ *
+ * 返回行为：
+ * - 返回一条带胶囊进度按钮的通知条。
+ *
+ * 副作用：
+ * - 组件生命周期会启动/停止计时器并触发外部回调。
  */
 @ComponentV2
 export struct UndoNotification {

@@ -1,8 +1,19 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 
 /**
- * 专注计时面板骨架。
- * TODO: 后续接入番茄钟状态机、开始暂停和休息阶段控制。
+ * 组件功能简介：
+ * - 专注计时面板组件，当前提供基础倒计时与开始/暂停演示。
+ * - TODO: 尚未接入番茄钟状态机、休息阶段与后台计时。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 渲染计时进度环、倒计时文本与控制按钮。
+ *
+ * 副作用：
+ * - 按钮操作会启动/停止定时器并修改本地计时状态。
+ * - `aboutToDisappear` 会清理定时器资源。
  */
 @ComponentV2
 export struct FocusTimerPanel {

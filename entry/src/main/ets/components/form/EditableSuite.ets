@@ -2,8 +2,18 @@ import { AutoSaveText } from './AutoSaveText';
 import { AppState, useAppState } from '../../app/AppStates';
 
 /**
- * 自动保存编辑套件。
- * 聚合常见输入字段并统一反馈最近一次保存状态。
+ * 组件功能简介：
+ * - 自动保存编辑套件，组合多个输入项并统一保存反馈。
+ *
+ * 可传入项：
+ * - @Param title: 套件标题。
+ * - @Event onSaveField: 字段自动保存回调（field, value）。
+ *
+ * 返回行为：
+ * - 返回包含多个 `AutoSaveText` 子组件的编辑区域。
+ *
+ * 副作用：
+ * - 会更新最近保存字段并触发外部保存回调。
  */
 @ComponentV2
 export struct EditableSuite {

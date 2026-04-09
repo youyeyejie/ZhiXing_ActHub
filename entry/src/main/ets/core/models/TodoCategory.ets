@@ -3,8 +3,17 @@ import { DatabaseConfig } from '../database/DatabaseConfig';
 import { BaseEntity } from './BaseEntity';
 
 /**
- * 待办分类实体定义。
- * 对齐详细设计中的 todo_categories 表。
+ * 类功能简介：
+ * - 待办分类实体模型，对应 `todo_categories` 表。
+ *
+ * 可传入项：
+ * - 通过实例字段赋值写入分类名称与颜色值。
+ *
+ * 返回行为：
+ * - 作为 ORM 实体参与分类数据持久化与查询。
+ *
+ * 副作用：
+ * - 无副作用（数据承载类）。
  */
 @Table({ name: DatabaseConfig.TODO_CATEGORY_TABLE })
 export class TodoCategory extends BaseEntity {

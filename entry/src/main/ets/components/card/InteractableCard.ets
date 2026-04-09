@@ -1,8 +1,21 @@
 import { AppState, useAppState } from '../../app/AppStates';
 
 /**
- * 可交互卡片基类。
- * 提供统一圆角、阴影与左右滑动手势回调。
+ * 组件功能简介：
+ * - 可交互卡片基类，封装左右滑与点击手势识别。
+ *
+ * 可传入项：
+ * - @Param leftHint/rightHint: 背景提示文案。
+ * - @Param enableSwipeLeft/enableSwipeRight: 是否启用左右滑。
+ * - @Param swipeThreshold/maxSwipeOffset: 手势触发阈值与最大偏移。
+ * - @Event onSwipeLeft/onSwipeRight/onCardTap: 左滑、右滑、点击回调。
+ * - @BuilderParam content: 卡片主体内容。
+ *
+ * 返回行为：
+ * - 返回带手势响应和回弹动画的卡片容器。
+ *
+ * 副作用：
+ * - 触摸事件会更新本地偏移状态并触发外部事件回调。
  */
 @ComponentV2
 export struct InteractableCard {

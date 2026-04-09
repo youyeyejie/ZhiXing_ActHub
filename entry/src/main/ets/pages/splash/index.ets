@@ -1,13 +1,27 @@
 import { AppState, useAppState } from '../../app/AppStates';
 
 /**
- * 启动页骨架。
- * TODO: 后续加载本地数据、主题和登录态，再跳转主流程。
+ * 组件功能简介：
+ * - 启动页占位组件，用于承载冷启动阶段的品牌展示与预加载。
+ * - TODO: 尚未接入本地数据、登录态和路由跳转逻辑。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 渲染全屏启动文案占位布局。
+ *
+ * 副作用：
+ * - 无业务副作用。
  */
 @ComponentV2
 export struct SplashPage {
   @Local private app: AppState = useAppState();
 
+  /**
+   * 渲染启动占位页。
+   * TODO: 当前未执行资源预加载、路由跳转与冷启动检查。
+   */
   build() {
     Column({ space: 12 }) {
       Text('启动页')

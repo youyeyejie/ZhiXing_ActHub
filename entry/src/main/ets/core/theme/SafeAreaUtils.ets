@@ -1,8 +1,17 @@
 import display from '@ohos.display';
 
 /**
- * 全面屏安全区工具。
- * 按屏幕长宽比给出顶部与底部建议内边距。
+ * 类功能简介：
+ * - 安全区工具类，按设备宽高比提供顶部/底部建议内边距。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 返回顶部、底部和搜索页顶部建议内边距值。
+ *
+ * 副作用：
+ * - 会调用显示服务读取屏幕尺寸信息。
  */
 export class SafeAreaUtils {
   static getTopInset(): number {

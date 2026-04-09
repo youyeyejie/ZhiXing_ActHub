@@ -1,8 +1,17 @@
 import { window } from '@kit.ArkUI';
 
 /**
- * 状态栏显隐控制服务。
- * 由 EntryAbility 绑定主窗口后，供页面层按交互时机切换状态栏显隐。
+ * 类功能简介：
+ * - 状态栏显隐服务，统一管理主窗口状态栏开关。
+ *
+ * 可传入项：
+ * - `bindMainWindow(mainWindow)` 传入主窗口实例。
+ *
+ * 返回行为：
+ * - 提供绑定、解绑、显示和隐藏状态栏能力。
+ *
+ * 副作用：
+ * - 会调用系统窗口 API 修改状态栏可见性。
  */
 export class StatusBarService {
   private static mainWindow: window.Window | null = null;

@@ -3,8 +3,17 @@ import { DatabaseConfig } from '../database/DatabaseConfig';
 import { BaseEntity } from './BaseEntity';
 
 /**
- * 闪记实体定义。
- * 对齐详细设计中的 ideas 表。
+ * 类功能简介：
+ * - 闪记实体模型，对应 `ideas` 表。
+ *
+ * 可传入项：
+ * - 通过实例字段赋值写入标题、正文、长度与时间戳。
+ *
+ * 返回行为：
+ * - 作为 ORM 实体参与闪记数据持久化与查询。
+ *
+ * 副作用：
+ * - 无副作用（数据承载类）。
  */
 @Table({ name: DatabaseConfig.IDEA_TABLE })
 export class Idea extends BaseEntity {

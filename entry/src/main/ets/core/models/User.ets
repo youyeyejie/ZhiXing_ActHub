@@ -3,8 +3,17 @@ import { DatabaseConfig } from '../database/DatabaseConfig';
 import { BaseEntity } from './BaseEntity';
 
 /**
- * 用户实体定义。
- * 对齐详细设计中的 users 表，当前仅覆盖本地登录注册所需最小字段。
+ * 类功能简介：
+ * - 用户实体模型，对应 `users` 表。
+ *
+ * 可传入项：
+ * - 通过实例字段赋值写入账号、头像、密码与时间戳字段。
+ *
+ * 返回行为：
+ * - 作为 ORM 实体参与本地用户数据持久化与查询。
+ *
+ * 副作用：
+ * - 无副作用（数据承载类）。
  */
 @Table({ name: DatabaseConfig.USER_TABLE })
 export class User extends BaseEntity {

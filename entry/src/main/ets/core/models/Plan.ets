@@ -3,8 +3,17 @@ import { DatabaseConfig } from '../database/DatabaseConfig';
 import { BaseEntity } from './BaseEntity';
 
 /**
- * 日程实体定义。
- * 对齐详细设计中的 plans 表，并为提醒、循环和课程模式预留字段。
+ * 类功能简介：
+ * - 日程实体模型，对应 `plans` 表。
+ *
+ * 可传入项：
+ * - 通过实例字段赋值写入日程内容、时间、地点与描述。
+ *
+ * 返回行为：
+ * - 作为 ORM 实体参与持久化读写与查询映射。
+ *
+ * 副作用：
+ * - 无副作用（数据承载类）。
  */
 @Table({ name: DatabaseConfig.PLAN_TABLE })
 export class Plan extends BaseEntity {

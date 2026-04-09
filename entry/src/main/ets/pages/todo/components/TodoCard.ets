@@ -2,8 +2,21 @@ import { AppState, useAppState } from '../../../app/AppStates';
 import { InteractableCard } from '../../../components/card/InteractableCard';
 
 /**
- * 待办卡片骨架。
- * TODO: 后续补充勾选、右滑开启专注、左滑删除等交互。
+ * 组件功能简介：
+ * - 待办列表项组件，封装卡片展示与手势事件透传。
+ * - TODO: 尚未接入完成态勾选与专注联动。
+ *
+ * 可传入项：
+ * - @Param title/subtitle: 卡片主副文本。
+ * - @Param enableSwipeLeft/enableSwipeRight: 控制左右滑手势开关。
+ * - @Event onSwipeLeft/onSwipeRight: 左右滑动作回调。
+ * - @Event onCardTap: 点击卡片回调。
+ *
+ * 返回行为：
+ * - 返回一个 `InteractableCard` 包裹的待办内容区。
+ *
+ * 副作用：
+ * - 手势与点击会触发外部事件回调。
  */
 @ComponentV2
 export struct TodoCard {
@@ -16,6 +29,9 @@ export struct TodoCard {
   @Event onSwipeRight: () => void = () => {};
   @Event onCardTap: () => void = () => {};
 
+  /**
+   * 渲染待办卡片，并把手势事件透传给页面层。
+   */
   build() {
     InteractableCard({
       leftHint: '左滑: 删除',

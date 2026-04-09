@@ -1,8 +1,21 @@
 import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
 
 /**
- * 统一安全区内边距容器。
- * 将顶部/底部安全区和额外偏移收敛为可复用布局组件。
+ * 组件功能简介：
+ * - 安全区内边距容器，统一处理顶部/底部安全区与额外偏移。
+ *
+ * 可传入项：
+ * - @Param includeTop/includeBottom: 是否自动包含顶部/底部安全区。
+ * - @Param extraTop/extraBottom: 额外补偿内边距。
+ * - @Param fillHeight: 是否填满可用高度。
+ * - @Param surfaceColor: 容器背景色。
+ * - @BuilderParam content: 容器主体内容。
+ *
+ * 返回行为：
+ * - 返回应用安全区内边距后的内容容器。
+ *
+ * 副作用：
+ * - 无业务副作用。
  */
 @ComponentV2
 export struct SafeAreaInsetLayout {

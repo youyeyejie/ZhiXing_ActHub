@@ -1,8 +1,20 @@
 import { AppState, useAppState } from '../../app/AppStates';
 
 /**
- * 自动保存输入组件。
- * 具备输入防抖与失焦立即保存能力。
+ * 组件功能简介：
+ * - 自动保存输入组件，提供防抖保存与失焦立即保存。
+ *
+ * 可传入项：
+ * - @Param label/placeholder: 标题与占位文本。
+ * - @Param debounceMs: 防抖间隔毫秒数。
+ * - @Param saveOnBlur: 失焦时是否立即保存。
+ * - @Event onAutoSave: 自动保存回调，返回当前文本。
+ *
+ * 返回行为：
+ * - 返回带标题、输入框和保存状态提示的输入区。
+ *
+ * 副作用：
+ * - 输入与失焦事件会触发定时器调度和外部保存回调。
  */
 @ComponentV2
 export struct AutoSaveText {
