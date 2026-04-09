@@ -1,4 +1,3 @@
-import { DatabaseConfig } from '../database/DatabaseConfig';
 import { Todo } from '../models/Todo';
 import { BaseRepository } from './BaseRepository';
 
@@ -8,6 +7,6 @@ import { BaseRepository } from './BaseRepository';
  */
 export class TodoRepository extends BaseRepository<Todo> {
   constructor() {
-    super(DatabaseConfig.TODO_TABLE);
+    super(Todo);
   }
 }

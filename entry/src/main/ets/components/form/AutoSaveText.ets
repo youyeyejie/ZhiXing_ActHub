@@ -9,6 +9,7 @@ export struct AutoSaveText {
   @Local private app: AppState = useAppState();
   @Param label: string = '自动保存输入';
   @Param placeholder: string = '请输入内容';
+  @Param initialValue: string = '';
   @Param debounceMs: number = 600;
   @Param saveOnBlur: boolean = true;
   @Event onAutoSave: (value: string) => void = (_value: string) => {};
@@ -17,6 +18,11 @@ export struct AutoSaveText {
   @Local private isSaving: boolean = false;
   @Local private saveTip: string = '尚未保存';
   private debounceTimerId: number = -1;
+
+  aboutToAppear(): void {
+    this.value = this.initialValue;
+    this.saveTip = this.initialValue.length > 0 ? '已加载' : '尚未保存';
+  }
 
   aboutToDisappear(): void {
     this.clearDebounceTimer();

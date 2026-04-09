@@ -1,5 +1,3 @@
-import { QueryBuilder } from '@ibestservices/ibest-orm';
-import { DatabaseConfig } from '../database/DatabaseConfig';
 import { User } from '../models/User';
 import { BaseRepository } from './BaseRepository';
 
@@ -9,7 +7,7 @@ import { BaseRepository } from './BaseRepository';
  */
 export class UserRepository extends BaseRepository<User> {
   constructor() {
-    super(DatabaseConfig.USER_TABLE);
+    super(User);
   }
 
   findByAccount(account: string): Promise<User | null> {

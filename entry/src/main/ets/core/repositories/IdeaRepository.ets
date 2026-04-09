@@ -1,4 +1,3 @@
-import { DatabaseConfig } from '../database/DatabaseConfig';
 import { Idea } from '../models/Idea';
 import { BaseRepository } from './BaseRepository';
 
@@ -8,6 +7,6 @@ import { BaseRepository } from './BaseRepository';
  */
 export class IdeaRepository extends BaseRepository<Idea> {
   constructor() {
-    super(DatabaseConfig.IDEA_TABLE);
+    super(Idea);
   }
 }

@@ -1,4 +1,3 @@
-import { DatabaseConfig } from '../database/DatabaseConfig';
 import { Focus } from '../models/Focus';
 import { BaseRepository } from './BaseRepository';
 
@@ -8,6 +7,6 @@ import { BaseRepository } from './BaseRepository';
  */
 export class FocusRepository extends BaseRepository<Focus> {
   constructor() {
-    super(DatabaseConfig.FOCUS_TABLE);
+    super(Focus);
   }
 }
