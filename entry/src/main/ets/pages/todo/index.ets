@@ -4,6 +4,7 @@ import { TodoEditorSheet } from './components/TodoEditorSheet';
 import { MainTabPageLayout } from '../../components/layout/MainTabPageLayout';
 import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState  } from '../../app/AppStates';
+import { PageScrollLayout } from '../../components/layout/PageScrollLayout';
 
 /**
  * 待办模块主页骨架。
@@ -31,8 +32,11 @@ export struct TodoPage {
       }
     }) {
       CategoryFilter();
-      TodoCard();
-      TodoEditorSheet();
+
+      PageScrollLayout() {
+        TodoCard();
+        TodoEditorSheet();
+      }
     }
   }
 }

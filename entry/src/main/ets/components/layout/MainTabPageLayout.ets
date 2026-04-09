@@ -1,5 +1,4 @@
 import { AppState, useAppState } from "../../app/AppStates";
-import { PageScrollLayout } from "./PageScrollLayout";
 import { SafeAreaUtils } from "../../core/theme/SafeAreaUtils";
 
 /**
@@ -61,10 +60,8 @@ export struct MainTabPageLayout {
       .alignItems(VerticalAlign.Center)
       .backgroundColor(this.app.theme.palette.background)
       .zIndex(1)
-
-      PageScrollLayout() {
-        this.content()
-      }
+    
+      this.content()
     }
     .width("100%")
     .height("100%")

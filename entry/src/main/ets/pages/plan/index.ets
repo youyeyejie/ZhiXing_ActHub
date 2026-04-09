@@ -6,6 +6,7 @@ import { MainTabPageLayout } from '../../components/layout/MainTabPageLayout';
 import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
 import { EditableSuite } from '../../components/form/EditableSuite';
+import { PageScrollLayout } from '../../components/layout/PageScrollLayout';
 
 /**
  * 日程模块主页骨架。
@@ -76,9 +77,12 @@ export struct PlanPage {
       }
 
       WeekCalendar();
-      TimelineView();
-      PlanCard();
-      PlanEditorSheet();
+
+      PageScrollLayout() {
+        TimelineView();
+        PlanCard();
+        PlanEditorSheet();
+      }
     }
   }
 }
