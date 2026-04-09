@@ -112,7 +112,11 @@ export struct FocusOverlayDestination {
           includeTop: true,
           surfaceColor: this.app.theme.palette.background,
         }) {
-          FocusPage()
+          FocusPage({
+            onRequestDismiss: () => {
+              this.requestDismiss();
+            },
+          });
         }
       }
       .width('100%')

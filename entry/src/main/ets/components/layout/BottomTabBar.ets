@@ -49,11 +49,11 @@ export struct BottomTabBar {
       }
       .width(70)
       .height(70)
-      .borderColor(this.app.theme.palette.primary)
-      .borderWidth(8)
+      .borderColor(this.app.theme.palette.logo)
+      .borderWidth(4)
       .borderRadius(35)
       .justifyContent(FlexAlign.Center)
-      .backgroundColor(this.app.theme.palette.surfaceSecondary);
+      .backgroundColor(this.app.theme.palette.logobackground);
     }
     .padding({ top: 2, left: 8, right: 8 })
     .alignItems(HorizontalAlign.Center)

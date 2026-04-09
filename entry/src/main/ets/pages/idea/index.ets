@@ -5,6 +5,7 @@ import { ActivityHeatmap } from './components/ActivityHeatmap';
 import { MainTabPageLayout } from '../../components/layout/MainTabPageLayout';
 import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
+import { PageScrollLayout } from '../../components/layout/PageScrollLayout';
 
 /**
  * 闪记模块主页骨架。
@@ -26,15 +27,25 @@ export struct IdeaPage {
   build() {
     MainTabPageLayout({
       title: '闪记',
-      actionIcon: $r('sys.media.ohos_ic_public_search_filled'),
+      actionIcon: $r('sys.symbol.magnifyingglass'),
+      showFloatButton: true,
       onActionTap: () => {
         this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('idea', '搜索闪记'));
+      },
+      onClickFloatingButton: () => {
+        this.app.nav.openActionSheet();
       }
     }) {
-      HitokotoCard();
-      IdeaCard();
-      ActivityHeatmap();
-      IdeaEditorSheet();
+      
+      Text("此页面目前组件均为测试，需要修改！")
+      PageScrollLayout({
+        paddingBottom: 96
+      }) {
+        HitokotoCard();
+        IdeaCard();
+        ActivityHeatmap();
+        IdeaEditorSheet();
+      }
     }
   }
 }

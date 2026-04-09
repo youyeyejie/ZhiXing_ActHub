@@ -9,16 +9,43 @@ import { SafeAreaUtils } from "../../core/theme/SafeAreaUtils";
 export struct MainTabPageLayout {
   @Local private app: AppState = useAppState();
   @Param title: string = "";
-  @Param actionIcon: ResourceStr = "";
+  @Param actionIcon: Resource | undefined = undefined;
   @Param actionText: string = "";
+  @Param showFloatButton: boolean = false;
   @Event onActionTap: () => void = () => {};
+  @Event onClickFloatingButton: () => void = () => {};
   @BuilderParam content: () => void = this.emptyBuilder;
 
   @Builder
   private emptyBuilder() {}
 
+@Builder
+  private buildFloatingCreateButton() {
+    Button({ type: ButtonType.Circle, stateEffect: true }) {
+      Row() {
+        SymbolGlyph($r('sys.symbol.plus'))
+          .fontSize(28)
+          .fontWeight(FontWeight.Bold)
+          .renderingStrategy(SymbolRenderingStrategy.SINGLE)
+          .fontColor([this.app.theme.palette.surface]);
+      }
+      .width('100%')
+      .height('100%')
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center);
+    }
+      .width(56)
+      .height(56)
+      .backgroundColor(this.app.theme.palette.primary)
+      .onClick(() => {
+        this.onClickFloatingButton();
+      })
+      .position({ right: "8%", bottom: "4%" })
+      .zIndex(1);
+  }
+
   private hasActionIcon(): boolean {
-    return typeof this.actionIcon === 'string' ? this.actionIcon.length > 0 : true;
+    return this.actionIcon !== undefined && this.actionIcon !== null;
   }
 
   build() {
@@ -33,10 +60,10 @@ export struct MainTabPageLayout {
         if (this.hasActionIcon() || this.actionText.length > 0) {
           Button() {
             if (this.hasActionIcon()) {
-              Image(this.actionIcon)
-                .width(24)
-                .height(24)
-                .objectFit(ImageFit.Contain);
+              SymbolGlyph(this.actionIcon)
+                .fontSize(24)
+                .renderingStrategy(SymbolRenderingStrategy.SINGLE)
+                .fontColor([this.app.theme.palette.textPrimary]);
             } else {
               Text(this.actionText)
                 .fontSize(14)
@@ -60,6 +87,10 @@ export struct MainTabPageLayout {
       .alignItems(VerticalAlign.Center)
       .backgroundColor(this.app.theme.palette.background)
       .zIndex(1)
+
+      if (this.showFloatButton) {
+        this.buildFloatingCreateButton();
+      }
     
       this.content()
     }

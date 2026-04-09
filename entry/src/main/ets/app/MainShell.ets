@@ -35,7 +35,7 @@ export struct MainShell {
       includeBottom: false,
       surfaceColor: this.app.theme.palette.background
     }) {
-      Column({ space: 12 }) {
+      Column() {
         Column() {
           this.buildCurrentTabPage();
         }
@@ -51,7 +51,7 @@ export struct MainShell {
             this.app.nav.openFocus();
           }
         })
-          .margin({ bottom: SafeAreaUtils.getBottomInset() });
+          .margin({ bottom: SafeAreaUtils.getBottomInset()-6 });
       }
       .width('100%')
       .height('100%');

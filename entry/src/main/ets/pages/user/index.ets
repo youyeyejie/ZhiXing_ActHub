@@ -25,11 +25,12 @@ export struct UserPage {
   build() {
     MainTabPageLayout({
       title: '我的',
-      actionIcon: $r('sys.media.ohos_ic_public_search_filled'),
+      actionText: '测试',
       onActionTap: () => {
         this.app.nav.pushOverlayByName(AppOverlayRoute.SHARED_TEST);
       }
     }) {
+      Text("此页面目前组件均为测试，需要修改！")
       Text('TODO: 用户信息区与主题切换入口。')
         .fontSize(14)
         .fontColor(this.app.theme.palette.textSecondary);

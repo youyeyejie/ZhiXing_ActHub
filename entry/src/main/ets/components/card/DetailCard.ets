@@ -58,9 +58,9 @@ export struct DetailCard {
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.textSecondary);
       }
-        .width(56)
-        .height(56)
-      .backgroundColor(this.app.theme.palette.background)
+        .width(28)
+        .height(28)
+      .backgroundColor(this.app.theme.palette.surface)
       .onClick(() => {
         this.requestDismiss();
       });

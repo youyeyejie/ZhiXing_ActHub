@@ -10,29 +10,37 @@ import { AppState, useAppState } from '../../app/AppStates';
 @ComponentV2
 export struct FocusPage {
   @Local private app: AppState = useAppState();
+  @Param onRequestDismiss: () => void = () => {};
 
   build() {
     Column() {
-      PageScrollLayout({
-        paddingTop: 0,
-        paddingBottom: 20
-      }) {
-        Row() {
-          Text('专注')
-            .fontSize(28)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(this.app.theme.palette.textPrimary)
-            .layoutWeight(1);
+      Row(){
+        Button() {
+          SymbolGlyph($r('sys.symbol.chevron_down'))
+            .fontSize(24)
+            .renderingStrategy(SymbolRenderingStrategy.SINGLE)
+            .fontColor([this.app.theme.palette.textPrimary])
+          }
+          .type(ButtonType.Circle)
+          .width(40)
+          .height(40)
+          .backgroundColor(this.app.theme.palette.surface)
+          .onClick(() => {
+            this.onRequestDismiss();
+          })
+          .margin({ left: 16, top: 16 })
         }
-        .width('100%');
+        .width('100%')
+        .justifyContent(FlexAlign.Start);
+      
 
-        Text('TODO: 在开始前选择待办或直接进入计时。')
-          .fontSize(14)
-          .fontColor(this.app.theme.palette.textSecondary);
+      Text("此页面目前组件均为测试，需要修改！")
+      Text('TODO: 在开始前选择待办或直接进入计时。')
+        .fontSize(14)
+        .fontColor(this.app.theme.palette.textSecondary);
 
-        FocusTimerPanel();
-        TodoPickerSheet();
-      }
+      FocusTimerPanel();
+      TodoPickerSheet();
     }
     .width('100%')
     .height('100%')

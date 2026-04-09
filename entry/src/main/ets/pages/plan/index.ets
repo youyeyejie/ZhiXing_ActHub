@@ -10,7 +10,7 @@ import { PageScrollLayout } from '../../components/layout/PageScrollLayout';
 
 /**
  * 日程模块主页骨架。
- * TODO: 后续接入搜索入口、浮动新建按钮和详情弹层。
+ * TODO: 后续接入搜索入口和详情弹层。
  */
 @ComponentV2
 export struct PlanPage {
@@ -57,29 +57,33 @@ export struct PlanPage {
   build() {
     MainTabPageLayout({
       title: '日程',
-      actionIcon: $r('sys.media.ohos_ic_public_search_filled'),
+      actionIcon: $r('sys.symbol.magnifyingglass'),
+      showFloatButton: true,
       onActionTap: () => {
         this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('plan', '搜索日程'));
+      },
+      onClickFloatingButton: () => {
+        this.app.nav.openActionSheet(this.buildPlanActionSheetContent);
       }
     }) {
-      Row({ space: 10 }) {
-        Button('测试 ActionSheet')
-          .height(36)
-          .onClick(() => {
-            this.app.nav.openActionSheet(this.buildPlanActionSheetContent);
-          });
-
-      Button('测试 DetailCard')
-        .height(36)
-        .onClick(() => {
-          this.app.nav.openDetailCard(this.buildPlanDetailCardContent);
-        });
-      }
-
+      Text("此页面目前组件均为测试，需要修改！")
       WeekCalendar();
 
-      PageScrollLayout() {
+      PageScrollLayout({
+        paddingBottom: 96
+      }) {
+      Row({ space: 10 }) {
+        Button('测试 DetailCard')
+          .height(36)
+          .onClick(() => {
+            this.app.nav.openDetailCard(this.buildPlanDetailCardContent);
+          });
+      }
         TimelineView();
+        PlanCard();
+        PlanCard();
+        PlanCard();
+        PlanCard();
         PlanCard();
         PlanEditorSheet();
       }

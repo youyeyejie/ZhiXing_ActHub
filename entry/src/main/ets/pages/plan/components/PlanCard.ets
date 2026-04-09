@@ -1,4 +1,5 @@
 import { AppState, useAppState } from '../../../app/AppStates';
+import { InteractableCard } from '../../../components/card/InteractableCard';
 
 /**
  * 日程卡片骨架。

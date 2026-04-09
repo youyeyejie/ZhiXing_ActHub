@@ -3,7 +3,7 @@
  * 提供浅色/深色语义色配置。
  */
 export class ThemePalette {
-  primary: string = '#4A7AFF';
+  primary: string = '#004c24';
   background: string = '#F7F8FA';
   surface: string = '#FFFFFF';
   surfaceSecondary: string = '#F3F4F6';
@@ -12,11 +12,12 @@ export class ThemePalette {
   textTertiary: string = '#98A2B3';
   border: string = '#E5E7EB';
   mask: string = '#66000000';
-  searchOverlayMask: string = '#73070A0F';
+  logo: string = '#004c24';
+  logobackground: string = '#e5efe8';
 
   static light(): ThemePalette {
     const palette = new ThemePalette();
-    palette.primary = '#2563EB';
+    palette.primary = '#004c24';
     palette.background = '#F7F8FA';
     palette.surface = '#FFFFFF';
     palette.surfaceSecondary = '#F3F4F6';
@@ -25,13 +26,14 @@ export class ThemePalette {
     palette.textTertiary = '#98A2B3';
     palette.border = '#E5E7EB';
     palette.mask = '#66000000';
-    palette.searchOverlayMask = '#73070A0F';
+    palette.logo = '#004c24';
+    palette.logobackground = '#e4f9f7';
     return palette;
   }
 
   static dark(): ThemePalette {
     const palette = new ThemePalette();
-    palette.primary = '#60A5FA';
+    palette.primary = '#a8ceb3';
     palette.background = '#0B1220';
     palette.surface = '#111827';
     palette.surfaceSecondary = '#1F2937';
@@ -40,7 +42,8 @@ export class ThemePalette {
     palette.textTertiary = '#94A3B8';
     palette.border = '#334155';
     palette.mask = '#99000000';
-    palette.searchOverlayMask = '#800A0D12';
+    palette.logo = '#004c24';
+    palette.logobackground = '#0b2011';
     return palette;
   }
 }
