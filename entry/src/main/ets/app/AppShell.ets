@@ -64,7 +64,7 @@ export struct AppShell {
     if (name === AppRoute.FOCUS) {
       FocusOverlayDestination();
     } else if (name === AppOverlayRoute.SEARCH) {
-      SearchOverlayDestination({ routeParam: this.createFallbackSearchParam(name) });
+      SearchOverlayDestination({ routeParam: this.createFallbackSearchParam(this.app.nav.mainRouteName) });
     } else if (name === AppOverlayRoute.ACTION_SHEET) {
       ActionSheetOverlayDestination({ content: this.app.nav.actionSheetContentBuilder });
     } else if (name === AppOverlayRoute.DETAIL_CARD) {
@@ -72,7 +72,7 @@ export struct AppShell {
     } else if (name === AppOverlayRoute.SHARED_TEST) {
       SharedTestDestinationPage();
     } else {
-      SearchOverlayDestination({ routeParam: this.createFallbackSearchParam(name) });
+      SearchOverlayDestination({ routeParam: this.createFallbackSearchParam(this.app.nav.mainRouteName) });
     }
   }
 
