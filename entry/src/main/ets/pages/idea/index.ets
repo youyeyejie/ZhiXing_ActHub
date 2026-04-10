@@ -48,21 +48,6 @@ export struct IdeaPage {
   }
 
   /**
-   * 处理搜索。
-   */
-  private async handleSearch(keyword: string): Promise<void> {
-    this.loading = true;
-    try {
-      this.ideas = await this.repository.search(keyword);
-      this.ideas.sort((a: Idea, b: Idea) => b.timestamp - a.timestamp);
-    } catch (_error) {
-      // 忽略错误
-    } finally {
-      this.loading = false;
-    }
-  }
-
-  /**
    * 打开新建闪记。
    */
   private openNewEditor(): void {
@@ -81,12 +66,11 @@ export struct IdeaPage {
 
   /**
    * 处理闪记保存成功。
+   * Idea 实体没有 @ObservedV2，编辑后属性变更不会触发 @Param 刷新，
+   * 因此统一重新加载列表保证数据与视图一致。
    */
-  private onIdeaSaved(idea: Idea): void {
-    if (this.ideas.findIndex((i: Idea) => i.id === idea.id) < 0) {
-      // 新增
-      this.ideas.unshift(idea);
-    }
+  private onIdeaSaved(_idea: Idea): void {
+    this.loadIdeas();
     this.showEditor = false;
     this.editingIdea = null;
     this.selectedIdea = null;
@@ -144,7 +128,7 @@ export struct IdeaPage {
                 this.openEditIdea(tapped);
               }
             });
-          });
+          }, (idea: Idea) => idea.id);
 
           // 热力图
           ActivityHeatmap();

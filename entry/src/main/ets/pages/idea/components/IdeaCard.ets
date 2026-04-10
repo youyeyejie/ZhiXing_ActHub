@@ -123,58 +123,60 @@ export struct IdeaCard {
   build() {
     // 外层 Column 用于包裹撤销提示
     Column() {
-      // 使用 Stack 实现滑动删除
-      // 参考 InteractableCard 的实现方式：背景不设置 height，由内容决定 Stack 高度
-      Stack() {
-        // 删除提示背景 - 放在 Stack 底层，左滑时露出
-        Row() {
-          Blank();
-          Text('删除')
-            .fontSize(14)
-            .fontColor('#FFFFFF');
-        }
-        .width('100%')
-        .padding({ left: 16, right: 16 })
-        .backgroundColor('#FF4A4A')
-        .borderRadius(20);
-
-        // 卡片内容 - 可滑动，覆盖在背景上
-        Column({ space: 8 }) {
-          // 标题（可选）
-          if (this.idea.title && this.idea.title.length > 0) {
-            Text(this.idea.title)
-              .fontSize(16)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(this.app.theme.palette.textPrimary)
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis });
+      // 删除待确认期间隐藏卡片，只显示撤销提示（对齐设计文档：删除时先删除卡片）
+      if (this.pendingDeleteId.length === 0) {
+        // 使用 Stack 实现滑动删除
+        Stack() {
+          // 删除提示背景 - 放在 Stack 底层，左滑时露出
+          Row() {
+            Blank();
+            Text('删除')
+              .fontSize(14)
+              .fontColor('#FFFFFF');
           }
+          .width('100%')
+          .padding({ left: 16, right: 16 })
+          .backgroundColor('#FF4A4A')
+          .borderRadius(20);
 
-          // 内容（带省略号）
-          Text(this.idea.content)
-            .fontSize(14)
-            .fontColor(this.app.theme.palette.textSecondary)
-            .maxLines(3)
-            .textOverflow({ overflow: TextOverflow.Ellipsis });
+          // 卡片内容 - 可滑动，覆盖在背景上
+          Column({ space: 8 }) {
+            // 标题（可选）
+            if (this.idea.title && this.idea.title.length > 0) {
+              Text(this.idea.title)
+                .fontSize(16)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(this.app.theme.palette.textPrimary)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis });
+            }
 
-          // 时间信息
-          Text(this.formatTime(this.idea.timestamp))
-            .fontSize(12)
-            .fontColor(this.app.theme.palette.textTertiary)
-            .margin({ top: 4 });
+            // 内容（带省略号）
+            Text(this.idea.content)
+              .fontSize(14)
+              .fontColor(this.app.theme.palette.textSecondary)
+              .maxLines(3)
+              .textOverflow({ overflow: TextOverflow.Ellipsis });
+
+            // 时间信息
+            Text(this.formatTime(this.idea.timestamp))
+              .fontSize(12)
+              .fontColor(this.app.theme.palette.textTertiary)
+              .margin({ top: 4 });
+          }
+          .width('100%')
+          .padding(16)
+          .borderRadius(20)
+          .backgroundColor(this.app.theme.palette.surface)
+          .alignItems(HorizontalAlign.Start)
+          .translate({ x: this.offsetX, y: 0 })
+          .animation({ duration: 180, curve: Curve.EaseOut, playMode: PlayMode.Normal })
+          .onTouch((event: TouchEvent) => {
+            this.handleTouch(event);
+          });
         }
-        .width('100%')
-        .padding(16)
-        .borderRadius(20)
-        .backgroundColor(this.app.theme.palette.surface)
-        .alignItems(HorizontalAlign.Start)
-        .translate({ x: this.offsetX, y: 0 })
-        .animation({ duration: 180, curve: Curve.EaseOut, playMode: PlayMode.Normal })
-        .onTouch((event: TouchEvent) => {
-          this.handleTouch(event);
-        });
+        .width('100%');
       }
-      .width('100%');
 
       // 撤销提示 - 显示在卡片下方
       if (this.showUndo) {

@@ -23,6 +23,18 @@ export struct AppShell {
     return new SearchRouteParam(routeName, '搜索');
   }
 
+  /**
+   * 从 NavPathStack 读取搜索页 push 时携带的真实 SearchRouteParam。
+   * 若读不到则回退为默认值。
+   */
+  private resolveSearchRouteParam(): SearchRouteParam {
+    const params: SearchRouteParam[] = this.app.nav.getParamByName(AppOverlayRoute.SEARCH) as SearchRouteParam[];
+    if (params.length > 0) {
+      return params[params.length - 1];
+    }
+    return this.createFallbackSearchParam('');
+  }
+
   private readPreferredThemeMode(): ThemeMode {
     const value: Object | undefined = AppStorage.get('preferredThemeMode');
     if (value === ThemeMode.DARK) {
@@ -64,7 +76,7 @@ export struct AppShell {
     if (name === AppRoute.FOCUS) {
       FocusOverlayDestination();
     } else if (name === AppOverlayRoute.SEARCH) {
-      SearchOverlayDestination({ routeParam: this.createFallbackSearchParam(name) });
+      SearchOverlayDestination({ routeParam: this.resolveSearchRouteParam() });
     } else if (name === AppOverlayRoute.ACTION_SHEET) {
       ActionSheetOverlayDestination({ content: this.app.nav.actionSheetContentBuilder });
     } else if (name === AppOverlayRoute.DETAIL_CARD) {

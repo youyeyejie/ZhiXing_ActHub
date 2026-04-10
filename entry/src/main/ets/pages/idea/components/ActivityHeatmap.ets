@@ -2,17 +2,9 @@ import { AppState, useAppState } from '../../../app/AppStates';
 import { IdeaRepository } from '../../../core/repositories/IdeaRepository';
 
 /**
- * 热力图日期数据接口。
+ * 热力图单日数据。
  */
 interface HeatmapDay {
-  date: string;
-  count: number;
-}
-
-/**
- * 热力图周数据接口。
- */
-interface HeatmapWeek {
   date: string;
   count: number;
 }
@@ -75,16 +67,18 @@ export struct ActivityHeatmap {
   }
 
   /**
-   * 生成热力图数据（按周分组）。
+   * 生成热力图数据（按周分组，每周 7 天从周日到周六）。
+   * 范围：从 (WEEKS-1) 周前的周日 到 本周六，覆盖包含今天在内的完整网格。
    */
-  private generateHeatmapData(): HeatmapWeek[][] {
-    const weeks: HeatmapWeek[][] = [];
+  private generateHeatmapData(): HeatmapDay[][] {
+    const weeks: HeatmapDay[][] = [];
     const today = new Date();
+    // 起点：本周日再往前推 (WEEKS-1) 整周
     const startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - (this.WEEKS * 7 - 1) - today.getDay());
+    startDate.setDate(today.getDate() - today.getDay() - (this.WEEKS - 1) * 7);
 
     for (let week = 0; week < this.WEEKS; week++) {
-      const weekData: HeatmapWeek[] = [];
+      const weekData: HeatmapDay[] = [];
       for (let day = 0; day < 7; day++) {
         const currentDate = new Date(startDate);
         currentDate.setDate(startDate.getDate() + week * 7 + day);
@@ -135,20 +129,20 @@ export struct ActivityHeatmap {
         .width('100%')
         .height(80);
       } else {
-        List() {
-          ForEach(this.generateHeatmapData(), (week: HeatmapWeek[]) => {
+        List({ space: this.CELL_GAP }) {
+          ForEach(this.generateHeatmapData(), (week: HeatmapDay[], _weekIndex: number) => {
             ListItem() {
-              Row({ space: this.CELL_GAP }) {
+              Column({ space: this.CELL_GAP }) {
                 ForEach(week, (day: HeatmapDay) => {
                   Column()
                     .width(this.CELL_SIZE)
                     .height(this.CELL_SIZE)
                     .borderRadius(2)
                     .backgroundColor(this.getHeatColor(day.count));
-                });
+                }, (day: HeatmapDay) => day.date);
               }
             }
-          });
+          }, (_week: HeatmapDay[], weekIndex: number) => weekIndex.toString());
         }
         .listDirection(Axis.Horizontal)
         .scrollBar(BarState.Off)
