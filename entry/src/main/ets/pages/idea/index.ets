@@ -104,83 +104,79 @@ export struct IdeaPage {
   }
 
   build() {
-    MainTabPageLayout({
-      title: '闪记',
-      actionIcon: $r('sys.media.ohos_ic_public_search_filled'),
-      onActionTap: () => {
-        this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('idea', '搜索闪记'));
-      }
-    }) {
-      // 一言卡片
-      HitokotoCard();
-
-      // 闪记列表
-      PageScrollLayout({ space: 12, paddingTop: 12 }) {
-        // 列表为空时的占位
-        if (!this.loading && this.ideas.length === 0) {
-          Column({ space: 12 }) {
-            Text('还没有闪记')
-              .fontSize(16)
-              .fontColor(this.app.theme.palette.textSecondary);
-            Text('点击右下角按钮，记录你的灵感')
-              .fontSize(14)
-              .fontColor(this.app.theme.palette.textTertiary);
-          }
-          .width('100%')
-          .padding({ top: 40, bottom: 40 })
-          .alignItems(HorizontalAlign.Center);
+    Stack({ alignContent: Alignment.BottomEnd }) {
+      // 主页面内容
+      MainTabPageLayout({
+        title: '闪记',
+        actionIcon: $r('sys.media.ohos_ic_public_search_filled'),
+        onActionTap: () => {
+          this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('idea', '搜索闪记'));
         }
+      }) {
+        // 一言卡片
+        HitokotoCard();
 
         // 闪记列表
-        ForEach(this.ideas, (idea: Idea) => {
-          IdeaCard({
-            idea: idea,
-            onDelete: (deleted: Idea) => {
-              this.onIdeaDeleted(deleted);
-            },
-            onTap: (tapped: Idea) => {
-              this.openEditIdea(tapped);
+        PageScrollLayout({ space: 12, paddingTop: 12 }) {
+          // 列表为空时的占位
+          if (!this.loading && this.ideas.length === 0) {
+            Column({ space: 12 }) {
+              Text('还没有闪记')
+                .fontSize(16)
+                .fontColor(this.app.theme.palette.textSecondary);
+              Text('点击右下角按钮，记录你的灵感')
+                .fontSize(14)
+                .fontColor(this.app.theme.palette.textTertiary);
             }
+            .width('100%')
+            .padding({ top: 40, bottom: 40 })
+            .alignItems(HorizontalAlign.Center);
+          }
+
+          // 闪记列表
+          ForEach(this.ideas, (idea: Idea) => {
+            IdeaCard({
+              idea: idea,
+              onDelete: (deleted: Idea) => {
+                this.onIdeaDeleted(deleted);
+              },
+              onTap: (tapped: Idea) => {
+                this.openEditIdea(tapped);
+              }
+            });
           });
-        });
 
-        // 热力图
-        ActivityHeatmap();
+          // 热力图
+          ActivityHeatmap();
 
-        // 底部留白（给 FAB 留空间）
-        Column().height(80);
-      }
-
-      // 新建按钮
-      Column() {
-        Button() {
-          Image($r('sys.media.ohos_ic_public_add'))
-            .width(28)
-            .height(28)
-            .fillColor('#FFFFFF');
+          // 底部留白（给 FAB 留空间）
+          Column().height(100);
         }
-        .type(ButtonType.Circle)
-        .width(56)
-        .height(56)
-        .backgroundColor(this.app.theme.palette.primary)
-        .shadow({
-          radius: 16,
-          color: this.app.theme.palette.primary + '40',
-          offsetX: 0,
-          offsetY: 4
-        })
-        .onClick(() => {
-          this.openNewEditor();
-        });
       }
-      .width('100%')
-      .alignItems(HorizontalAlign.End)
-      .padding({ right: 20, bottom: 20 })
-      .position({ x: 0, y: 0 })
-      .markAnchor({ x: 0, y: 0 })
-      .hitTestBehavior(HitTestMode.None);
 
-      // 编辑器弹层
+      // 新建按钮（FAB）
+      Button() {
+        Image($r('sys.media.ohos_ic_public_add'))
+          .width(28)
+          .height(28)
+          .fillColor('#FFFFFF');
+      }
+      .type(ButtonType.Circle)
+      .width(56)
+      .height(56)
+      .backgroundColor(this.app.theme.palette.primary)
+      .shadow({
+        radius: 16,
+        color: this.app.theme.palette.primary + '40',
+        offsetX: 0,
+        offsetY: 4
+      })
+      .margin({ right: 20, bottom: 100 })
+      .onClick(() => {
+        this.openNewEditor();
+      });
+
+      // 编辑器弹层（全屏遮罩）
       if (this.showEditor) {
         IdeaEditorSheet({
           editIdea: this.editingIdea,
@@ -194,5 +190,7 @@ export struct IdeaPage {
         });
       }
     }
+    .width('100%')
+    .height('100%');
   }
 }
