@@ -4,14 +4,13 @@ import { FocusTimerEngine } from '../../../core/services/FocusTimerEngine';
 /**
  * 专注任务选择器组件。
  * 显示当前任务或提供选择任务的入口。
- * 圆角矩形框样式，可点击交互。
+ * todo：打开任务选择器
  */
+
 @ComponentV2
 export struct FocusTaskSelector {
   @Local private app: AppState = useAppState();
-  
-  /** 外部传入的专注计时引擎实例 */
-  @Param engine: FocusTimerEngine = new FocusTimerEngine();
+  @Require @Param engine: FocusTimerEngine;
 
   build() {
     Column({ space: 8 }) {

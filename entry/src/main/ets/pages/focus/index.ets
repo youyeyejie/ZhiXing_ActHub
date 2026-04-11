@@ -5,10 +5,22 @@ import { FocusTaskSelector } from './components/FocusTaskSelector';
 import { FocusControlButtons } from './components/FocusControlButtons';
 
 /**
- * 专注模块沉浸式页面
- * Question：目前把focusEngine在这里实例化了，但是为了页面隐藏的时候计时也能进行，或许需要在AppStates中实例化
- * 为了测试番茄钟时间暂时改成了30s
+ * 组件功能简介：
+ * - 专注模块主容器页面，采用沉浸式全屏
+ * - TODO: 当前计时引擎为组件内局部实例化，会随着组件一起销毁
+ * - Question：后续应该把AppEngine挂载至全局 AppState？
+ *
+ * 可传入项：
+ * - @Param onRequestDismiss: () => void 顶部关闭按钮触发的回调函数，用于通知外层 Overlay 容器执行平滑退出动画与路由出栈。
+ *
+ * 返回行为：
+ * - 渲染完整的沉浸式专注页面，包含返回控制、核心计时交互区及底部激励语。
+ *
+ * 副作用：
+ * - 触发 onRequestDismiss 会切断当前视图与外层 Overlay 的联系。
+ * - [临时副作用]: 当前点击关闭时，会主动调用 engine.cleanupTimer() 清理计时器以防止内存泄漏。待引擎提升至全局后需剥离此清理逻辑。
  */
+ 
 @ComponentV2
 export struct FocusPage {
   @Local private app: AppState = useAppState();

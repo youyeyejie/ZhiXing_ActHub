@@ -5,15 +5,15 @@ import { FocusTimerEngine, FocusState } from '../../../core/services/FocusTimerE
  * 专注计时显示核心组件。
  * 包含圆环进度、剩余时间、阶段名称。
  * 可传入项：
- * - 无。todo：空闲状态下点击中央时间滑动弹出选择时间
+ * - 无。
  * - 副作用：无业务副作用。
-
+ * todo：空闲状态下点击中央时间滑动弹出选择时间，美化圆环显示
  */
+
 @ComponentV2
 export struct FocusTimerDisplay {
   @Local private app: AppState = useAppState();
-  /** 外部传入的专注计时引擎实例 */
-  @Param engine: FocusTimerEngine = new FocusTimerEngine();
+  @Require @Param engine: FocusTimerEngine;
 
   build() {
     Column({ space: 0 }) {

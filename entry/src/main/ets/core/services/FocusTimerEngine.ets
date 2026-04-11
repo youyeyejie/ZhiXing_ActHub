@@ -26,7 +26,7 @@ export enum FocusState {
   RESTING = 'resting',    // 休息中
 }
 
-  @ObservedV2
+@ObservedV2
 export class FocusTimerEngine {
   // 状态属性
   @Trace state: FocusState = FocusState.IDLE; //当前专注状态

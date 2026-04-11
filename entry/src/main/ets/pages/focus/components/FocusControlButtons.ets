@@ -4,13 +4,13 @@ import { FocusTimerEngine, FocusState } from '../../../core/services/FocusTimerE
 /**
  * 专注控制按钮组件。
  * 包含白噪音、开始/暂停、终止三个控制按钮。
+ * todo：
+ * - 白噪音选择与播放逻辑
  */
 @ComponentV2
 export struct FocusControlButtons {
   @Local private app: AppState = useAppState();
-  
-  /** 外部传入的专注计时引擎实例 */
-  @Param engine: FocusTimerEngine = new FocusTimerEngine();
+  @Require @Param engine: FocusTimerEngine;
 
   build() {
     Row({ space: 30 }) {
