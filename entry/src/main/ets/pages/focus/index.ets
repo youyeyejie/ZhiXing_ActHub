@@ -1,63 +1,85 @@
-import { FocusTimerPanel } from './components/FocusTimerPanel';
-import { TodoPickerSheet } from './components/TodoPickerSheet';
-import { PageScrollLayout } from '../../components/layout/PageScrollLayout';
+import { SafeAreaInsetLayout } from '../../components/layout/SafeAreaInsetLayout';
 import { AppState, useAppState } from '../../app/AppStates';
+import { FocusTimerEngine } from '../../core/services/FocusTimerEngine';
+import { FocusTimerDisplay } from './components/FocusTimerDisplay';
+import { FocusTaskSelector } from './components/FocusTaskSelector';
+import { FocusControlButtons } from './components/FocusControlButtons';
 
 /**
- * 组件功能简介：
- * - 专注模块主页，组合计时面板与待办选择测试组件。
- * - TODO: 尚未接入完整专注状态机、实况窗与白噪音控制。
- *
- * 可传入项：
- * - @Param onRequestDismiss: 顶部下拉按钮触发时请求关闭专注页。
- *
- * 返回行为：
- * - 返回全屏专注布局并渲染专注相关子组件。
- *
- * 副作用：
- * - 关闭按钮会触发上层 overlay 关闭流程。
+ * 专注模块主页 - 组件拆分重构版。
+ * 布局结构：
+ * 1. 顶部：关闭按钮（安全区内部左上角）
+ * 2. 中部：垂直居中显示三个拆分组件
+ *    - FocusTaskSelector：任务选择器
+ *    - FocusTimerDisplay：计时显示（始终正中央）
+ *    - FocusControlButtons：控制按钮
  */
 @ComponentV2
 export struct FocusPage {
   @Local private app: AppState = useAppState();
-  @Param onRequestDismiss: () => void = () => {};
+  
+  // 专注计时引擎实例（所有拆分组件共享）
+  @Local private engine: FocusTimerEngine = new FocusTimerEngine();
+
+  aboutToDisappear() {
+    // TODO: [架构待沟通] 引擎提升至全局后，删除此处的 cleanupTimer，改为只解除 UI 绑定。
+    // 临时方案：必须清理计时器防止内存泄漏，但会中断后台计时
+    this.engine.cleanupTimer();
+  }
 
   /**
    * 渲染专注页骨架。
    * TODO: 当前仅包含基础容器与测试文案，未接入完整专注流程。
    */
   build() {
-    Column() {
-      Row(){
-        Button() {
-          SymbolGlyph($r('sys.symbol.chevron_down'))
-            .fontSize(24)
-            .renderingStrategy(SymbolRenderingStrategy.SINGLE)
-            .fontColor([this.app.theme.palette.textPrimary])
+    SafeAreaInsetLayout({
+      includeTop: true,      // 包含顶部安全区
+      includeBottom: true,   // 包含底部安全区
+      extraTop: 0,           // 额外顶部偏移
+      extraBottom: 0         // 额外底部偏移
+    }) {
+      Column() {
+        Row() {
+          Button({ type: ButtonType.Circle, stateEffect: true }) {
+            Text() {
+              SymbolSpan($r('sys.symbol.chevron_down'))
+              .fontWeight(FontWeight.Normal)
+              .fontSize(20)
+              .fontColor([this.app.theme.palette.textPrimary])
+            }
           }
-          .type(ButtonType.Circle)
-          .width(40)
-          .height(40)
-          .backgroundColor(this.app.theme.palette.surface)
+          .width(44)
+          .height(44)
+          .backgroundColor(Color.Transparent)
           .onClick(() => {
-            this.onRequestDismiss();
+            // 点击关闭按钮，调用AppNav.back()隐藏页面
+            console.log('关闭专注页面，返回主界面');
+            // TODO: 调用 AppNav.back()
           })
-          .margin({ left: 16, top: 16 })
         }
         .width('100%')
-        .justifyContent(FlexAlign.Start);
-      
+        .padding({ left: 20, top: 20 })
+        .justifyContent(FlexAlign.Start) // 左对齐
 
-      Text("此页面目前组件均为测试，需要修改！")
-      Text('TODO: 在开始前选择待办或直接进入计时。')
-        .fontSize(14)
-        .fontColor(this.app.theme.palette.textSecondary);
-
-      FocusTimerPanel();
-      TodoPickerSheet();
+        // 2. 中部区域：垂直水平居中布局
+        Column({ space: 40 }) {
+          // 2.1 任务选择器
+          FocusTaskSelector({ engine: this.engine })
+          
+          // 2.2 计时显示组件（始终位于正中央）
+          FocusTimerDisplay({ engine: this.engine })
+          
+          // 2.3 控制按钮
+          FocusControlButtons({ engine: this.engine })
+        }
+        .width('100%')
+        .layoutWeight(1) // 占据剩余空间
+        .justifyContent(FlexAlign.Center) // 垂直居中
+        .alignItems(HorizontalAlign.Center) // 水平居中
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor(this.app.theme.palette.background);
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(this.app.theme.palette.background);
   }
 }

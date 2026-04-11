@@ -1,4 +1,5 @@
 import { NotificationService } from './NotificationService';
+import { FocusRepository } from '../repositories/FocusRepository';
 
 /**
  * 专注状态枚举。
@@ -54,11 +55,14 @@ export class FocusTimerEngine {
   /** 开始时间戳（毫秒） */
   private startTimestamp: number = 0;
   
+  /** 预期结束时间戳（毫秒），用于时间戳校准 */
+  private expectedEndTime: number = 0;
+  
   /** 已过去的时间（秒） */
-  private elapsedSeconds: number = 0;
+  @Trace elapsedSeconds: number = 0;
   
   /** 专注仓储实例（通过依赖注入） */
-  private focusRepository: any = null; // TODO: 替换为具体的FocusRepository类型
+  private focusRepository: FocusRepository | null = null; // TODO: 初始化实际的FocusRepository实例
   
   // ===== 生命周期方法 =====
   
@@ -79,6 +83,7 @@ export class FocusTimerEngine {
     this.remainingSeconds = this.totalSeconds;
     this.elapsedSeconds = 0;
     this.startTimestamp = Date.now();
+    this.expectedEndTime = this.startTimestamp + (this.totalSeconds * 1000); // 时间戳校准：记录预期结束时间
     this.state = FocusState.WORKING;
     this.isCounting = true;
     
@@ -207,13 +212,31 @@ export class FocusTimerEngine {
   /** 计时器回调（每秒执行） */
   private tick(): void {
     const now = Date.now();
-    this.elapsedSeconds = Math.floor((now - this.startTimestamp) / 1000);
     
-    if (this.elapsedSeconds >= this.totalSeconds) {
-      // 当前阶段完成
-      this.onStageComplete();
+    if (this.expectedEndTime > 0) {
+      // 使用时间戳校准逻辑：计算基于预期结束时间的剩余时间
+      const remainingMs = Math.max(0, this.expectedEndTime - now);
+      this.elapsedSeconds = Math.floor((now - this.startTimestamp) / 1000);
+      this.remainingSeconds = Math.ceil(remainingMs / 1000);
+      
+      // 检查是否完成
+      if (remainingMs <= 0) {
+        console.log(`tick: 阶段完成，state=${this.state}, remainingMs=${remainingMs}, expectedEndTime=${this.expectedEndTime}`);
+        this.onStageComplete();
+      } else {
+        console.log(`tick: 倒计时中，state=${this.state}, remainingSeconds=${this.remainingSeconds}, remainingMs=${remainingMs}`);
+      }
     } else {
-      this.remainingSeconds = this.totalSeconds - this.elapsedSeconds;
+      // 回退到原始逻辑（当expectedEndTime未设置时）
+      this.elapsedSeconds = Math.floor((now - this.startTimestamp) / 1000);
+      
+      if (this.elapsedSeconds >= this.totalSeconds) {
+        // 当前阶段完成
+        console.log(`tick: 阶段完成（无expectedEndTime），state=${this.state}, elapsedSeconds=${this.elapsedSeconds}, totalSeconds=${this.totalSeconds}`);
+        this.onStageComplete();
+      } else {
+        this.remainingSeconds = this.totalSeconds - this.elapsedSeconds;
+      }
     }
   }
   
@@ -235,6 +258,7 @@ export class FocusTimerEngine {
   /** 工作阶段完成处理 */
   private onWorkComplete(): void {
     console.log('工作阶段完成，开始休息');
+    console.log(`设置休息阶段：总时间${this.restDuration}秒，预期结束时间${this.startTimestamp + (this.restDuration * 1000)}`);
     
     // 发送完成通知
     this.sendCompletionNotification('专注完成', '恭喜完成一段专注时间！开始休息。');
@@ -244,9 +268,11 @@ export class FocusTimerEngine {
     this.remainingSeconds = this.restDuration;
     this.elapsedSeconds = 0;
     this.startTimestamp = Date.now();
+    this.expectedEndTime = this.startTimestamp + (this.totalSeconds * 1000); // 修复：设置预期结束时间
     this.state = FocusState.RESTING;
     this.isCounting = true;
     
+    console.log(`休息阶段状态：state=${this.state}, isCounting=${this.isCounting}, expectedEndTime=${this.expectedEndTime}`);
     this.startTimer();
   }
   
@@ -296,7 +322,7 @@ export class FocusTimerEngine {
   }
   
   /** 清理计时器 */
-  private cleanupTimer(): void {
+  cleanupTimer(): void {
     if (this.timerId !== -1) {
       clearInterval(this.timerId);
       this.timerId = -1;
@@ -307,12 +333,13 @@ export class FocusTimerEngine {
   /** 重置状态 */
   private resetState(): void {
     this.state = FocusState.IDLE;
-    this.remainingSeconds = 0;
+    this.remainingSeconds = this.workDuration; // 空闲时显示默认工作时间
     this.totalSeconds = this.workDuration;
     this.todoId = '';
     this.focusRecordId = '';
     this.elapsedSeconds = 0;
     this.startTimestamp = 0;
+    this.expectedEndTime = 0; // 修复：重置预期结束时间
     this.isCounting = false;
   }
   
@@ -325,6 +352,11 @@ export class FocusTimerEngine {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }
   
+  /** 获取已过去的时间（秒） */
+  getElapsedSeconds(): number {
+    return this.elapsedSeconds;
+  }
+
   /** 获取进度百分比（0-1） */
   getProgressPercentage(): number {
     if (this.totalSeconds <= 0) return 0;
