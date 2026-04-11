@@ -38,10 +38,10 @@ export struct FocusTaskSelector {
         .alignItems(VerticalAlign.Center)
       }
     }
-    .width('80%')
-    .padding({ top: 12, bottom: 12, left: 20, right: 20 })
+    .width('70%') // 缩小一些（80% -> 70%）
+    .padding({ top: 10, bottom: 10, left: 16, right: 16 }) // 减少padding，使矩形框更小
     .backgroundColor(this.app.theme.palette.surface) // 使用surface背景色
-    .borderRadius(12) // 圆角矩形
+    .borderRadius(10) // 缩小圆角（12 -> 10）
     .border({ width: 1, color: this.app.theme.palette.border }) // 细边框
     .onClick(() => {
       // 点击任务区域打开待办选择器

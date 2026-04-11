@@ -3,8 +3,8 @@ import { FocusTimerEngine, FocusState } from '../../../core/services/FocusTimerE
 
 /**
  * 专注计时显示核心组件。
- * 仅包含圆环进度、剩余时间、阶段名称和激励语。
- * 设计为始终位于页面正中央。
+ * 仅包含圆环进度、剩余时间、阶段名称。
+ * 激励文字已移至外部父组件。
  */
 @ComponentV2
 export struct FocusTimerDisplay {
@@ -47,14 +47,7 @@ export struct FocusTimerDisplay {
       }
       .width(238)
       .height(238)
-      .margin({ top: 0, bottom: 60 })
 
-      // 鼓舞性文字
-      Text('"保持专注，心无旁骛"')
-        .fontSize(14)
-        .fontColor(this.app.theme.palette.textTertiary)
-        .textAlign(TextAlign.Center)
-        .margin({ bottom: 40 })
     }
     .width('100%')
     .alignItems(HorizontalAlign.Center)
