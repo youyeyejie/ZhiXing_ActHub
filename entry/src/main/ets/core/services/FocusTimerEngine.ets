@@ -2,9 +2,23 @@ import { NotificationService } from './NotificationService';
 import { FocusRepository } from '../repositories/FocusRepository';
 
 /**
- * 专注状态枚举。
- * 定义番茄钟工作法的不同阶段。
+ * * 类功能简介：
+ * - 专注计时引擎
+ * - 状态机IDLE、WORKING、PAUSED、RESTING状态转换，目前休息后自动开始下一次番茄钟，无限制
+ * * 主要接口：
+ * - `start(duration?, todoId?)`: 启动一次专注，duration自定义时长（秒，默认1500），todoID：关联待办。
+ * - `pause()` / `resume()`: 暂停与恢复当前的专注。
+ * - `stop(saveRecord?)`: 中断专注，并触发落库逻辑（todo）。
+ * - `skipRest()`: 提前结束休息，直接进入下一轮专注。
+ * - `getFormattedRemainingTime()`：获取格式化剩余事件MM：SS
+ * * 副作用与外部依赖：
+ * - 触发状态变更时，会自动驱动所有绑定了 @Trace 属性的 UI 组件刷新
+ * * TODO
+ * - 阶段完成时调用 `NotificationService` 通知。
+ * - 专注结束时调用 `FocusRepository` 进行数据持久化落库
+ * - question：按照每个番茄钟记录or还是记录完整的专注时间（开始、结束、总专注时间）？
  */
+
 export enum FocusState {
   IDLE = 'idle',          // 空闲状态
   WORKING = 'working',    // 工作中（专注阶段）
@@ -12,63 +26,32 @@ export enum FocusState {
   RESTING = 'resting',    // 休息中
 }
 
-/**
- * 专注计时引擎。
- * 使用 @ObservedV2 装饰器实现响应式状态管理。
- * 负责番茄钟状态机、计时逻辑和专注记录创建。
- */
-@ObservedV2
+  @ObservedV2
 export class FocusTimerEngine {
-  // ===== 状态属性 =====
+  // 状态属性
+  @Trace state: FocusState = FocusState.IDLE; //当前专注状态
+  @Trace remainingSeconds: number = 0; //当前剩余时间
+  @Trace totalSeconds: number = 0; //当前总秒数
+  @Trace todoId: string = ''; //关联待办ID
+  @Trace focusRecordId: string = ''; //专注记录ID
   
-  /** 当前专注状态 */
-  @Trace state: FocusState = FocusState.IDLE;
+  // 默认配置
+  DefaultWorkDuration: number = 1500;
+  DefaultRestDuration: number = 20; //tmp，测试用
   
-  /** 当前剩余时间（秒） */
-  @Trace remainingSeconds: number = 0;
+  // 当前使用的专注时长缓存（修复自定义时长丢失问题）
+  private currentWorkDuration: number = this.DefaultWorkDuration;
   
-  /** 当前阶段总时间（秒） */
-  @Trace totalSeconds: number = 0;
-  
-  /** 关联的待办ID */
-  @Trace todoId: string = '';
-  
-  /** 专注记录ID（创建后填充） */
-  @Trace focusRecordId: string = '';
-  
-  /** 是否正在倒计时 */
-  @Trace isCounting: boolean = false;
-  
-  // ===== 配置属性 =====
-  
-  /** 专注工作时间（秒），默认25分钟 */
-  workDuration: number = 25 * 60;
-  
-  /** 休息时间（秒），默认5分钟 */
-  restDuration: number = 5 * 60;
-  
-  // ===== 私有属性 =====
-  
-  /** 计时器ID */
-  private timerId: number = -1;
-  
-  /** 开始时间戳（毫秒） */
+  // private
+  private timerId: number = -1; //计时器id
   private startTimestamp: number = 0;
-  
-  /** 预期结束时间戳（毫秒），用于时间戳校准 */
   private expectedEndTime: number = 0;
-  
-  /** 已过去的时间（秒） */
-  @Trace elapsedSeconds: number = 0;
-  
-  /** 专注仓储实例（通过依赖注入） */
   private focusRepository: FocusRepository | null = null; // TODO: 初始化实际的FocusRepository实例
   
-  // ===== 生命周期方法 =====
   
   /**
    * 启动一次专注计时。
-   * @param duration 可选的自定义专注时间（秒），默认使用workDuration
+   * @param duration 可选的自定义专注时间（秒），默认使用DefaultWorkDuration
    * @param todoId 关联的待办ID，可选
    */
   start(duration?: number, todoId?: string): void {
@@ -76,24 +59,21 @@ export class FocusTimerEngine {
       console.warn('无法在非空闲/休息状态下启动专注');
       return;
     }
-    
-    // 设置参数
+
+    this.currentWorkDuration = duration || this.DefaultWorkDuration;
     this.todoId = todoId || '';
-    this.totalSeconds = duration || this.workDuration;
+    this.totalSeconds = this.currentWorkDuration;
     this.remainingSeconds = this.totalSeconds;
-    this.elapsedSeconds = 0;
     this.startTimestamp = Date.now();
     this.expectedEndTime = this.startTimestamp + (this.totalSeconds * 1000); // 时间戳校准：记录预期结束时间
     this.state = FocusState.WORKING;
-    this.isCounting = true;
     
-    // 创建专注记录（暂不保存，专注完成时保存）
+    // 创建专注记录
     this.focusRecordId = this.generateRecordId();
-    
     // 启动计时器
     this.startTimer();
     
-    console.log(`专注启动：${this.totalSeconds}秒，关联待办：${this.todoId || '无'}`);
+    console.log(`专注启动：${this.currentWorkDuration}秒，关联待办：${this.todoId || '无'}`);
   }
   
   /**
@@ -110,7 +90,6 @@ export class FocusTimerEngine {
       this.timerId = -1;
     }
     
-    this.isCounting = false;
     this.state = FocusState.PAUSED;
     
     console.log('专注已暂停');
@@ -126,8 +105,9 @@ export class FocusTimerEngine {
     }
     
     this.startTimestamp = Date.now() - (this.elapsedSeconds * 1000);
-    this.isCounting = true;
     this.state = this.remainingSeconds > 0 ? FocusState.WORKING : FocusState.RESTING;
+    // 修复resume()导致的时间跳跃崩溃：重新推算预期的结束时间
+    this.expectedEndTime = Date.now() + (this.remainingSeconds * 1000);
     
     this.startTimer();
     
@@ -142,7 +122,8 @@ export class FocusTimerEngine {
     this.cleanupTimer();
     
     // 保存专注记录（如果专注已完成）
-    if (saveRecord && this.elapsedSeconds > 0) {
+    // 修复"自动循环"导致的专注记录丢失：避免重复保存，只在WORKING状态且专注时长>0时保存
+    if (saveRecord && this.state === FocusState.WORKING && this.elapsedSeconds > 0) {
       this.saveFocusRecord();
     }
     
@@ -162,7 +143,7 @@ export class FocusTimerEngine {
     }
     
     this.cleanupTimer();
-    this.start(this.workDuration, this.todoId);
+    this.start(this.currentWorkDuration, this.todoId); // 使用当前工作时长（修复自定义时长丢失问题）
     
     console.log('休息已跳过，开始下一段专注');
   }
@@ -177,7 +158,7 @@ export class FocusTimerEngine {
     console.log('引擎已重置');
   }
   
-  // ===== 扩展功能预留接口 =====
+  // todos
   
   /**
    * 同步到实况窗。
@@ -209,14 +190,14 @@ export class FocusTimerEngine {
     }, 1000);
   }
   
-  /** 计时器回调（每秒执行） */
+  /** 计时器回调*/
   private tick(): void {
     const now = Date.now();
     
     if (this.expectedEndTime > 0) {
       // 使用时间戳校准逻辑：计算基于预期结束时间的剩余时间
       const remainingMs = Math.max(0, this.expectedEndTime - now);
-      this.elapsedSeconds = Math.floor((now - this.startTimestamp) / 1000);
+      const elapsedSeconds = Math.floor((now - this.startTimestamp) / 1000);
       this.remainingSeconds = Math.ceil(remainingMs / 1000);
       
       // 检查是否完成
@@ -224,18 +205,18 @@ export class FocusTimerEngine {
         console.log(`tick: 阶段完成，state=${this.state}, remainingMs=${remainingMs}, expectedEndTime=${this.expectedEndTime}`);
         this.onStageComplete();
       } else {
-        console.log(`tick: 倒计时中，state=${this.state}, remainingSeconds=${this.remainingSeconds}, remainingMs=${remainingMs}`);
+        //console.log(`tick: 倒计时中，state=${this.state}, remainingSeconds=${this.remainingSeconds}, remainingMs=${remainingMs}`);
       }
     } else {
       // 回退到原始逻辑（当expectedEndTime未设置时）
-      this.elapsedSeconds = Math.floor((now - this.startTimestamp) / 1000);
+      const elapsedSeconds = Math.floor((now - this.startTimestamp) / 1000);
       
-      if (this.elapsedSeconds >= this.totalSeconds) {
+      if (elapsedSeconds >= this.totalSeconds) {
         // 当前阶段完成
-        console.log(`tick: 阶段完成（无expectedEndTime），state=${this.state}, elapsedSeconds=${this.elapsedSeconds}, totalSeconds=${this.totalSeconds}`);
+        console.log(`tick: 阶段完成（无expectedEndTime），state=${this.state}, elapsedSeconds=${elapsedSeconds}, totalSeconds=${this.totalSeconds}`);
         this.onStageComplete();
       } else {
-        this.remainingSeconds = this.totalSeconds - this.elapsedSeconds;
+        this.remainingSeconds = this.totalSeconds - elapsedSeconds;
       }
     }
   }
@@ -243,7 +224,6 @@ export class FocusTimerEngine {
   /** 当前阶段完成处理 */
   private onStageComplete(): void {
     this.cleanupTimer();
-    this.elapsedSeconds = this.totalSeconds;
     this.remainingSeconds = 0;
     
     if (this.state === FocusState.WORKING) {
@@ -258,20 +238,19 @@ export class FocusTimerEngine {
   /** 工作阶段完成处理 */
   private onWorkComplete(): void {
     console.log('工作阶段完成，开始休息');
-    console.log(`设置休息阶段：总时间${this.restDuration}秒，预期结束时间${this.startTimestamp + (this.restDuration * 1000)}`);
-    
-    // 发送完成通知
+    console.log(`设置休息阶段：总时间${this.DefaultRestDuration}秒，预期结束时间${this.startTimestamp + (this.DefaultRestDuration * 1000)}`);
+    // 通知
     this.sendCompletionNotification('专注完成', '恭喜完成一段专注时间！开始休息。');
-    
+    // 在进入休息前，只要elapsedSeconds > 0，就立刻保存记录
+    if (this.elapsedSeconds > 0) {
+      this.saveFocusRecord();
+    }
     // 进入休息阶段
-    this.totalSeconds = this.restDuration;
-    this.remainingSeconds = this.restDuration;
-    this.elapsedSeconds = 0;
+    this.totalSeconds = this.DefaultRestDuration;
+    this.remainingSeconds = this.DefaultRestDuration;
     this.startTimestamp = Date.now();
     this.expectedEndTime = this.startTimestamp + (this.totalSeconds * 1000); // 修复：设置预期结束时间
     this.state = FocusState.RESTING;
-    this.isCounting = true;
-    
     console.log(`休息阶段状态：state=${this.state}, isCounting=${this.isCounting}, expectedEndTime=${this.expectedEndTime}`);
     this.startTimer();
   }
@@ -281,16 +260,19 @@ export class FocusTimerEngine {
     console.log('休息阶段完成');
     
     // 发送完成通知
-    this.sendCompletionNotification('休息完成', '休息时间结束，准备好开始下一段专注了吗？');
+    this.sendCompletionNotification('休息完成', '休息时间结束，自动开始下一段专注！');
     
-    // 停止专注并保存记录
-    this.stop(true);
+    // 自动重启专注（实现自动循环逻辑）
+    this.cleanupTimer(); // 清理休息计时器
+    this.start(this.currentWorkDuration, this.todoId); // 使用当前工作时长自动重启
+    
+    console.log('自动开始下一段专注');
   }
   
   /** 发送完成通知 */
   private sendCompletionNotification(title: string, content: string): void {
     // 调用现有的NotificationService
-    // TODO: [扩展预留] 替换为实际的通知调用
+    // TODO: 替换为实际的通知调用
     console.log(`发送通知：${title} - ${content}`);
     
     // 预留NotificationService调用
@@ -300,25 +282,23 @@ export class FocusTimerEngine {
   
   /** 保存专注记录 */
   private saveFocusRecord(): void {
-    // TODO: [扩展预留] 实现专注记录保存逻辑
+    // TODO: [扩展预留] 实现专注记录保存
     console.log(`保存专注记录：${this.focusRecordId}，时长：${this.elapsedSeconds}秒`);
-    
-    // 预留FocusRepository调用
-    // if (this.focusRepository) {
-    //   const focusRecord = new Focus();
-    //   focusRecord.id = this.focusRecordId;
-    //   focusRecord.todoId = this.todoId;
-    //   focusRecord.duration = this.elapsedSeconds;
-    //   focusRecord.startTime = this.startTimestamp;
-    //   focusRecord.endTime = Date.now();
-    //   focusRecord.timestamp = Date.now();
-    //   this.focusRepository.save(focusRecord);
-    // }
   }
   
   /** 生成记录ID */
   private generateRecordId(): string {
     return `focus_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+  
+  /** 获取已过去的时间（秒）*/
+  get elapsedSeconds(): number {
+    return this.totalSeconds - this.remainingSeconds;
+  }
+  
+  /** 检查是否正在计时 */
+  get isCounting(): boolean {
+    return this.timerId !== -1;
   }
   
   /** 清理计时器 */
@@ -327,20 +307,17 @@ export class FocusTimerEngine {
       clearInterval(this.timerId);
       this.timerId = -1;
     }
-    this.isCounting = false;
   }
   
   /** 重置状态 */
   private resetState(): void {
     this.state = FocusState.IDLE;
-    this.remainingSeconds = this.workDuration; // 空闲时显示默认工作时间
-    this.totalSeconds = this.workDuration;
+    this.remainingSeconds = this.currentWorkDuration; // 使用当前工作时长（修复自定义时长丢失问题）
+    this.totalSeconds = this.currentWorkDuration;
     this.todoId = '';
     this.focusRecordId = '';
-    this.elapsedSeconds = 0;
     this.startTimestamp = 0;
     this.expectedEndTime = 0; // 修复：重置预期结束时间
-    this.isCounting = false;
   }
   
   // ===== 工具方法 =====
@@ -355,12 +332,6 @@ export class FocusTimerEngine {
   /** 获取已过去的时间（秒） */
   getElapsedSeconds(): number {
     return this.elapsedSeconds;
-  }
-
-  /** 获取进度百分比（0-1） */
-  getProgressPercentage(): number {
-    if (this.totalSeconds <= 0) return 0;
-    return this.elapsedSeconds / this.totalSeconds;
   }
   
   /** 获取当前阶段名称 */

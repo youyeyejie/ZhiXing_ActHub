@@ -18,8 +18,8 @@ export struct FocusControlButtons {
       Button({ type: ButtonType.Circle, stateEffect: true }) {
         Text(){
           SymbolSpan($r('sys.symbol.music_fill'))
-          .fontWeight(FontWeight.Normal)
-          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontSize(25)
           .fontColor([this.app.theme.palette.surface])
         }
       }
@@ -35,8 +35,8 @@ export struct FocusControlButtons {
       Button({ type: ButtonType.Circle, stateEffect: true }) {
         Text(){
           SymbolSpan(this.getPlayPauseIcon())
-          .fontWeight(FontWeight.Normal)
-          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontSize(35)
           .fontColor([this.app.theme.palette.surface])
         }
       }
@@ -52,8 +52,8 @@ export struct FocusControlButtons {
       Button({ type: ButtonType.Circle, stateEffect: true }) {
         Text(){
           SymbolSpan($r('sys.symbol.xmark'))
-          .fontWeight(FontWeight.Normal)
-          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontSize(25)
           .fontColor([this.app.theme.palette.surface])
         }
         
