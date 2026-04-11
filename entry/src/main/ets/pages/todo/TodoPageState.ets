@@ -69,7 +69,22 @@ export class TodoPageState {
   }
 
   async refreshCategories(): Promise<void> {
+    const previousSelectedId = this.safeTrim(this.selectedCategoryId);
+    let previousSelectedName = '';
+    if (previousSelectedId.length > 0) {
+      const localSelected = this.categories.find((item: TodoCategory) => this.safeTrim(item.id) === previousSelectedId);
+      if (localSelected) {
+        previousSelectedName = this.safeTrim(localSelected.category);
+      }
+    }
+
     const list: Array<TodoCategory> = await this.categoryRepository.findAll();
+    if (previousSelectedId.length > 0 && previousSelectedName.length === 0) {
+      const fromList = list.find((item: TodoCategory) => this.safeTrim(item.id) === previousSelectedId);
+      if (fromList) {
+        previousSelectedName = this.safeTrim(fromList.category);
+      }
+    }
     list.sort((a: TodoCategory, b: TodoCategory) => {
       const aName = this.safeTrim(a.category);
       const bName = this.safeTrim(b.category);
@@ -99,6 +114,17 @@ export class TodoPageState {
 
     // 给缺失颜色的旧数据补齐（颜色不在 UI 暴露，仅用于渲染）。
     for (let i = 0; i < deduped.length; i++) {
+      const normalizedId = this.safeTrim(deduped[i].id);
+      if (normalizedId.length === 0) {
+        deduped[i].id = this.newId('cat');
+        deduped[i].updatedAt = Date.now();
+        await this.categoryRepository.save(deduped[i]);
+      } else if (deduped[i].id !== normalizedId) {
+        deduped[i].id = normalizedId;
+        deduped[i].updatedAt = Date.now();
+        await this.categoryRepository.save(deduped[i]);
+      }
+
       const normalizedName = this.safeTrim(deduped[i].category);
       if (normalizedName.length > 0) {
         deduped[i].category = normalizedName;
@@ -119,10 +145,19 @@ export class TodoPageState {
     }
 
     this.categories = deduped;
-    if (this.selectedCategoryId.length > 0) {
-      const exists = this.categories.some((item: TodoCategory) => this.safeTrim(item.id) === this.selectedCategoryId);
+    const currentSelectedId = this.safeTrim(this.selectedCategoryId);
+    if (currentSelectedId.length > 0) {
+      const exists = this.categories.some((item: TodoCategory) => this.safeTrim(item.id) === currentSelectedId);
       if (!exists) {
-        this.selectedCategoryId = '';
+        let remappedId = '';
+        const fallbackName = previousSelectedName.length > 0 ? previousSelectedName : '';
+        if (fallbackName.length > 0) {
+          const remapped = this.categories.find((item: TodoCategory) => this.safeTrim(item.category) === fallbackName);
+          if (remapped) {
+            remappedId = this.safeTrim(remapped.id);
+          }
+        }
+        this.selectedCategoryId = remappedId;
       }
     }
     this.syncVisibleTodos();
@@ -141,9 +176,16 @@ export class TodoPageState {
       (this.categories.length > 0 ? this.safeTrim(this.categories[0].id) : '');
     if (fallbackCategoryId.length > 0) {
       for (let i = 0; i < list.length; i++) {
-        const normalizedContent = this.safeTrim(list[i].content);
-        if (normalizedContent.length > 0 && list[i].content !== normalizedContent) {
-          list[i].content = normalizedContent;
+        const normalizedTitle = this.safeTrim(list[i].content);
+        if (list[i].content !== normalizedTitle) {
+          list[i].content = normalizedTitle;
+          list[i].updatedAt = Date.now();
+          await this.todoRepository.save(list[i]);
+        }
+
+        const normalizedDetail = this.safeTrim(list[i].detail);
+        if (list[i].detail !== normalizedDetail) {
+          list[i].detail = normalizedDetail;
           list[i].updatedAt = Date.now();
           await this.todoRepository.save(list[i]);
         }
@@ -268,18 +310,20 @@ export class TodoPageState {
     return found ? found.color : this.categoryColorPalette[0];
   }
 
-  async createTodo(content: string, categoryId: string): Promise<boolean> {
+  async createTodo(title: string, detail: string, categoryId: string): Promise<boolean> {
     await this.ensureDefaultCategories();
     if (this.categories.length === 0) {
       await this.refreshCategories();
     }
-    const trimmed = this.safeTrim(content);
-    if (trimmed.length === 0) {
+    const trimmedTitle = this.safeTrim(title);
+    if (trimmedTitle.length === 0) {
       return false;
     }
+    const trimmedDetail = this.safeTrim(detail);
     const todo = new Todo();
     todo.id = this.creatingTodoId.length > 0 ? this.creatingTodoId : this.newId('todo');
-    todo.content = trimmed;
+    todo.content = trimmedTitle;
+    todo.detail = trimmedDetail;
     const defaultCategoryId = this.getDefaultCategoryId();
     const candidateId = this.safeTrim(categoryId);
     const hasCandidate = candidateId.length > 0 && this.categories.some((item: TodoCategory) => this.safeTrim(item.id) === candidateId);
@@ -302,19 +346,19 @@ export class TodoPageState {
     return true;
   }
 
-  async updateTodoContent(todoId: string, content: string): Promise<void> {
+  async updateTodoTitle(todoId: string, title: string): Promise<void> {
     const normalizedTodoId = this.safeTrim(todoId);
     if (normalizedTodoId.length === 0) {
       return;
     }
-    const nextContent = this.safeTrim(content);
+    const nextTitle = this.safeTrim(title);
     const now = Date.now();
     let targetTodo: Todo | null = null;
 
     const localIndex = this.todos.findIndex((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
     if (localIndex >= 0) {
       targetTodo = this.todos[localIndex];
-      targetTodo.content = nextContent;
+      targetTodo.content = nextTitle;
       targetTodo.updatedAt = now;
       targetTodo.timestamp = now;
       this.todos = this.todos.slice();
@@ -326,7 +370,43 @@ export class TodoPageState {
       if (!targetTodo) {
         return;
       }
-      targetTodo.content = nextContent;
+      targetTodo.content = nextTitle;
+      targetTodo.updatedAt = now;
+      targetTodo.timestamp = now;
+    }
+
+    if (targetTodo === null) {
+      return;
+    }
+    await this.todoRepository.save(targetTodo);
+    await this.refreshTodos();
+  }
+
+  async updateTodoDetail(todoId: string, detail: string): Promise<void> {
+    const normalizedTodoId = this.safeTrim(todoId);
+    if (normalizedTodoId.length === 0) {
+      return;
+    }
+    const nextDetail = this.safeTrim(detail);
+    const now = Date.now();
+    let targetTodo: Todo | null = null;
+
+    const localIndex = this.todos.findIndex((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
+    if (localIndex >= 0) {
+      targetTodo = this.todos[localIndex];
+      targetTodo.detail = nextDetail;
+      targetTodo.updatedAt = now;
+      targetTodo.timestamp = now;
+      this.todos = this.todos.slice();
+      this.syncVisibleTodos();
+    }
+
+    if (targetTodo === null) {
+      targetTodo = await this.todoRepository.findById(normalizedTodoId);
+      if (!targetTodo) {
+        return;
+      }
+      targetTodo.detail = nextDetail;
       targetTodo.updatedAt = now;
       targetTodo.timestamp = now;
     }
@@ -452,6 +532,10 @@ export class TodoPageState {
     }
     const category = await this.categoryRepository.findById(normalizedId);
     if (!category) {
+      return;
+    }
+    const currentName = this.safeTrim(category.category);
+    if (currentName === trimmed) {
       return;
     }
     category.category = trimmed;

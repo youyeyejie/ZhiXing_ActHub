@@ -4,7 +4,7 @@ import { BaseEntity } from './BaseEntity';
 
 /**
  * 待办实体定义。
- * 对齐详细设计中的 todos 表，当前仅保留分类与专注记录所需外键字段。
+ * 对齐待办模块 MVP 所需字段：标题（content）+ 详情（detail）+ 分类/状态信息。
  */
 @Table({ name: DatabaseConfig.TODO_TABLE })
 export class Todo extends BaseEntity {
@@ -14,6 +14,10 @@ export class Todo extends BaseEntity {
   @Column({ type: ColumnType.TEXT, notNull: true })
   @NotNull()
   content: string = '';
+
+  @Column({ type: ColumnType.TEXT, notNull: true, defaultValue: '' })
+  @NotNull()
+  detail: string = '';
 
   @Column({ type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
   @NotNull()

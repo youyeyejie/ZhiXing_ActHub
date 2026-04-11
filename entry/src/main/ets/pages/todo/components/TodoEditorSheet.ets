@@ -6,7 +6,7 @@ import promptAction from '@ohos.promptAction';
 
 /**
  * 待办新建/编辑半屏页骨架。
- * TODO: 后续承载待办内容、分类和详情编辑字段。
+ * TODO: 后续补充截止时间、提醒等扩展字段。
  */
 @ComponentV2
 export struct TodoEditorSheet {
@@ -14,11 +14,12 @@ export struct TodoEditorSheet {
   @Local private state: TodoPageState = useTodoPageState();
   private sheetController: ActionSheetController = new ActionSheetController();
 
-  @Local private draftContent: string = '';
+  @Local private draftTitle: string = '';
+  @Local private draftDetail: string = '';
   @Local private draftCategoryId: string = '';
 
   aboutToAppear(): void {
-    // 刷新由 TodoPage 统一触发，打开弹层时 open() 会再次 refreshAll 确保数据最新。
+    this.prepareDraftForCreate();
   }
 
   private normalizeId(value: string): string {
@@ -32,27 +33,31 @@ export struct TodoEditorSheet {
     }
   }
 
-  private async open(): Promise<void> {
+  private async prepareDraftForCreate(): Promise<void> {
     await this.state.refreshAll();
-    this.draftContent = '';
+    if (this.state.creatingTodoId.length === 0) {
+      this.state.openCreateTodo();
+    }
+    this.draftTitle = '';
+    this.draftDetail = '';
     this.draftCategoryId = this.state.selectedCategoryId.length > 0 ?
       this.normalizeId(this.state.selectedCategoryId) : this.normalizeId(this.state.getDefaultCategoryId());
     if (this.draftCategoryId.length === 0 && this.state.categories.length > 0) {
       this.draftCategoryId = this.normalizeId(this.state.categories[0].id);
     }
-    this.state.openCreateTodo();
   }
 
   private submit(): void {
-    const content = this.draftContent;
+    const title = this.draftTitle;
+    const detail = this.draftDetail;
     const categoryId = this.draftCategoryId;
-    this.state.createTodo(content, categoryId)
+    this.state.createTodo(title, detail, categoryId)
       .then((ok: boolean) => {
         if (ok) {
           this.close();
           this.safeToast('待办已添加');
         } else {
-          this.safeToast('添加失败：请填写内容并选择分类');
+          this.safeToast('添加失败：请填写标题并选择分类');
         }
       })
       .catch((_error: object) => {
@@ -62,7 +67,8 @@ export struct TodoEditorSheet {
 
   private close(): void {
     this.state.closeTodoEditor();
-    this.draftContent = '';
+    this.draftTitle = '';
+    this.draftDetail = '';
   }
 
   @Builder
@@ -102,14 +108,27 @@ export struct TodoEditorSheet {
       .width('100%')
       .alignItems(VerticalAlign.Center);
 
-      TextInput({ text: this.draftContent, placeholder: '请输入待办内容' })
+
+      TextInput({ text: this.draftTitle, placeholder: '请输入待办标题' })
         .fontSize(14)
         .width('100%')
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
         .padding(12)
         .onChange((value: string) => {
-          this.draftContent = value;
+          this.draftTitle = value;
+        });
+
+
+      TextArea({ text: this.draftDetail, placeholder: '请输入待办详情（选填）' })
+        .fontSize(14)
+        .width('100%')
+        .height(112)
+        .backgroundColor(this.app.theme.palette.surfaceSecondary)
+        .borderRadius(12)
+        .padding(12)
+        .onChange((value: string) => {
+          this.draftDetail = value;
         });
 
       Text('分类')
@@ -148,23 +167,11 @@ export struct TodoEditorSheet {
   }
 
   build() {
-    Stack({ alignContent: Alignment.BottomEnd }) {
-      Button('+')
-        .type(ButtonType.Circle)
-        .width(64)
-        .height(64)
-        .fontSize(28)
-        .fontColor(this.app.theme.palette.surface)
-        .backgroundColor(this.app.theme.palette.primary)
-        .shadow({ radius: 14, color: this.app.theme.palette.mask, offsetX: 0, offsetY: 6 })
-        .onClick(async () => {
-          await this.open();
-        });
-
+    Column() {
       if (this.state.isTodoEditorVisible) {
         ActionSheet({
           isVisible: true,
-          panelHeight: '55%',
+          panelHeight: '68%',
           controller: this.sheetController,
           onDismiss: () => {
             this.close();
@@ -175,6 +182,6 @@ export struct TodoEditorSheet {
       }
     }
     .width('100%')
-    .padding({ right: 18, bottom: 18 });
+    .height('100%');
   }
 }

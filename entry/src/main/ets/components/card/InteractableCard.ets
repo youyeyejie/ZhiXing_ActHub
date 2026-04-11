@@ -151,8 +151,8 @@ export struct InteractableCard {
       .padding(this.contentPadding)
       .borderRadius(this.cornerRadius)
       .backgroundColor(this.resolveCardSurfaceColor())
-      .shadow({ radius: this.shadowRadius, color: this.app.theme.palette.mask, offsetX: 0, offsetY: this.shadowOffsetY })
-      .translate({ x: this.offsetX, y: 0 })
+      .shadow({ radius: this.shadowRadius, color: this.app.theme.palette.mask, offsetX: 3, offsetY: this.shadowOffsetY })
+      .translate({ x: this.offsetX, y: 2 })
       .animation({ duration: 180, curve: Curve.EaseOut, playMode: PlayMode.Normal })
       .onAreaChange((_oldValue, newValue) => {
         const nextHeight = Number(newValue.height);

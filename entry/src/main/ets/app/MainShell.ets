@@ -4,8 +4,12 @@ import { AppRoute, AppTab } from './AppConstants';
 import { AppState, useAppState } from './AppStates';
 import { PlanPage } from '../pages/plan';
 import { TodoPage } from '../pages/todo';
+import { TodoPageState, useTodoPageState } from '../pages/todo/TodoPageState';
 import { IdeaPage } from '../pages/idea';
 import { UserPage } from '../pages/user';
+import { TodoEditorSheet } from '../pages/todo/components/TodoEditorSheet';
+import { CategoryEditorOverlay } from '../pages/todo/components/CategoryEditorOverlay';
+import { TodoDetailOverlay } from '../pages/todo/components/TodoDetailOverlay';
 
 /**
  * 主应用壳层。
@@ -14,6 +18,7 @@ import { UserPage } from '../pages/user';
 @ComponentV2
 export struct MainShell {
   @Local private app: AppState = useAppState();
+  @Local private todoState: TodoPageState = useTodoPageState();
 
   @Builder
   private buildCurrentTabPage() {
@@ -34,22 +39,32 @@ export struct MainShell {
       includeBottom: true,
       surfaceColor: this.app.theme.palette.background
     }) {
-      Column({ space: 12 }) {
-        Column() {
-          this.buildCurrentTabPage();
-        }
-        .layoutWeight(1)
-        .width('100%');
-
-        BottomTabBar({
-          currentTab: this.app.nav.currentTab(),
-          onTabChange: (tab: AppTab): void => {
-            this.app.nav.selectTab(tab);
-          },
-          onFocusTap: (): void => {
-            this.app.nav.openFocus();
+      Stack({ alignContent: Alignment.TopStart }) {
+        Column({ space: 12 }) {
+          Column() {
+            this.buildCurrentTabPage();
           }
-        });
+          .layoutWeight(1)
+          .width('100%');
+
+          BottomTabBar({
+            currentTab: this.app.nav.currentTab(),
+            onTabChange: (tab: AppTab): void => {
+              this.app.nav.selectTab(tab);
+            },
+            onFocusTap: (): void => {
+              this.app.nav.openFocus();
+            }
+          });
+        }
+        .width('100%')
+        .height('100%');
+
+        if (this.todoState.isTodoEditorVisible) {
+          TodoEditorSheet();
+        }
+        CategoryEditorOverlay();
+        TodoDetailOverlay();
       }
       .width('100%')
       .height('100%');
