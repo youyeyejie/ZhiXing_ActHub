@@ -1,5 +1,4 @@
 import { AppState, useAppState } from '../../../app/AppStates';
-import { AutoSaveText } from '../../../components/form/AutoSaveText';
 import { TodoCategory } from '../../../core/models/TodoCategory';
 import { useTodoPageState, TodoPageState } from '../TodoPageState';
 import promptAction from '@ohos.promptAction';
@@ -19,6 +18,11 @@ export struct CategoryEditorOverlay {
   @Local private newCategoryName: string = '';
   @Local private editorSelectedCategoryId: string = '';
   @Local private editorSelectionVersion: number = 0;
+  @Local private editorMode: string = 'none'; // none | create | edit
+  @Local private editingCategoryNameDraft: string = '';
+  @Local private loadedEditCategoryId: string = '';
+
+  private categoryNameSaveTimerId: number = -1;
 
   private resolveNormalizedId(value: string): string {
     return `${value}`.trim();
@@ -31,9 +35,61 @@ export struct CategoryEditorOverlay {
     }
   }
 
+  private resolveNormalizedName(value: string): string {
+    return `${value}`.trim();
+  }
+
+  private clearCategoryNameSaveTimer(): void {
+    if (this.categoryNameSaveTimerId >= 0) {
+      clearTimeout(this.categoryNameSaveTimerId);
+      this.categoryNameSaveTimerId = -1;
+    }
+  }
+
+  private applyEditCategoryDraft(categoryId: string): void {
+    const normalizedId = this.resolveNormalizedId(categoryId);
+    if (normalizedId.length === 0) {
+      this.loadedEditCategoryId = '';
+      this.editingCategoryNameDraft = '';
+      return;
+    }
+    const found = this.state.categories.find((item: TodoCategory) => this.resolveNormalizedId(item.id) === normalizedId);
+    if (!found) {
+      this.loadedEditCategoryId = '';
+      this.editingCategoryNameDraft = '';
+      return;
+    }
+    this.loadedEditCategoryId = normalizedId;
+    this.editingCategoryNameDraft = found.category;
+  }
+
+  private scheduleEditCategoryNameSave(): void {
+    this.clearCategoryNameSaveTimer();
+    this.categoryNameSaveTimerId = setTimeout(() => {
+      this.persistEditCategoryName();
+    }, 500);
+  }
+
+  private persistEditCategoryName(): void {
+    this.clearCategoryNameSaveTimer();
+    const selected = this.resolveSelectedEditorCategory();
+    if (selected === null) {
+      return;
+    }
+    const nextName = this.resolveNormalizedName(this.editingCategoryNameDraft);
+    const currentName = this.resolveNormalizedName(selected.category);
+    if (nextName.length === 0 || nextName === currentName) {
+      return;
+    }
+    this.state.updateCategoryName(selected.id, nextName);
+  }
+
   private closeOverlay(): void {
+    this.persistEditCategoryName();
     this.newCategoryName = '';
     this.applyEditorSelection('');
+    this.editorMode = 'none';
+    this.applyEditCategoryDraft('');
     this.state.closeCategoryEditor();
   }
 
@@ -44,6 +100,8 @@ export struct CategoryEditorOverlay {
         this.safeToast(ok ? '分类已添加' : '添加失败：请输入不重复的分类名');
         if (ok) {
           this.newCategoryName = '';
+          this.editorMode = 'none';
+          this.applyEditCategoryDraft('');
         }
       })
       .catch((_error: Error) => {
@@ -70,7 +128,7 @@ export struct CategoryEditorOverlay {
         },
         {
           text: '确认',
-          color: '#2AC80D'
+          color: '#ff2664eb'
         }
       ]
     }).then((result: DialogResult) => {
@@ -81,6 +139,8 @@ export struct CategoryEditorOverlay {
         .then((ok: boolean) => {
           if (ok && this.resolveNormalizedId(this.editorSelectedCategoryId) === categoryId) {
             this.applyEditorSelection('');
+            this.editorMode = 'none';
+            this.applyEditCategoryDraft('');
           }
           this.safeToast(ok ? '分类及关联待办已删除' : '删除失败');
         })
@@ -123,7 +183,10 @@ export struct CategoryEditorOverlay {
   }
 
   private selectEditorCategory(categoryId: string): void {
+    this.persistEditCategoryName();
     this.applyEditorSelection(this.resolveNormalizedId(categoryId));
+    this.editorMode = 'edit';
+    this.applyEditCategoryDraft(categoryId);
   }
 
   private isEditorCategorySelected(categoryId: string): boolean {
@@ -131,7 +194,44 @@ export struct CategoryEditorOverlay {
     if (normalizedId.length === 0) {
       return false;
     }
-    return this.resolveEditorCurrentCategoryId() === normalizedId;
+    return this.editorMode === 'edit' && this.resolveEditorCurrentCategoryId() === normalizedId;
+  }
+
+  private openCreateEditor(): void {
+    this.persistEditCategoryName();
+    if (this.editorMode === 'create') {
+      this.editorMode = 'none';
+      this.newCategoryName = '';
+      this.applyEditorSelection('');
+      this.applyEditCategoryDraft('');
+      return;
+    }
+    this.editorMode = 'create';
+    this.applyEditorSelection('');
+    this.applyEditCategoryDraft('');
+  }
+
+  private resolveSelectedEditorCategory(): TodoCategory | null {
+    const selectedId = this.resolveEditorCurrentCategoryId();
+    if (selectedId.length === 0) {
+      return null;
+    }
+    const found = this.state.categories.find((item: TodoCategory) => this.resolveNormalizedId(item.id) === selectedId);
+    return found ? found : null;
+  }
+
+  private isEditorExpanded(): boolean {
+    return this.editorMode !== 'none';
+  }
+
+  private resolveCardHeight(): string {
+    if (this.editorMode === 'create') {
+      return '32%';
+    }
+    if (this.editorMode === 'edit') {
+      return '28%';
+    }
+    return '20%';
   }
 
   @Builder
@@ -139,73 +239,152 @@ export struct CategoryEditorOverlay {
     Button(label)
       .type(ButtonType.Capsule)
       .stateEffect(true)
+      .height(28)
       .fontSize(13)
       .fontColor(selected ? this.app.theme.palette.surface : this.app.theme.palette.textSecondary)
       .backgroundColor(selected ? this.app.theme.palette.primary : this.app.theme.palette.surfaceSecondary)
       .borderRadius(999)
-      .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+      .padding({ left: 10, right: 10, top: 4, bottom: 4 })
       .onClick(() => {
         onTap();
       });
   }
 
   @Builder
-  private buildSelectedCategoryEditor() {
-    Column({ space: 8 }) {
-      if (this.state.categories.length === 0) {
-        Text('请先添加分类，再进行编辑。')
-          .fontSize(12)
-          .fontColor(this.app.theme.palette.textSecondary);
-      }
+  private buildCreateEditorPanel() {
+    Column({ space: 12 }) {
+      Text('输入新分类名称')
+        .fontSize(13)
+        .fontColor(this.app.theme.palette.textSecondary);
 
-      ForEach(this.state.categories, (item: TodoCategory) => {
-        if (this.isEditorCategorySelected(item.id)) {
-          Column({ space: 8 }) {
-            AutoSaveText({
-              label: '名称',
-              placeholder: '请输入分类名称',
-              initialValue: item.category,
-              debounceMs: 500,
-              saveOnBlur: true,
-              onAutoSave: async (value: string) => {
-                await this.state.updateCategoryName(item.id, value);
-              }
+      Row({ space: 12 }) {
+        TextInput({ text: this.newCategoryName, placeholder: '输入新分类名称' })
+          .layoutWeight(1)
+          .fontSize(14)
+          .height(42)
+          .backgroundColor(this.app.theme.palette.surfaceSecondary)
+          .borderRadius(10)
+          .padding({ left: 10, right: 10, top: 8, bottom: 8 })
+          .onChange((value: string) => {
+            this.newCategoryName = value;
+          });
+
+        Button('确认')
+          .type(ButtonType.Capsule)
+          .height(42)
+          .fontSize(13)
+          .fontColor(this.app.theme.palette.surface)
+          .backgroundColor(this.app.theme.palette.primary)
+          .padding({ left: 14, right: 14, top: 4, bottom: 4 })
+          .onClick(() => {
+            this.submitNewCategory();
+          });
+      }
+      .width('100%');
+    }
+    .width('100%');
+  }
+
+  @Builder
+  private buildEditEditorPanel() {
+    Column({ space: 12 }) {
+      if (this.resolveSelectedEditorCategory() !== null) {
+        Row({ space: 12 }) {
+          TextInput({ text: this.editingCategoryNameDraft, placeholder: '改动分类名称' })
+            .layoutWeight(1)
+            .fontSize(14)
+            .height(42)
+            .backgroundColor(this.app.theme.palette.surfaceSecondary)
+            .borderRadius(10)
+            .padding({ left: 10, right: 10, top: 8, bottom: 8 })
+            .onChange((value: string) => {
+              this.editingCategoryNameDraft = value;
+              this.scheduleEditCategoryNameSave();
+            })
+            .onBlur(() => {
+              this.persistEditCategoryName();
             });
 
-            Row() {
-              Blank().layoutWeight(1);
-
-              if (item.category !== '学习') {
-                Button('删除分类')
-                  .type(ButtonType.Capsule)
-                  .fontSize(12)
-                  .fontColor(this.app.theme.palette.surface)
-                  .backgroundColor('#EF4444')
-                  .borderRadius(999)
-                  .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-                  .onClick(() => {
-                    this.requestRemoveCategory(item);
-                  });
-              } else {
-                Text('默认分类不可删除')
-                  .fontSize(12)
-                  .fontColor(this.app.theme.palette.textSecondary);
-              }
+          if (this.resolveSelectedEditorCategory()!.category !== '学习') {
+            Button({ type: ButtonType.Circle, stateEffect: true }) {
+              SymbolGlyph($r('sys.symbol.trash'))
+                .fontSize(16)
+                .fontColor([this.app.theme.palette.surface]);
             }
-            .width('100%')
-            .alignItems(VerticalAlign.Center);
+              .width(30)
+              .height(30)
+              .backgroundColor('#EF4444')
+              .onClick(() => {
+                this.requestRemoveCategory(this.resolveSelectedEditorCategory()!);
+              });
+          } else {
+            Text('默认分类不可删除')
+              .fontSize(12)
+              .fontColor(this.app.theme.palette.textSecondary);
           }
-          .width('100%');
         }
-      }, (item: TodoCategory) => `${this.resolveNormalizedId(item.id)}_${this.resolveEditorCurrentCategoryId()}_${this.editorSelectionVersion}`);
+        .width('100%')
+        .alignItems(VerticalAlign.Center);
+      }
+    }
+    .width('100%');
+  }
+
+  @Builder
+  private buildExpandedEditorPanel() {
+    if (this.editorMode === 'create') {
+      this.buildCreateEditorPanel();
+    } else if (this.editorMode === 'edit') {
+      this.buildEditEditorPanel();
+    }
+  }
+
+  @Builder
+  private buildCategoryLine() {
+    Row({ space: 8 }) {
+      Button('+')
+        .type(ButtonType.Circle)
+        .width(32)
+        .height(32)
+        .fontSize(18)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.app.theme.palette.surface)
+        .backgroundColor(this.app.theme.palette.primary)
+        .onClick(() => {
+          this.openCreateEditor();
+        });
+
+      Scroll() {
+        Row({ space: 8 }) {
+          if (this.state.categories.length === 0) {
+            Text('暂无分类')
+              .fontSize(12)
+              .fontColor(this.app.theme.palette.textSecondary);
+          }
+
+          ForEach(this.state.categories, (item: TodoCategory) => {
+            this.buildCategoryChip(
+              item.category,
+              this.isEditorCategorySelected(item.id),
+              () => {
+                this.selectEditorCategory(item.id);
+              }
+            );
+          }, (item: TodoCategory) => `${this.resolveNormalizedId(item.id)}_${item.category}_${this.resolveEditorCurrentCategoryId()}_${this.editorSelectionVersion}_${this.editorMode}`);
+        }
+        .padding({ top: 2, bottom: 2 });
+      }
+      .layoutWeight(1)
+      .scrollable(ScrollDirection.Horizontal)
+      .scrollBar(BarState.Off);
     }
     .width('100%')
-    .padding({ top: 2, bottom: 2 });
+    .alignItems(VerticalAlign.Center);
   }
 
   @Builder
   private buildCardContent() {
-    Column({ space: 10 }) {
+    Column({ space: this.isEditorExpanded() ? 12 : 8 }) {
       Row() {
         Text('管理分类')
           .fontSize(18)
@@ -229,59 +408,11 @@ export struct CategoryEditorOverlay {
       .width('100%')
       .alignItems(VerticalAlign.Center);
 
-      Row({ space: 8 }) {
-        TextInput({ text: this.newCategoryName, placeholder: '输入新分类名称' })
-          .layoutWeight(1)
-          .fontSize(14)
-          .height(40)
-          .backgroundColor(this.app.theme.palette.surfaceSecondary)
-          .borderRadius(10)
-          .padding({ left: 10, right: 10, top: 7, bottom: 7 })
-          .onChange((value: string) => {
-            this.newCategoryName = value;
-          });
+      this.buildCategoryLine();
 
-        Button('新增')
-          .type(ButtonType.Capsule)
-          .height(40)
-          .backgroundColor(this.app.theme.palette.primary)
-          .fontColor(this.app.theme.palette.surface)
-          .fontSize(13)
-          .padding({ left: 14, right: 14, top: 3, bottom: 3 })
-          .onClick(() => {
-            this.submitNewCategory();
-          });
-      }
-      .width('100%');
-
-      Scroll() {
-        Row({ space: 8 }) {
-          if (this.state.categories.length === 0) {
-            Text('暂无分类')
-              .fontSize(12)
-              .fontColor(this.app.theme.palette.textSecondary);
-          }
-
-          ForEach(this.state.categories, (item: TodoCategory) => {
-            this.buildCategoryChip(
-              item.category,
-              this.isEditorCategorySelected(item.id),
-              () => {
-                this.selectEditorCategory(item.id);
-              }
-            );
-          }, (item: TodoCategory) => `${this.resolveNormalizedId(item.id)}_${item.category}_${this.resolveEditorCurrentCategoryId()}_${this.editorSelectionVersion}`);
-        }
-        .padding({ top: 2, bottom: 2 });
-      }
-      .scrollable(ScrollDirection.Horizontal)
-      .scrollBar(BarState.Off)
-      .width('100%');
-
-      this.buildSelectedCategoryEditor();
+      this.buildExpandedEditorPanel();
     }
-    .width('100%')
-    .height('100%');
+    .width('100%');
   }
 
   build() {
@@ -300,11 +431,12 @@ export struct CategoryEditorOverlay {
           this.buildCardContent();
         }
         .width('86%')
-        .height('62%')
-        .padding({ left: 14, right: 14, top: 14, bottom: 12 })
+        .height(this.resolveCardHeight())
+        .padding({ left: 14, right: 14, top: 14, bottom: this.isEditorExpanded() ? 10 : 8 })
         .borderRadius(16)
         .backgroundColor('#FFFFFF')
         .shadow({ radius: 20, color: this.app.theme.palette.mask, offsetX: 0, offsetY: 8 })
+        .animation({ duration: 220, curve: Curve.EaseOut, playMode: PlayMode.Normal })
         .onClick(() => {
         });
       }

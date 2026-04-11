@@ -57,7 +57,7 @@ export struct TodoEditorSheet {
           this.close();
           this.safeToast('待办已添加');
         } else {
-          this.safeToast('添加失败：请填写标题并选择分类');
+          this.safeToast('添加失败：请填写标题');
         }
       })
       .catch((_error: object) => {
@@ -76,11 +76,12 @@ export struct TodoEditorSheet {
     Button(label)
       .type(ButtonType.Capsule)
       .stateEffect(true)
+      .height(28)
       .fontSize(12)
       .backgroundColor(selected ? this.app.theme.palette.primary : this.app.theme.palette.surfaceSecondary)
       .fontColor(selected ? this.app.theme.palette.surface : this.app.theme.palette.textSecondary)
       .borderRadius(999)
-      .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+      .padding({ left: 12, right: 12, top: 4, bottom: 4 })
       .onClick(() => {
         onTap();
       });

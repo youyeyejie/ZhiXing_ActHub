@@ -114,19 +114,30 @@ export struct TodoCard {
   build() {
     Column({ space: 4 }) {
       if (this.state.visibleTodos.length === 0) {
-        Column({ space: 6 }) {
-          Text('暂无待办')
-            .fontSize(16)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.app.theme.palette.textPrimary);
-          Text('点击右下角 + 新建一条待办。')
-            .fontSize(12)
-            .fontColor(this.app.theme.palette.textSecondary);
+        Button() {
+          Column({ space: 6 }) {
+            Text('暂无待办')
+              .fontSize(16)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.app.theme.palette.textPrimary);
+            Text('点击新增该分类待办')
+              .fontSize(12)
+              .fontColor(this.app.theme.palette.textSecondary);
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start);
         }
+        .type(ButtonType.Normal)
+        .stateEffect(true)
         .width('100%')
         .padding(16)
         .borderRadius(20)
-        .backgroundColor(this.app.theme.palette.surface);
+        .backgroundColor(this.app.theme.palette.surface)
+        .shadow({ radius: 5, color: this.app.theme.palette.mask, offsetX: 0, offsetY: 2 })
+        .onClick(async () => {
+          await this.state.refreshAll();
+          this.state.openCreateTodo();
+        });
       } else {
         ForEach(this.state.visibleTodos, (item: Todo) => {
           this.buildTodoRow(item);

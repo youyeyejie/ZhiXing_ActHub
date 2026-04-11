@@ -50,11 +50,12 @@ export struct CategoryFilter {
     Button(label)
       .type(ButtonType.Capsule)
       .stateEffect(true)
+      .height(28)
       .fontSize(14)
       .fontColor(selected ? this.app.theme.palette.surface : this.app.theme.palette.textSecondary)
       .backgroundColor(selected ? this.app.theme.palette.primary : this.app.theme.palette.surfaceSecondary)
       .borderRadius(999)
-      .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+      .padding({ left: 12, right: 12, top: 4, bottom: 4 })
       .onClick(() => {
         onTap();
       });
@@ -71,11 +72,11 @@ export struct CategoryFilter {
 
         Button({ type: ButtonType.Circle, stateEffect: true }) {
           SymbolGlyph($r('sys.symbol.pencil_line_1'))
-            .fontSize(18)
+            .fontSize(16)
             .fontColor([this.app.theme.palette.textPrimary]);
         }
-          .width(34)
-          .height(34)
+          .width(30)
+          .height(30)
           .backgroundColor(this.app.theme.palette.surfaceSecondary)
           .onClick(() => {
             this.openCategoryEditorOverlay();
