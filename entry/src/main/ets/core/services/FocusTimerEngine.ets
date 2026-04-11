@@ -329,9 +329,9 @@ export class FocusTimerEngine {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }
   
-  /** 获取已过去的时间（秒） */
-  getElapsedSeconds(): number {
-    return this.elapsedSeconds;
+  /** 获取剩余专注的时间（秒） */
+  getLeftSeconds(): number {
+    return this.totalSeconds - this.elapsedSeconds;
   }
   
   /** 获取当前阶段名称 */

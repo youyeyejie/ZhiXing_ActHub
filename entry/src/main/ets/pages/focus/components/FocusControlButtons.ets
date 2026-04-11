@@ -25,7 +25,7 @@ export struct FocusControlButtons {
       }
       .width(50)
       .height(50)
-      .backgroundColor(this.app.theme.palette.textSecondary) // 修改：与xmark按钮颜色一致
+      .backgroundColor(this.app.theme.palette.textTertiary)
       .onClick(() => {
         console.log('白噪音功能（预留）');
         // TODO: [扩展预留] 实现白噪音控制
@@ -60,7 +60,7 @@ export struct FocusControlButtons {
       }
       .width(50)
       .height(50)
-      .backgroundColor(this.app.theme.palette.textSecondary)
+      .backgroundColor(this.app.theme.palette.textTertiary)
       .onClick(() => {
         // 停止当前专注，保存记录
         this.engine.stop(true);
