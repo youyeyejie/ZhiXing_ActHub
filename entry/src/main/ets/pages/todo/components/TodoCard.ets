@@ -28,6 +28,22 @@ export struct TodoCard {
     return title.length > 0 ? title : '未命名待办';
   }
 
+  private resolveCategoryBorderColor(todo: Todo): string {
+    return this.state.resolveCategoryColor(todo.categoryId);
+  }
+
+  private resolveCategoryBackgroundColor(todo: Todo): string {
+    const color = this.normalizeText(this.resolveCategoryBorderColor(todo));
+    if (color.length === 7 && color.charAt(0) === '#') {
+      // ArkUI 颜色格式为 #AARRGGBB，这里固定使用浅色透明度。
+      return `#1A${color.substring(1)}`;
+    }
+    if (color.length === 9 && color.charAt(0) === '#') {
+      return `#1A${color.substring(3)}`;
+    }
+    return this.app.theme.palette.surfaceSecondary;
+  }
+
   private markSwipeActionTriggered(): void {
     this.suppressDetailOpenUntil = Date.now() + 280;
   }
@@ -78,7 +94,7 @@ export struct TodoCard {
               .width(8)
               .height(8)
               .borderRadius(4)
-              .backgroundColor(this.state.resolveCategoryColor(todo.categoryId));
+              .backgroundColor(this.resolveCategoryBorderColor(todo));
 
             Text(this.state.resolveCategoryName(todo.categoryId))
               .fontSize(12)
@@ -106,8 +122,9 @@ export struct TodoCard {
       .width('100%')
       .padding({ left: 12, right: 12, top: 6, bottom: 6 })
       .alignItems(VerticalAlign.Center)
-      .border({ width: 1, color: this.state.resolveCategoryColor(todo.categoryId) })
-      .borderRadius(14);
+      .border({ width: 1, color: this.resolveCategoryBorderColor(todo) })
+      .borderRadius(14)
+      .backgroundColor(this.resolveCategoryBackgroundColor(todo));
     };
   }
 

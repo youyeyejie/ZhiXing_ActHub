@@ -3,10 +3,13 @@ import { SafeAreaInsetLayout } from '../components/layout/SafeAreaInsetLayout';
 import { AppRoute, AppTab } from './AppConstants';
 import { AppState, useAppState } from './AppStates';
 import { PlanPage } from '../pages/plan';
+import { PlanPageState, usePlanPageState } from '../pages/plan/PlanPageState';
 import { TodoPage } from '../pages/todo';
 import { TodoPageState, useTodoPageState } from '../pages/todo/TodoPageState';
 import { IdeaPage } from '../pages/idea';
 import { UserPage } from '../pages/user';
+import { PlanEditorSheet } from '../pages/plan/components/PlanEditorSheet';
+import { PlanDetailOverlay } from '../pages/plan/components/PlanDetailOverlay';
 import { TodoEditorSheet } from '../pages/todo/components/TodoEditorSheet';
 import { CategoryEditorOverlay } from '../pages/todo/components/CategoryEditorOverlay';
 import { TodoDetailOverlay } from '../pages/todo/components/TodoDetailOverlay';
@@ -18,6 +21,7 @@ import { TodoDetailOverlay } from '../pages/todo/components/TodoDetailOverlay';
 @ComponentV2
 export struct MainShell {
   @Local private app: AppState = useAppState();
+  @Local private planState: PlanPageState = usePlanPageState();
   @Local private todoState: TodoPageState = useTodoPageState();
 
   @Builder
@@ -59,6 +63,11 @@ export struct MainShell {
         }
         .width('100%')
         .height('100%');
+
+        if (this.planState.isEditorVisible) {
+          PlanEditorSheet();
+        }
+        PlanDetailOverlay();
 
         if (this.todoState.isTodoEditorVisible) {
           TodoEditorSheet();
