@@ -1,12 +1,11 @@
 import { AppState, useAppState } from "../../../app/AppStates";
 import { Plan } from "../../../core/models/Plan";
 import { InteractableCard } from "../../../components/card/InteractableCard";
-import { AppRoute } from "../../../app/AppConstants";
 import { PlanPageState, usePlanPageState } from "../PlanPageState";
 
 /**
  * 日程交互卡片。
- * 支持类型配色、详情展开、左滑删除和右滑进入专注。
+ * 支持类型配色、详情展开与左滑删除。
  */
 @ComponentV2
 export struct PlanCard {
@@ -42,7 +41,23 @@ export struct PlanCard {
     return `${hourText}:${minuteText}`;
   }
 
+  private formatMonthDay(timestamp: number): string {
+    const date = new Date(timestamp);
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  }
+
+  private isSameDay(startTime: number, endTime: number): boolean {
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+    return startDate.getFullYear() === endDate.getFullYear() &&
+      startDate.getMonth() === endDate.getMonth() &&
+      startDate.getDate() === endDate.getDate();
+  }
+
   private resolveDurationText(): string {
+    if (!this.isSameDay(this.plan.startTime, this.plan.endTime)) {
+      return `${this.formatMonthDay(this.plan.startTime)} ${this.formatHourMinute(this.plan.startTime)} - ${this.formatMonthDay(this.plan.endTime)} ${this.formatHourMinute(this.plan.endTime)}`;
+    }
     return `${this.formatHourMinute(this.plan.startTime)} - ${this.formatHourMinute(this.plan.endTime)}`;
   }
 
@@ -75,23 +90,17 @@ export struct PlanCard {
   build() {
     InteractableCard({
       leftHint: "删除",
-      rightHint: "专注",
       cornerRadius: 14,
-      contentPadding: 3,
+      contentPadding: 0,
       outerPaddingVertical: 0,
       shadowRadius: 7,
       shadowOffsetY: 3,
       enableSwipeLeft: true,
-      enableSwipeRight: true,
-      swipeRightColor: "#3B82F6",
+      enableSwipeRight: false,
       swipeLeftColor: "#EF4444",
       onSwipeLeft: () => {
         this.markSwipeActionTriggered();
         this.state.requestDeletePlan(this.plan.id);
-      },
-      onSwipeRight: () => {
-        this.markSwipeActionTriggered();
-        this.app.nav.navigateByName(AppRoute.FOCUS);
       },
       onCardTap: () => {
         if (!this.canOpenDetailNow()) {

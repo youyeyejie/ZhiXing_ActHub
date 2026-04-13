@@ -4,8 +4,8 @@ import { TodoEditorSheet } from "./components/TodoEditorSheet";
 import { TodoDetailOverlay } from "./components/TodoDetailOverlay";
 import { CategoryEditorOverlay } from "./components/CategoryEditorOverlay";
 import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
+import { UndoNotificationStack, UndoStackItem } from "../../components/feedback/UndoNotificationStack";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
-import { UndoNotification } from "../../components/feedback/UndoNotification";
 import { AppOverlayRoute } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
 import { TodoPageState, useTodoPageState } from "./TodoPageState";
@@ -36,8 +36,11 @@ export struct TodoPage {
           );
         },
       }) {
-        CategoryFilter()
-        TodoCard()
+        Column({ space: 12 }) {
+          CategoryFilter()
+          TodoCard()
+        }
+        .padding({ left: 20, right: 20 });
       }
 
       if (!this.state.undoVisible) {
@@ -49,25 +52,18 @@ export struct TodoPage {
         })
       }
 
-      if (this.state.undoVisible) {
-        Column() {
-          UndoNotification({
-            message: this.state.undoMessage,
-            durationMs: 5000,
-            onUndo: () => {
-              this.state.undoDelete();
-            },
-            onTimeout: async () => {
-              await this.state.commitDeleteTodo();
-            },
-            onClose: () => {
-              this.state.closeUndo();
-            },
-          })
-        }
-        .width("100%")
-        .padding({ left: 16, right: 16, bottom: 10 });
-      }
+      UndoNotificationStack({
+        tasks: this.state.undoVisible ? [new UndoStackItem("todo_delete", this.state.undoMessage)] : [],
+        onUndo: (_taskId: string) => {
+          this.state.undoDelete();
+        },
+        onTimeout: async (_taskId: string) => {
+          await this.state.commitDeleteTodo();
+        },
+        onClose: (_taskId: string) => {
+          this.state.closeUndo();
+        },
+      })
 
       if (this.state.isTodoEditorVisible) {
         TodoEditorSheet()

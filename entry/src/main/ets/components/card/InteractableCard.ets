@@ -118,36 +118,46 @@ export struct InteractableCard {
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       // 背景层：左右滑动提示，高度跟随内容 Column（即 Stack 高度）
-      Row() {
+      Row({ space: 0 }) {
         Row() {
-          Text(this.rightHint)
-            .fontSize(12)
-            .lineHeight(12)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.app.theme.palette.surface);
+          if (this.enableSwipeRight) {
+            Text(this.rightHint)
+              .fontSize(12)
+              .lineHeight(12)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.app.theme.palette.surface);
+          }
         }
         .layoutWeight(1)
         .height('100%')
         .justifyContent(FlexAlign.Start)
         .alignItems(VerticalAlign.Center)
-        .padding({ left: 18, top: 0, bottom: 0 })
-        .backgroundColor(this.offsetX >= Math.max(24, this.swipeThreshold) ? this.swipeRightColor :
-          (this.offsetX <= -Math.max(24, this.swipeThreshold) ? this.swipeLeftColor : 'transparent'));
+        .padding({ left: 18, right: 18, top: 0, bottom: 0 })
+        .backgroundColor(
+          this.enableSwipeRight && this.offsetX >= Math.max(24, this.swipeThreshold)
+            ? this.swipeRightColor
+            : 'transparent'
+        );
 
         Row() {
-          Text(this.leftHint)
+          if (this.enableSwipeLeft) {
+            Text(this.leftHint)
             .fontSize(12)
             .lineHeight(12)
             .fontWeight(FontWeight.Medium)
             .fontColor(this.app.theme.palette.surface);
+          }
         }
         .layoutWeight(1)
         .height('100%')
         .justifyContent(FlexAlign.End)
         .alignItems(VerticalAlign.Center)
-        .padding({ right: 18, top: 0, bottom: 0 })
-        .backgroundColor(this.offsetX <= -Math.max(24, this.swipeThreshold) ? this.swipeLeftColor :
-          (this.offsetX >= Math.max(24, this.swipeThreshold) ? this.swipeRightColor : 'transparent'));
+        .padding({ left: 18, right: 18, top: 0, bottom: 0 })
+        .backgroundColor(
+          this.enableSwipeLeft && this.offsetX <= -Math.max(24, this.swipeThreshold)
+            ? this.swipeLeftColor
+            : 'transparent'
+        );
       }
       .width('100%')
       .height(this.contentLayerHeight > 0 ? this.contentLayerHeight : '100%')
@@ -165,7 +175,7 @@ export struct InteractableCard {
       .borderRadius(this.cornerRadius)
       .backgroundColor(this.resolveCardSurfaceColor())
       .shadow({ radius: this.shadowRadius, color: this.app.theme.palette.mask, offsetX: 3, offsetY: this.shadowOffsetY })
-      .translate({ x: this.offsetX, y: 2 })
+      .translate({ x: this.offsetX, y: 0 })
       .animation({ duration: 180, curve: Curve.EaseOut, playMode: PlayMode.Normal })
       .onAreaChange((_oldValue, newValue) => {
         const nextHeight = Number(newValue.height);
@@ -179,6 +189,6 @@ export struct InteractableCard {
     }
     .width('100%')
     .borderRadius(this.cornerRadius)
-    .clip(true)
+    .clip(true);
   }
 }

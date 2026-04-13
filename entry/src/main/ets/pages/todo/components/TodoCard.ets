@@ -71,7 +71,7 @@ export struct TodoCard {
       leftHint: "删除",
       rightHint: "专注",
       cornerRadius: 14,
-      contentPadding: 3,
+      contentPadding: 0,
       outerPaddingVertical: 0,
       shadowRadius: 7,
       shadowOffsetY: 3,

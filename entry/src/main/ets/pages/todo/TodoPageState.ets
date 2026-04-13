@@ -34,6 +34,7 @@ export class TodoPageState {
   @Trace public undoVisible: boolean = false;
   @Trace public undoMessage: string = '';
   private pendingDeleteTodoId: string = '';
+  private pendingDeleteTodoSnapshot: Todo | null = null;
   private pendingDeleteTimerId: number = -1;
   private readonly defaultCategoryName: string = '学习';
 
@@ -46,6 +47,20 @@ export class TodoPageState {
       return '';
     }
     return text;
+  }
+
+  private copyTodo(source: Todo): Todo {
+    const todo = new Todo();
+    todo.id = source.id;
+    todo.content = source.content;
+    todo.detail = source.detail;
+    todo.timestamp = source.timestamp;
+    todo.categoryId = source.categoryId;
+    todo.isDone = source.isDone;
+    todo.inFocus = source.inFocus;
+    todo.createdAt = source.createdAt;
+    todo.updatedAt = source.updatedAt;
+    return todo;
   }
 
   async refreshAll(): Promise<void> {
@@ -594,18 +609,42 @@ export class TodoPageState {
   }
 
   requestDeleteTodo(todoId: string): void {
+    const normalizedId = this.safeTrim(todoId);
+    if (normalizedId.length === 0) {
+      return;
+    }
+    const target = this.todos.find((item: Todo) => this.safeTrim(item.id) === normalizedId);
+    if (!target) {
+      return;
+    }
+
     this.clearPendingDelete();
-    this.pendingDeleteTodoId = todoId;
+    this.pendingDeleteTodoId = normalizedId;
+    this.pendingDeleteTodoSnapshot = this.copyTodo(target);
     this.undoMessage = '已删除待办';
     this.undoVisible = true;
+    this.todos = this.todos.filter((item: Todo) => this.safeTrim(item.id) !== normalizedId);
+    if (this.safeTrim(this.editingTodoId) === normalizedId) {
+      this.closeTodoDetail();
+    }
+    this.syncVisibleTodos();
     this.pendingDeleteTimerId = setTimeout(async () => {
       await this.commitDeleteTodo();
     }, 5000);
   }
 
   undoDelete(): void {
+    const snapshot = this.pendingDeleteTodoSnapshot;
     this.clearPendingDelete();
     this.undoVisible = false;
+    if (snapshot !== null) {
+      const snapshotId = this.safeTrim(snapshot.id);
+      const exists = this.todos.some((item: Todo) => this.safeTrim(item.id) === snapshotId);
+      if (!exists) {
+        this.todos = [snapshot, ...this.todos];
+      }
+    }
+    this.syncVisibleTodos();
   }
 
   async commitDeleteTodo(): Promise<void> {
@@ -625,6 +664,7 @@ export class TodoPageState {
 
   private clearPendingDelete(): void {
     this.pendingDeleteTodoId = '';
+    this.pendingDeleteTodoSnapshot = null;
     if (this.pendingDeleteTimerId >= 0) {
       clearTimeout(this.pendingDeleteTimerId);
       this.pendingDeleteTimerId = -1;

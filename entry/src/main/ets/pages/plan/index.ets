@@ -3,8 +3,8 @@ import { TimelineView } from "./components/TimelineView";
 import { PlanEditorSheet } from "./components/PlanEditorSheet";
 import { PlanDetailOverlay } from "./components/PlanDetailOverlay";
 import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
+import { UndoNotificationStack, UndoStackItem } from "../../components/feedback/UndoNotificationStack";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
-import { UndoNotification } from "../../components/feedback/UndoNotification";
 import { AppOverlayRoute } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
 import { PlanPageState, usePlanPageState } from "./PlanPageState";
@@ -37,8 +37,11 @@ export struct PlanPage {
           );
         },
       }) {
-        WeekCalendar()
-        TimelineView()
+        Column({ space: 12 }) {
+          WeekCalendar()
+          TimelineView()
+        }
+        .padding({ left: 20, right: 20 });
       }
 
       if (!this.state.undoVisible) {
@@ -50,25 +53,18 @@ export struct PlanPage {
         })
       }
 
-      if (this.state.undoVisible) {
-        Column() {
-          UndoNotification({
-            message: this.state.undoMessage,
-            durationMs: 5000,
-            onUndo: () => {
-              this.state.undoDelete();
-            },
-            onTimeout: async () => {
-              await this.state.commitDeletePlan();
-            },
-            onClose: () => {
-              this.state.closeUndo();
-            },
-          })
-        }
-        .width("100%")
-        .padding({ left: 16, right: 16, bottom: 10 });
-      }
+      UndoNotificationStack({
+        tasks: this.state.undoVisible ? [new UndoStackItem("plan_delete", this.state.undoMessage)] : [],
+        onUndo: (_taskId: string) => {
+          this.state.undoDelete();
+        },
+        onTimeout: async (_taskId: string) => {
+          await this.state.commitDeletePlan();
+        },
+        onClose: (_taskId: string) => {
+          this.state.closeUndo();
+        },
+      })
 
       if (this.state.isEditorVisible) {
         PlanEditorSheet()

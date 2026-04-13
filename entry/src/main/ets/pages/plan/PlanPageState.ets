@@ -112,7 +112,9 @@ export class PlanPageState {
       if (pendingDeleteId.length > 0 && itemId === pendingDeleteId) {
         return false;
       }
-      return item.startTime >= dayStart && item.startTime < dayEnd;
+      const startTime = item.startTime;
+      const endTime = item.endTime > startTime ? item.endTime : startTime;
+      return startTime < dayEnd && endTime > dayStart;
     });
     this.visiblePlans = this.sortPlansByStartTime(filtered);
   }

@@ -7,8 +7,21 @@ import { ActivityHeatmap } from "./components/ActivityHeatmap";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
 import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
 import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
+import { UndoNotificationStack, UndoStackItem } from "../../components/feedback/UndoNotificationStack";
 import { AppOverlayRoute } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
+
+class IdeaUndoTask {
+  taskId: string;
+  idea: Idea;
+  originalIndex: number;
+
+  constructor(taskId: string, idea: Idea, originalIndex: number) {
+    this.taskId = taskId;
+    this.idea = idea;
+    this.originalIndex = originalIndex;
+  }
+}
 /**
  * 闪记模块主页。
  * 支持闪记列表展示、新建、编辑、删除和搜索。
@@ -25,6 +38,8 @@ export struct IdeaPage {
   @Local private showEditor: boolean = false;
   @Local private editingIdea: Idea | null = null;
   @Local private selectedIdea: Idea | null = null;
+  @Local private undoTasks: Array<IdeaUndoTask> = [];
+  private undoTaskSeq: number = 0;
 
   aboutToAppear(): void {
     this.onBottomBarVisibleChange(true);
@@ -79,12 +94,62 @@ export struct IdeaPage {
   /**
    * 处理闪记删除。
    */
-  private onIdeaDeleted(idea: Idea): void {
+  private requestDeleteIdea(idea: Idea): void {
     const index = this.ideas.findIndex((i: Idea) => i.id === idea.id);
-    if (index >= 0) {
-      this.ideas.splice(index, 1);
+    if (index < 0) {
+      return;
     }
+
+    const taskId = `idea_undo_${this.undoTaskSeq}`;
+    this.undoTaskSeq = this.undoTaskSeq + 1;
+    this.ideas = this.ideas.filter((item: Idea) => item.id !== idea.id);
+    this.undoTasks = [...this.undoTasks, new IdeaUndoTask(taskId, idea, index)];
     this.selectedIdea = null;
+  }
+
+  private buildUndoStackItems(): Array<UndoStackItem> {
+    const list: Array<UndoStackItem> = [];
+    for (let i = 0; i < this.undoTasks.length; i++) {
+      const task = this.undoTasks[i];
+      const title = task.idea.title.length > 0 ? task.idea.title : "闪记";
+      list.push(new UndoStackItem(task.taskId, `${title} 已删除`));
+    }
+    return list;
+  }
+
+  private findUndoTask(taskId: string): IdeaUndoTask | null {
+    for (let i = 0; i < this.undoTasks.length; i++) {
+      if (this.undoTasks[i].taskId === taskId) {
+        return this.undoTasks[i];
+      }
+    }
+    return null;
+  }
+
+  private restoreIdeaFromTask(taskId: string): void {
+    const task = this.findUndoTask(taskId);
+    if (task === null) {
+      return;
+    }
+    const exists = this.ideas.some((item: Idea) => item.id === task.idea.id);
+    if (!exists) {
+      const insertIndex = Math.max(0, Math.min(task.originalIndex, this.ideas.length));
+      const before = this.ideas.slice(0, insertIndex);
+      const after = this.ideas.slice(insertIndex);
+      this.ideas = [...before, task.idea, ...after];
+    }
+  }
+
+  private commitIdeaDelete(taskId: string): void {
+    const task = this.findUndoTask(taskId);
+    if (task === null) {
+      return;
+    }
+    this.repository.removeById(task.idea.id);
+  }
+
+  private closeUndoTask(taskId: string): void {
+    this.undoTasks = this.undoTasks.filter((task: IdeaUndoTask) => task.taskId !== taskId);
   }
 
   /**
@@ -130,8 +195,8 @@ export struct IdeaPage {
             (idea: Idea) => {
               IdeaCard({
                 idea: idea,
-                onDelete: (deleted: Idea) => {
-                  this.onIdeaDeleted(deleted);
+                onDeleteRequest: (deleting: Idea) => {
+                  this.requestDeleteIdea(deleting);
                 },
                 onTap: (tapped: Idea) => {
                   this.openEditIdea(tapped);
@@ -153,6 +218,19 @@ export struct IdeaPage {
       FloatingActionButton({
         onTap: () => {
           this.openNewEditor();
+        },
+      })
+
+      UndoNotificationStack({
+        tasks: this.buildUndoStackItems(),
+        onUndo: (taskId: string) => {
+          this.restoreIdeaFromTask(taskId);
+        },
+        onTimeout: (taskId: string) => {
+          this.commitIdeaDelete(taskId);
+        },
+        onClose: (taskId: string) => {
+          this.closeUndoTask(taskId);
         },
       })
 
