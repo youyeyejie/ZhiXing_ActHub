@@ -1,15 +1,15 @@
-import { AppFlow, AppOverlayRoute, AppRoute } from './AppConstants';
-import { AppState, useAppState } from './AppStates';
-import { MainShell } from './MainShell';
-import { SplashPage } from '../pages/splash';
-import { LoginPage } from '../pages/login';
-import { SharedTestDestinationPage } from '../pages/sharedtest/SharedTestDestinationPage';
-import { FocusOverlayDestination } from '../components/overlays/FocusOverlayDestination';
-import { SearchOverlayDestination } from '../components/overlays/SearchOverlayDestination';
-import { ActionSheetOverlayDestination } from '../components/overlays/ActionSheetOverlayDestination';
-import { DetailCardOverlayDestination } from '../components/overlays/DetailCardOverlayDestination';
-import { SearchRouteParam } from './AppConstants';
-import { ThemeMode } from '../core/theme/ThemeManager';
+import { AppFlow, AppOverlayRoute, AppRoute } from "./AppConstants";
+import { AppState, useAppState } from "./AppStates";
+import { MainShell } from "./MainShell";
+import { SplashPage } from "../pages/splash";
+import { LoginPage } from "../pages/login";
+import { SharedTestDestinationPage } from "../pages/sharedtest/SharedTestDestinationPage";
+import { FocusOverlayDestination } from "../components/overlays/FocusOverlayDestination";
+import { SearchOverlayDestination } from "../components/overlays/SearchOverlayDestination";
+import { ActionSheetOverlayDestination } from "../components/overlays/ActionSheetOverlayDestination";
+import { DetailCardOverlayDestination } from "../components/overlays/DetailCardOverlayDestination";
+import { SearchRouteParam } from "./AppConstants";
+import { ThemeMode } from "../core/theme/ThemeManager";
 
 /**
  * 组件功能简介：
@@ -33,14 +33,25 @@ export struct AppShell {
    * 当 overlay 缺少参数时创建兜底搜索参数。
    */
   private createFallbackSearchParam(routeName: string): SearchRouteParam {
-    return new SearchRouteParam(routeName, '搜索');
+    return new SearchRouteParam(routeName, "搜索");
   }
 
   /**
-   * 读取用户偏好主题模式。
+   * 从 NavPathStack 读取搜索页 push 时携带的真实 SearchRouteParam。
+   * 若读不到则回退为默认值。
    */
+  private resolveSearchRouteParam(): SearchRouteParam {
+    const params: SearchRouteParam[] = this.app.nav.getParamByName(
+      AppOverlayRoute.SEARCH,
+    ) as SearchRouteParam[];
+    if (params.length > 0) {
+      return params[params.length - 1];
+    }
+    return this.createFallbackSearchParam("");
+  }
+
   private readPreferredThemeMode(): ThemeMode {
-    const value: Object | undefined = AppStorage.get('preferredThemeMode');
+    const value: Object | undefined = AppStorage.get("preferredThemeMode");
     if (value === ThemeMode.DARK) {
       return ThemeMode.DARK;
     }
@@ -54,7 +65,7 @@ export struct AppShell {
    * 读取系统深色状态缓存。
    */
   private readSystemDarkMode(): boolean {
-    const value: Object | undefined = AppStorage.get('systemDarkMode');
+    const value: Object | undefined = AppStorage.get("systemDarkMode");
     return value === true;
   }
 
@@ -95,7 +106,7 @@ export struct AppShell {
     if (name === AppRoute.FOCUS) {
       FocusOverlayDestination();
     } else if (name === AppOverlayRoute.SEARCH) {
-      SearchOverlayDestination({ routeParam: this.createFallbackSearchParam(this.app.nav.mainRouteName) });
+      SearchOverlayDestination({ routeParam: this.resolveSearchRouteParam() });
     } else if (name === AppOverlayRoute.ACTION_SHEET) {
       ActionSheetOverlayDestination({ content: this.app.nav.actionSheetContentBuilder });
     } else if (name === AppOverlayRoute.DETAIL_CARD) {
@@ -103,7 +114,9 @@ export struct AppShell {
     } else if (name === AppOverlayRoute.SHARED_TEST) {
       SharedTestDestinationPage();
     } else {
-      SearchOverlayDestination({ routeParam: this.createFallbackSearchParam(this.app.nav.mainRouteName) });
+      SearchOverlayDestination({
+        routeParam: this.createFallbackSearchParam(this.app.nav.mainRouteName),
+      });
     }
   }
 
@@ -112,21 +125,20 @@ export struct AppShell {
    */
   build() {
     Stack() {
-      this.buildBaseContent();
+      this.buildBaseContent()
 
       if (this.app.nav.hasOverlayRoute) {
-        Navigation(this.app.nav) {
-        }
-        .mode(NavigationMode.Stack)
-        .hideNavBar(true)
-        .navDestination(this.buildDestination)
-        .backgroundColor(Color.Transparent)
-        .width('100%')
-        .height('100%');
+        Navigation(this.app.nav) {}
+          .mode(NavigationMode.Stack)
+          .hideNavBar(true)
+          .navDestination(this.buildDestination)
+          .backgroundColor(Color.Transparent)
+          .width("100%")
+          .height("100%");
       }
     }
-    .width('100%')
-    .height('100%')
+    .width("100%")
+    .height("100%")
     .backgroundColor(this.resolveBackgroundColor());
   }
 }
