@@ -54,10 +54,11 @@ export struct FocusPage {
     this.generateTestDataForDevelopment(); //TEST
   }
 
-  /** TEST 测试数据 */
+  /** 开发环境：生成测试数据用于专注模块测试 */
   private async generateTestDataForDevelopment(): Promise<void> {
-      await testHelper.clearTestTodos();
+      const testHelper = new TodoTestDataHelper();
       const success = await testHelper.generateFocusTestData();
+      await testHelper.printTodoStats();
   }
 
   build() {
