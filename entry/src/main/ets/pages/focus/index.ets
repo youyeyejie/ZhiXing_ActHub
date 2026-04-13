@@ -3,6 +3,10 @@ import { FocusTimerEngine } from '../../core/services/FocusTimerEngine';
 import { FocusTimerDisplay } from './components/FocusTimerDisplay';
 import { FocusTaskSelector } from './components/FocusTaskSelector';
 import { FocusControlButtons } from './components/FocusControlButtons';
+import { TodoPickerSheet } from './components/TodoPickerSheet';
+import { ActionSheetController } from '../../components/card/ActionSheet';
+// 测试数据助手（仅开发环境使用）
+import { TodoTestDataHelper } from '../../../../test/TodoTestDataHelper.ets';
 
 /**
  * 组件功能简介：
@@ -27,61 +31,110 @@ export struct FocusPage {
   @Param onRequestDismiss: () => void = () => {};
   // tmp：暂时本地实例化FocusTimerEngine
   @Local private engine: FocusTimerEngine = new FocusTimerEngine();
+  
+  /** 控制TodoPickerSheet显示/隐藏 */
+  @Local private isPickerVisible: boolean = false;
+  
+  /** ActionSheet控制器，用于控制TodoPickerSheet的显示/隐藏 */
+  @Local private sheetController: ActionSheetController = new ActionSheetController();
+
+  /** 打开待办选择器 */
+  private openTodoPicker(): void {
+    console.log('打开待办选择器');
+    this.isPickerVisible = true;
+  }
+
+  /** 关闭待办选择器 */
+  private closeTodoPicker(): void {
+    this.isPickerVisible = false;
+    console.log('关闭待办选择器');
+  }
+
+  aboutToAppear(): void {
+    this.generateTestDataForDevelopment(); //TEST
+  }
+
+  /** TEST 测试数据 */
+  private async generateTestDataForDevelopment(): Promise<void> {
+      await testHelper.clearTestTodos();
+      const success = await testHelper.generateFocusTestData();
+  }
 
   build() {
-    Column() {
-      Row() {
-        Button() {
-          SymbolGlyph($r('sys.symbol.chevron_down'))
-            .fontSize(24)
-            .renderingStrategy(SymbolRenderingStrategy.SINGLE)
-            .fontColor([this.app.theme.palette.textPrimary])
-          }
-          .type(ButtonType.Circle)
-          .width(40)
-          .height(40)
-          .backgroundColor(this.app.theme.palette.surface)
-          .onClick(() => {
-            // TODO: 引擎提升至全局后，删除此处的 cleanupTimer，改为只解除 UI 绑定。
-            // tmp：清理计时器防止内存泄漏
-            this.engine.cleanupTimer();
-            this.onRequestDismiss();
-          })
+    Stack() {
+      // 主内容区域
+      Column() {
+        Row() {
+          Button() {
+            SymbolGlyph($r('sys.symbol.chevron_down'))
+              .fontSize(24)
+              .renderingStrategy(SymbolRenderingStrategy.SINGLE)
+              .fontColor([this.app.theme.palette.textPrimary])
+            }
+            .type(ButtonType.Circle)
+            .width(40)
+            .height(40)
+            .backgroundColor(this.app.theme.palette.surface)
+            .onClick(() => {
+              // TODO: 引擎提升至全局后，删除此处的 cleanupTimer，改为只解除 UI 绑定。
+              // tmp：清理计时器防止内存泄漏
+              this.engine.cleanupTimer();
+              this.onRequestDismiss();
+            })
 
-          .margin({ left: 16, top: 16 })
+            .margin({ left: 16, top: 16 })
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.Start);
+
+        // 内容区域
+        Column({ space: 0 }) {
+          // 任务选择器 - 使用原生@Monitor监听，无需手动触发刷新
+          FocusTaskSelector({ 
+            engine: this.engine,
+            onOpenPicker: () => {
+              this.openTodoPicker();
+            }
+          })
+            .margin({ top: 5 })
+
+          // 计时显示组件
+          FocusTimerDisplay({ engine: this.engine })
+            .margin({ top: 40 })
+          
+          FocusControlButtons({ engine: this.engine })
+            .margin({ top: 20 })
+
+          // 激励文字
+          // todo: customize ?
+          Text('"保持专注，心无旁骛"')
+            .fontSize(18)
+            .fontColor(this.app.theme.palette.textTertiary)
+            .textAlign(TextAlign.Center)
+            .margin({ top: 60 })
         }
         .width('100%')
-        .justifyContent(FlexAlign.Start);
-
-      // 内容区域
-      Column({ space: 0 }) {
-        // 任务选择器
-        FocusTaskSelector({ engine: this.engine })
-          .margin({ top: 5 })
-
-        // 计时显示组件
-        FocusTimerDisplay({ engine: this.engine })
-          .margin({ top: 40 })
-        
-        FocusControlButtons({ engine: this.engine })
-          .margin({ top: 20 })
-
-        // 激励文字
-        // todo: customize ?
-        Text('"保持专注，心无旁骛"')
-          .fontSize(18)
-          .fontColor(this.app.theme.palette.textTertiary)
-          .textAlign(TextAlign.Center)
-          .margin({ top: 60 })
+        .layoutWeight(1) // 占据剩余空间
+        .justifyContent(FlexAlign.Center) // 居中显示
+        .alignItems(HorizontalAlign.Center) // 水平居中
       }
       .width('100%')
-      .layoutWeight(1) // 占据剩余空间
-      .justifyContent(FlexAlign.Center) // 居中显示
-      .alignItems(HorizontalAlign.Center) // 水平居中
+      .height('100%')
+      .backgroundColor(this.app.theme.palette.background)
+      .padding({ top: 16 }); // 添加顶部padding避免状态栏遮挡
+
+      // 当需要显示时挂载TodoPickerSheet
+      if (this.isPickerVisible) {
+        TodoPickerSheet({ 
+          engine: this.engine,
+          controller: this.sheetController,
+          onClose: () => {
+            this.closeTodoPicker();
+          }
+        });
+      }
     }
     .width('100%')
-    .height('100%')
-    .backgroundColor(this.app.theme.palette.background)
-    .padding({ top: 16 }); // 添加顶部padding避免状态栏遮挡
+    .height('100%');
   }
 }
