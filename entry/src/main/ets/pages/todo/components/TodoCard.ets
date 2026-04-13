@@ -91,13 +91,16 @@ export struct TodoCard {
       },
       onSwipeRight: () => {
         this.markSwipeActionTriggered();
+        this.app.focusEngine.setRelatedTodo(this.normalizeText(todo.id), this.resolveTodoTitle(todo));
         this.app.nav.navigateByName(AppRoute.FOCUS);
       },
     }) {
       Row({ space: 8 }) {
         Toggle({ type: ToggleType.Checkbox, isOn: todo.isDone === 1 })
           .onChange((value: boolean) => {
-            this.state.toggleDone(todo.id, value);
+            animateTo({ duration: 280, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
+              this.state.toggleDone(todo.id, value);
+            });
           })
         Column({ space: 6 }) {
           Text(this.resolveTodoTitle(todo))
@@ -136,7 +139,7 @@ export struct TodoCard {
             return;
           }
           this.state.openTodoDetail(todo.id);
-          this.app.nav.openDetailCard(this.buildTodoDetailContent);
+          this.app.nav.openDetailCard(this.buildTodoDetailContent, '编辑待办');
         })
       }
       .width("100%")
@@ -145,6 +148,7 @@ export struct TodoCard {
       .border({ width: 1, color: this.resolveCategoryBorderColor(todo) })
       .borderRadius(14)
       .backgroundColor(this.resolveCategoryBackgroundColor(todo))
+      .animation({ duration: 220, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
     };
   }
 
@@ -154,39 +158,27 @@ export struct TodoCard {
   build() {
     Column({ space: 4 }) {
       if (this.state.visibleTodos.length === 0) {
-        Button() {
-          Column({ space: 6 }) {
-            Text("暂无待办")
-              .fontSize(16)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(this.app.theme.palette.textPrimary)
-            Text("点击新增该分类待办")
-              .fontSize(12)
-              .fontColor(this.app.theme.palette.textSecondary)
-          }
-          .width("100%")
-          .alignItems(HorizontalAlign.Start)
+        Column() {
+          Text("无任务")
+            .fontSize(18)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.app.theme.palette.textSecondary)
         }
-        .type(ButtonType.Normal)
-        .stateEffect(true)
         .width("100%")
-        .padding(16)
-        .borderRadius(20)
-        .backgroundColor(this.app.theme.palette.surface)
-        .shadow({ radius: 5, color: this.app.theme.palette.mask, offsetX: 0, offsetY: 2 })
-        .onClick(async () => {
-          await this.state.refreshAll();
-          this.state.openCreateTodo();
-        });
+        .height(260)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center);
       } else {
         ForEach(
           this.state.visibleTodos,
           (item: Todo) => {
             this.buildTodoRow(item);
           },
-          (item: Todo) => `${item.id}_${item.updatedAt}`,
+          (item: Todo) => `${item.id}`,
         );
       }
-    }.width("100%");
+    }
+    .width("100%")
+    .animation({ duration: 220, curve: Curve.EaseInOut, playMode: PlayMode.Normal });
   }
 }

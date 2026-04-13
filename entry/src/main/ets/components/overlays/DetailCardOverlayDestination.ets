@@ -27,6 +27,7 @@ export struct DetailCardOverlayDestination {
     NavDestination() {
       DetailCard({
         controller: this.detailCardController,
+        title: this.app.nav.detailCardTitle,
         onDismiss: () => {
           this.app.nav.back(false);
         }

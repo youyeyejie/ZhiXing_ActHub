@@ -1,6 +1,14 @@
-import { SearchRouteParam } from "../../app/AppConstants";
+import { AppTab, SearchRouteParam } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
 import { SearchResultItem, SearchScope, SearchService } from "../../core/services/SearchService";
+import { PlanPageState, usePlanPageState } from "../plan/PlanPageState";
+import { TodoPageState, useTodoPageState } from "../todo/TodoPageState";
+import { PlanDetailOverlay } from "../plan/components/PlanDetailOverlay";
+import { TodoDetailOverlay } from "../todo/components/TodoDetailOverlay";
+import { Idea } from "../../core/models/Idea";
+import { IdeaRepository } from "../../core/repositories/IdeaRepository";
+import { IdeaEditorSheet } from "../idea/components/IdeaEditorSheet";
+import { IdeaPageState, useIdeaPageState } from "../idea/IdeaPageState";
 import { KeyboardAvoidMode } from "@kit.ArkUI";
 import { SafeAreaUtils } from "../../core/theme/SafeAreaUtils";
 
@@ -26,12 +34,37 @@ export struct SearchPage {
   @Param onRequestDismiss: () => void = () => {};
 
   private searchService: SearchService = new SearchService();
+  private planState: PlanPageState = usePlanPageState();
+  private todoState: TodoPageState = useTodoPageState();
+  private ideaState: IdeaPageState = useIdeaPageState();
+  private ideaRepository: IdeaRepository = new IdeaRepository();
   @Local private keyword: string = "";
   @Local private resultList: Array<SearchResultItem> = [];
   @Local private searching: boolean = false;
   @Local private requestVersion: number = 0;
   @Local private keyboardAvoidModeChanged: boolean = false;
   @Local private previousKeyboardAvoidMode: KeyboardAvoidMode = KeyboardAvoidMode.OFFSET;
+
+  private normalizeId(value: string): string {
+    return `${value}`.trim();
+  }
+
+  @Builder
+  private buildPlanDetailContent() {
+    PlanDetailOverlay();
+  }
+
+  @Builder
+  private buildTodoDetailContent() {
+    TodoDetailOverlay();
+  }
+
+  @Builder
+  private buildIdeaDetailContent() {
+    IdeaEditorSheet({
+      hideInnerHeader: true,
+    });
+  }
 
   /**
    * 页面出现时关闭键盘避让，避免 overlay 场景下产生额外顶起。
@@ -138,6 +171,59 @@ export struct SearchPage {
     this.searching = false;
   }
 
+  private openPlanDetailFromSearch(item: SearchResultItem): void {
+    const recordId = this.normalizeId(item.id);
+    if (recordId.length === 0) {
+      return;
+    }
+    this.app.nav.selectTab(AppTab.PLAN);
+    this.app.nav.back(false);
+    this.planState.openPlanDetail(recordId);
+    this.app.nav.openDetailCard(this.buildPlanDetailContent, '编辑日程');
+  }
+
+  private openTodoDetailFromSearch(item: SearchResultItem): void {
+    const recordId = this.normalizeId(item.id);
+    if (recordId.length === 0) {
+      return;
+    }
+    this.app.nav.selectTab(AppTab.TODO);
+    this.app.nav.back(false);
+    this.todoState.openTodoDetail(recordId);
+    this.app.nav.openDetailCard(this.buildTodoDetailContent, '编辑待办');
+  }
+
+  private async openIdeaDetailFromSearch(item: SearchResultItem): Promise<void> {
+    const recordId = this.normalizeId(item.id);
+    if (recordId.length === 0) {
+      return;
+    }
+    const found = await this.ideaRepository.findById(recordId);
+    if (found === null) {
+      return;
+    }
+    this.ideaState.openIdeaDetail(recordId);
+    this.app.nav.selectTab(AppTab.IDEA);
+    this.app.nav.back(false);
+    this.app.nav.openDetailCard(this.buildIdeaDetailContent, '编辑闪记');
+  }
+
+  private handleSearchResultTap(item: SearchResultItem): void {
+    if (item.scope === SearchScope.Plan) {
+      this.openPlanDetailFromSearch(item);
+      return;
+    }
+    if (item.scope === SearchScope.Todo) {
+      this.openTodoDetailFromSearch(item);
+      return;
+    }
+    if (item.scope === SearchScope.Idea) {
+      this.openIdeaDetailFromSearch(item);
+      return;
+    }
+    this.onRequestDismiss();
+  }
+
   /**
    * 渲染搜索输入框与结果列表。
    */
@@ -195,18 +281,19 @@ export struct SearchPage {
                 .width("100%")
                 .padding(12)
                 .borderRadius(12)
-                .backgroundColor(this.app.theme.palette.surface);
+                .backgroundColor(this.app.theme.palette.surface)
+                .onClick(() => {
+                  this.handleSearchResultTap(item);
+                });
               });
             }
           }
+          .justifyContent(FlexAlign.Start)
           .alignItems(HorizontalAlign.Start)
           .padding({ left: 16, right: 16, bottom: 16 })
         }
         .width("100%")
         .layoutWeight(1)
-        .onClick(() => {
-          this.onRequestDismiss();
-        })
       }.width("100%")
     }
     .width("100%")

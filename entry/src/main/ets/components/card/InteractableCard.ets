@@ -67,6 +67,24 @@ export struct InteractableCard {
     return this.surfaceColor.length > 0 ? this.surfaceColor : this.app.theme.palette.surface;
   }
 
+  private resolveRightHintOpacity(): number {
+    if (!this.enableSwipeRight || this.offsetX <= 0) {
+      return 0;
+    }
+    const threshold = Math.max(24, this.swipeThreshold);
+    const ratio = Math.min(1, this.offsetX / threshold);
+    return Math.max(0, Math.min(1, ratio));
+  }
+
+  private resolveLeftHintOpacity(): number {
+    if (!this.enableSwipeLeft || this.offsetX >= 0) {
+      return 0;
+    }
+    const threshold = Math.max(24, this.swipeThreshold);
+    const ratio = Math.min(1, Math.abs(this.offsetX) / threshold);
+    return Math.max(0, Math.min(1, ratio));
+  }
+
   private handleTouch(event: TouchEvent): void {
     if (event.type === TouchType.Down) {
       this.dragging = true;
@@ -133,11 +151,9 @@ export struct InteractableCard {
         .justifyContent(FlexAlign.Start)
         .alignItems(VerticalAlign.Center)
         .padding({ left: 18, right: 18, top: 0, bottom: 0 })
-        .backgroundColor(
-          this.enableSwipeRight && this.offsetX >= Math.max(24, this.swipeThreshold)
-            ? this.swipeRightColor
-            : 'transparent'
-        );
+        .backgroundColor(this.enableSwipeRight ? this.swipeRightColor : 'transparent')
+        .opacity(this.resolveRightHintOpacity())
+        .animation({ duration: 140, curve: Curve.EaseOut, playMode: PlayMode.Normal });
 
         Row() {
           if (this.enableSwipeLeft) {
@@ -153,11 +169,9 @@ export struct InteractableCard {
         .justifyContent(FlexAlign.End)
         .alignItems(VerticalAlign.Center)
         .padding({ left: 18, right: 18, top: 0, bottom: 0 })
-        .backgroundColor(
-          this.enableSwipeLeft && this.offsetX <= -Math.max(24, this.swipeThreshold)
-            ? this.swipeLeftColor
-            : 'transparent'
-        );
+        .backgroundColor(this.enableSwipeLeft ? this.swipeLeftColor : 'transparent')
+        .opacity(this.resolveLeftHintOpacity())
+        .animation({ duration: 140, curve: Curve.EaseOut, playMode: PlayMode.Normal });
       }
       .width('100%')
       .height(this.contentLayerHeight > 0 ? this.contentLayerHeight : '100%')

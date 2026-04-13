@@ -36,6 +36,7 @@ export class DetailCardController {
 @ComponentV2
 export struct DetailCard {
   @Param controller: DetailCardController = new DetailCardController();
+  @Param title: string = '详情';
   @Event onDismiss: () => void = () => {};
   @BuilderParam content: () => void = this.defaultContent;
   @Local private app: AppState = useAppState();
@@ -75,7 +76,13 @@ export struct DetailCard {
   @Builder
   private buildHeader() {
     Row() {
-      Blank();
+      Text(this.title)
+        .fontSize(17)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.app.theme.palette.textPrimary)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .layoutWeight(1);
 
       Button({ type: ButtonType.Circle, stateEffect: true }) {
         Text('×')
@@ -86,6 +93,7 @@ export struct DetailCard {
         .width(28)
         .height(28)
       .backgroundColor(this.app.theme.palette.surface)
+      .margin({ left: 8 })
       .onClick(() => {
         this.requestDismiss();
       });
@@ -129,10 +137,12 @@ export struct DetailCard {
 				}
 				.width('100%')
 				.layoutWeight(1)
+        .justifyContent(FlexAlign.Start)
 				.alignItems(HorizontalAlign.Start);
 			}
 			.width('80%')
 			.height('60%')
+      .justifyContent(FlexAlign.Start)
 			.padding(18)
 			.borderRadius(20)
 			.backgroundColor(this.app.theme.palette.surface)

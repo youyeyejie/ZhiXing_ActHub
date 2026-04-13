@@ -215,12 +215,6 @@ export struct TodoDetailOverlay {
   @Builder
   private buildDetailCard() {
     Column({ space: 14 }) {
-      Text('详情编辑')
-        .fontSize(18)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.app.theme.palette.textPrimary)
-        .width('100%');
-
       TextInput({ text: this.titleDraft, placeholder: '标题' })
         .width('100%')
         .height(56)

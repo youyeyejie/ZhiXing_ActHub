@@ -310,15 +310,33 @@ export class TodoPageState {
     this.editingTodoId = '';
   }
 
+  private sortVisibleTodoList(list: Array<Todo>): Array<Todo> {
+    const sorted = list.slice();
+    sorted.sort((a: Todo, b: Todo) => {
+      const aDone = a.isDone === 1 ? 1 : 0;
+      const bDone = b.isDone === 1 ? 1 : 0;
+      if (aDone !== bDone) {
+        return aDone - bDone;
+      }
+      if (a.timestamp === b.timestamp) {
+        return b.updatedAt - a.updatedAt;
+      }
+      return b.timestamp - a.timestamp;
+    });
+    return sorted;
+  }
+
   private syncVisibleTodos(): void {
     const categoryId = this.safeTrim(this.selectedCategoryId);
     if (categoryId.length === 0) {
-      this.visibleTodos = this.todos.filter((item: Todo) => !this.hasUndoTaskForTodo(item.id)).slice();
+      const filtered = this.todos.filter((item: Todo) => !this.hasUndoTaskForTodo(item.id));
+      this.visibleTodos = this.sortVisibleTodoList(filtered);
       return;
     }
-    this.visibleTodos = this.todos.filter((item: Todo) => {
+    const filtered = this.todos.filter((item: Todo) => {
       return item.categoryId === categoryId && !this.hasUndoTaskForTodo(item.id);
-    }).slice();
+    });
+    this.visibleTodos = this.sortVisibleTodoList(filtered);
   }
 
   resolveCategoryName(categoryId: string): string {
@@ -500,13 +518,13 @@ export class TodoPageState {
     const nextDone = isDone ? 1 : 0;
     const now = Date.now();
     let targetTodo: Todo | null = null;
+    const hasLocalTodo = this.todos.some((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
 
     const localIndex = this.todos.findIndex((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
     if (localIndex >= 0) {
       targetTodo = this.todos[localIndex];
       targetTodo.isDone = nextDone;
       targetTodo.updatedAt = now;
-      targetTodo.timestamp = now;
       this.todos = this.todos.slice();
       this.syncVisibleTodos();
     }
@@ -518,14 +536,15 @@ export class TodoPageState {
       }
       targetTodo.isDone = nextDone;
       targetTodo.updatedAt = now;
-      targetTodo.timestamp = now;
     }
 
     if (targetTodo === null) {
       return;
     }
     await this.todoRepository.save(targetTodo);
-    await this.refreshTodos();
+    if (!hasLocalTodo) {
+      await this.refreshTodos();
+    }
   }
 
   async addCategory(name: string): Promise<boolean> {

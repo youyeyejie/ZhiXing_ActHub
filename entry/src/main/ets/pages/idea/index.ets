@@ -1,5 +1,4 @@
 import { Idea } from "../../core/models/Idea";
-import { IdeaRepository } from "../../core/repositories/IdeaRepository";
 import { IdeaCard } from "./components/IdeaCard";
 import { IdeaEditorSheet } from "./components/IdeaEditorSheet";
 import { HitokotoCard } from "./components/HitokotoCard";
@@ -10,20 +9,7 @@ import { FloatingActionButton } from "../../components/buttons/FloatingActionBut
 import { UndoNotificationStack, UndoStackItem } from "../../components/feedback/UndoNotificationStack";
 import { AppOverlayRoute } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
-
-class IdeaUndoTask {
-  taskId: string;
-  idea: Idea;
-  originalIndex: number;
-  deadlineMs: number;
-
-  constructor(taskId: string, idea: Idea, originalIndex: number, deadlineMs: number) {
-    this.taskId = taskId;
-    this.idea = idea;
-    this.originalIndex = originalIndex;
-    this.deadlineMs = deadlineMs;
-  }
-}
+import { IdeaPageState, useIdeaPageState } from "./IdeaPageState";
 /**
  * 闪记模块主页。
  * 支持闪记列表展示、新建、编辑、删除和搜索。
@@ -31,136 +17,42 @@ class IdeaUndoTask {
 @ComponentV2
 export struct IdeaPage {
   @Local private app: AppState = useAppState();
+  @Local private state: IdeaPageState = useIdeaPageState();
   @Event onBottomBarVisibleChange: (visible: boolean) => void = (_visible: boolean): void => {};
 
-  private repository: IdeaRepository = new IdeaRepository();
-
-  @Local private ideas: Idea[] = [];
-  @Local private loading: boolean = false;
-  @Local private editingIdea: Idea | null = null;
-  @Local private selectedIdea: Idea | null = null;
-  @Local private undoTasks: Array<IdeaUndoTask> = [];
-  private undoTaskSeq: number = 0;
+  @Builder
+  private buildIdeaCreateContent() {
+    IdeaEditorSheet({
+      hideInnerHeader: false,
+    });
+  }
 
   @Builder
-  private buildIdeaEditorContent() {
+  private buildIdeaDetailContent() {
     IdeaEditorSheet({
-      editIdea: this.editingIdea,
-      onSaved: (idea: Idea) => {
-        this.onIdeaSaved(idea);
-      },
+      hideInnerHeader: true,
     });
   }
 
   aboutToAppear(): void {
     this.onBottomBarVisibleChange(true);
-    this.loadIdeas();
-  }
-
-  /**
-   * 加载闪记列表。
-   */
-  private async loadIdeas(): Promise<void> {
-    this.loading = true;
-    try {
-      this.ideas = await this.repository.findAll();
-      // 按时间倒序
-      this.ideas.sort((a: Idea, b: Idea) => b.timestamp - a.timestamp);
-    } catch (_error) {
-      // 忽略错误
-    } finally {
-      this.loading = false;
-    }
+    this.state.refreshAll();
   }
 
   /**
    * 打开新建闪记。
    */
   private openNewEditor(): void {
-    this.editingIdea = null;
-    this.app.nav.openActionSheet(this.buildIdeaEditorContent);
+    this.state.openCreateIdea();
+    this.app.nav.openActionSheet(this.buildIdeaCreateContent);
   }
 
   /**
    * 打开编辑闪记。
    */
   private openEditIdea(idea: Idea): void {
-    this.selectedIdea = idea;
-    this.editingIdea = idea;
-    this.app.nav.openActionSheet(this.buildIdeaEditorContent);
-  }
-
-  /**
-   * 处理闪记保存成功。
-   * Idea 实体没有 @ObservedV2，编辑后属性变更不会触发 @Param 刷新，
-   * 因此统一重新加载列表保证数据与视图一致。
-   */
-  private onIdeaSaved(_idea: Idea): void {
-    this.loadIdeas();
-    this.editingIdea = null;
-    this.selectedIdea = null;
-  }
-
-  /**
-   * 处理闪记删除。
-   */
-  private requestDeleteIdea(idea: Idea): void {
-    const index = this.ideas.findIndex((i: Idea) => i.id === idea.id);
-    if (index < 0) {
-      return;
-    }
-
-    const taskId = `idea_undo_${this.undoTaskSeq}`;
-    this.undoTaskSeq = this.undoTaskSeq + 1;
-    const deadlineMs = Date.now() + 5000;
-    this.ideas = this.ideas.filter((item: Idea) => item.id !== idea.id);
-    this.undoTasks = [...this.undoTasks, new IdeaUndoTask(taskId, idea, index, deadlineMs)];
-    this.selectedIdea = null;
-  }
-
-  private buildUndoStackItems(): Array<UndoStackItem> {
-    const list: Array<UndoStackItem> = [];
-    for (let i = 0; i < this.undoTasks.length; i++) {
-      const task = this.undoTasks[i];
-      const title = task.idea.title.length > 0 ? task.idea.title : "闪记";
-      list.push(new UndoStackItem(task.taskId, `${title} 已删除`, "撤销", 5000, task.deadlineMs));
-    }
-    return list;
-  }
-
-  private findUndoTask(taskId: string): IdeaUndoTask | null {
-    for (let i = 0; i < this.undoTasks.length; i++) {
-      if (this.undoTasks[i].taskId === taskId) {
-        return this.undoTasks[i];
-      }
-    }
-    return null;
-  }
-
-  private restoreIdeaFromTask(taskId: string): void {
-    const task = this.findUndoTask(taskId);
-    if (task === null) {
-      return;
-    }
-    const exists = this.ideas.some((item: Idea) => item.id === task.idea.id);
-    if (!exists) {
-      const insertIndex = Math.max(0, Math.min(task.originalIndex, this.ideas.length));
-      const before = this.ideas.slice(0, insertIndex);
-      const after = this.ideas.slice(insertIndex);
-      this.ideas = [...before, task.idea, ...after];
-    }
-  }
-
-  private commitIdeaDelete(taskId: string): void {
-    const task = this.findUndoTask(taskId);
-    if (task === null) {
-      return;
-    }
-    this.repository.removeById(task.idea.id);
-  }
-
-  private closeUndoTask(taskId: string): void {
-    this.undoTasks = this.undoTasks.filter((task: IdeaUndoTask) => task.taskId !== taskId);
+    this.state.openIdeaDetail(idea.id);
+    this.app.nav.openDetailCard(this.buildIdeaDetailContent, '编辑闪记');
   }
 
   /**
@@ -180,13 +72,13 @@ export struct IdeaPage {
           );
         },
       }) {
-        // 一言卡片
-        HitokotoCard()
 
         // 闪记列表
         PageScrollLayout({ space: 12, paddingTop: 12 }) {
+        // 一言卡片
+        HitokotoCard()
           // 列表为空时的占位
-          if (!this.loading && this.ideas.length === 0) {
+          if (!this.state.loading && this.state.ideas.length === 0) {
             Column({ space: 12 }) {
               Text("还没有闪记")
                 .fontSize(16)
@@ -202,12 +94,12 @@ export struct IdeaPage {
 
           // 闪记列表
           ForEach(
-            this.ideas,
+            this.state.ideas,
             (idea: Idea) => {
               IdeaCard({
                 idea: idea,
                 onDeleteRequest: (deleting: Idea) => {
-                  this.requestDeleteIdea(deleting);
+                  this.state.requestDeleteIdea(deleting);
                 },
                 onTap: (tapped: Idea) => {
                   this.openEditIdea(tapped);
@@ -233,15 +125,15 @@ export struct IdeaPage {
       })
 
       UndoNotificationStack({
-        tasks: this.buildUndoStackItems(),
+        tasks: this.state.buildUndoStackItems(),
         onUndo: (taskId: string) => {
-          this.restoreIdeaFromTask(taskId);
+          this.state.undoDelete(taskId);
         },
         onTimeout: (taskId: string) => {
-          this.commitIdeaDelete(taskId);
+          this.state.commitDeleteIdea(taskId);
         },
         onClose: (taskId: string) => {
-          this.closeUndoTask(taskId);
+          this.state.closeUndo(taskId);
         },
       })
 

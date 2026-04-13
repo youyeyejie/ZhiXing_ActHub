@@ -21,11 +21,6 @@ export struct TimelineView {
     return `${hourText}:${minuteText}`;
   }
 
-  private async openCreatePlanForSelectedDay(): Promise<void> {
-    await this.state.refreshAll();
-    this.state.openCreatePlan();
-  }
-
   @Builder
   private buildAxis(timeText: string) {
     Column({ space: 4 }) {
@@ -56,39 +51,18 @@ export struct TimelineView {
     .padding({ bottom: 2 });
   }
 
-  @Builder
-  private buildEmptyPlanModuleButton() {
-    Button() {
-      Column({ space: 10 }) {
-        Text("日程列表")
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(this.app.theme.palette.textPrimary)
-        Column({ space: 6 }) {
-          Text("点击新建当日日程")
-            .fontSize(12)
-            .fontColor(this.app.theme.palette.textSecondary)
-        }
-        .width("100%")
-        .alignItems(HorizontalAlign.Start)
-      }
-      .width("100%")
-      .alignItems(HorizontalAlign.Start)
-    }
-    .type(ButtonType.Normal)
-    .stateEffect(true)
-    .width("100%")
-    .padding(16)
-    .borderRadius(20)
-    .backgroundColor(this.app.theme.palette.surface)
-    .onClick(async () => {
-      await this.openCreatePlanForSelectedDay();
-    });
-  }
-
   build() {
     if (this.state.visiblePlans.length === 0) {
-      this.buildEmptyPlanModuleButton();
+      Column() {
+        Text("无日程")
+          .fontSize(18)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.app.theme.palette.textSecondary)
+      }
+      .width("100%")
+      .height(260)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center);
     } else {
       Column({ space: 10 }) {
         Text("日程列表")

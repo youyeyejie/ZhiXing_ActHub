@@ -8,6 +8,7 @@ import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
 import { AppOverlayRoute } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
 import { TodoPageState, useTodoPageState } from "./TodoPageState";
+import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
 
 /**
  * 待办模块主页骨架。
@@ -40,11 +41,11 @@ export struct TodoPage {
           );
         },
       }) {
-        Column({ space: 12 }) {
-          CategoryFilter()
+        CategoryFilter()
+        .width("90%")
+        PageScrollLayout({ space: 12, paddingTop: 12 }) {
           TodoCard()
         }
-        .padding({ left: 20, right: 20 });
       }
 
       FloatingActionButton({

@@ -18,6 +18,7 @@ export class FocusTimerEngine {
   @Trace remainingSeconds: number = 0;
   @Trace totalSeconds: number = 0;
   @Trace todoId: string = '';
+  @Trace todoTitle: string = '';
   @Trace focusRecordId: string = '';
   
   // 默认配置
@@ -232,6 +233,7 @@ export class FocusTimerEngine {
     this.remainingSeconds = this.currentWorkDuration;
     this.totalSeconds = this.currentWorkDuration;
     this.todoId = '';
+    this.todoTitle = '';
     this.focusRecordId = '';
     this.startTimestamp = 0;
     this.expectedEndTime = 0;
@@ -290,9 +292,14 @@ export class FocusTimerEngine {
   async getTodoName(): Promise<string> {
     try {
       if (!this.hasTodo()) return '';
+      if (this.todoTitle.trim().length > 0) {
+        return this.todoTitle;
+      }
       const todoId = String(this.todoId);
       const todo = await this.getTodoRepository().findById(todoId);
-      return todo?.content || '';
+      const name = todo?.content || '';
+      this.todoTitle = name;
+      return name;
     } catch (error) {
       console.error('[TimerEngine] 错误: getTodoName 方法执行异常:', error);
       return '';
@@ -303,8 +310,13 @@ export class FocusTimerEngine {
    * 设置关联的待办任务
    * @param newTodoId 新的待办ID
    */
-  setRelatedTodo(newTodoId: string): void {
-    if (this.todoId === newTodoId) return;
+  setRelatedTodo(newTodoId: string, newTodoTitle: string = ''): void {
+    if (this.todoId === newTodoId) {
+      if (`${newTodoTitle}`.trim().length > 0 && this.todoTitle !== newTodoTitle) {
+        this.todoTitle = `${newTodoTitle}`.trim();
+      }
+      return;
+    }
 
     if (this.state === FocusState.WORKING) {
       // 仅保留切割关键节点日志
@@ -314,5 +326,6 @@ export class FocusTimerEngine {
     }
 
     this.todoId = newTodoId;
+    this.todoTitle = `${newTodoTitle}`.trim();
   }
 }

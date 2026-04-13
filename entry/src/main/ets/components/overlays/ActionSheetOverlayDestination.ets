@@ -37,6 +37,7 @@ export struct ActionSheetOverlayDestination {
     }
     .width('100%')
     .height('100%')
+    .hideTitleBar(true)
     .backgroundColor(Color.Transparent)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .mode(NavDestinationMode.DIALOG)

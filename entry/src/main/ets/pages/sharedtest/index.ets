@@ -9,6 +9,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppDatabase } from '../../core/database/AppDatabase';
 import { Todo } from '../../core/models/Todo';
 import { TodoRepository } from '../../core/repositories/TodoRepository';
+import { TodoTestDataHelper } from '../../core/services/TodoTestDataHelper';
 import promptAction from '@ohos.promptAction';
 
 const SHARED_TEST_LOG_DOMAIN: number = 0x0000;
@@ -74,6 +75,7 @@ export struct SharedInteractionTestPage {
   @Local private undoTasks: Array<UndoDeleteTask> = [];
   @Local private undoTaskSeq: number = 0;
   private todoRepository: TodoRepository = new TodoRepository();
+  private todoTestDataHelper: TodoTestDataHelper = new TodoTestDataHelper();
 
   private logToConsole(message: string): void {
     hilog.info(SHARED_TEST_LOG_DOMAIN, SHARED_TEST_LOG_TAG, '%{public}s', message);
@@ -224,6 +226,13 @@ export struct SharedInteractionTestPage {
     }
   }
 
+  private async generateTodoTestData(): Promise<void> {
+    const inserted = await this.todoTestDataHelper.generateFocusTestData(10);
+    const message = `TodoTestDataHelper 生成完成，新增 ${inserted} 条测试待办`;
+    this.logs.push(message);
+    this.logToConsole(message);
+  }
+
   @Builder
   private buildActionSheetContent() {
     Column({ space: 12 }) {
@@ -313,7 +322,7 @@ export struct SharedInteractionTestPage {
                 this.logs.push(item.title + ' 右滑触发');
               },
               onCardTap: () => {
-                this.app.nav.openDetailCard(this.buildDetailDialogContent);
+                this.app.nav.openDetailCard(this.buildDetailDialogContent, '详情预览');
                 this.logs.push(item.title + ' 点击打开详情卡片');
               }
             }) {
@@ -375,7 +384,7 @@ export struct SharedInteractionTestPage {
               .backgroundColor(this.app.theme.palette.primary)
               .fontColor(this.app.theme.palette.surface)
               .onClick(() => {
-                this.app.nav.openDetailCard(this.buildDetailDialogContent);
+                this.app.nav.openDetailCard(this.buildDetailDialogContent, '详情预览');
                 this.logs.push('通过 DetailCard 组件打开详情卡片');
               });
 
@@ -415,6 +424,16 @@ export struct SharedInteractionTestPage {
             .backgroundColor(this.app.theme.palette.primary)
             .onClick(() => {
               this.runTodoRepositoryCrudTest();
+            });
+
+          Button('生成 Focus 测试待办（TodoTestDataHelper）')
+            .width('100%')
+            .height(44)
+            .fontSize(14)
+            .fontColor(this.app.theme.palette.surface)
+            .backgroundColor(this.app.theme.palette.primary)
+            .onClick(() => {
+              this.generateTodoTestData();
             });
 
           Column({ space: 8 }) {

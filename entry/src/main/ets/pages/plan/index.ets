@@ -7,6 +7,7 @@ import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
 import { AppOverlayRoute } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
 import { PlanPageState, usePlanPageState } from "./PlanPageState";
+import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
 
 /**
  * 日程模块主页。
@@ -41,11 +42,11 @@ export struct PlanPage {
           );
         },
       }) {
-        Column({ space: 12 }) {
-          WeekCalendar()
+        WeekCalendar()
+        .width("90%")
+        PageScrollLayout({ space: 12, paddingTop: 12 }) {
           TimelineView()
         }
-        .padding({ left: 20, right: 20 });
       }
 
       FloatingActionButton({

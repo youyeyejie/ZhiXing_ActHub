@@ -35,10 +35,21 @@ export struct FocusTaskSelector {
     this.loadCurrentTodo(); 
   }
 
+  /** 监听引擎todoTitle变化 */
+  @Monitor("engine.todoTitle")
+  onTodoTitleChanged(): void {
+    this.loadCurrentTodo();
+  }
+
   /** 加载当前待办名称 */
   private async loadCurrentTodo(): Promise<void> {
     if (!this.engine.hasTodo()) {
       this.currentTodoName = '';
+      return;
+    }
+
+    if (`${this.engine.todoTitle}`.trim().length > 0) {
+      this.currentTodoName = `${this.engine.todoTitle}`.trim();
       return;
     }
 
@@ -67,22 +78,20 @@ export struct FocusTaskSelector {
         .textAlign(TextAlign.Center)
     } else if (this.currentTodoName.length > 0) {
       // 显示任务名称
-      Column({ space: 4 }) {
-        // 标题
-        Text('当前任务')
-          .fontSize(12)
-          .fontColor(this.app.theme.palette.textTertiary)
-          .textAlign(TextAlign.Center)
-        
-        // 任务内容（最大2行）
+      Row({ space: 8 }) {
+        SymbolGlyph($r('sys.symbol.bookmark'))
+          .fontSize(14)
+          .fontColor([this.app.theme.palette.textSecondary]);
+
         Text(this.currentTodoName)
           .fontSize(16)
           .fontColor(this.app.theme.palette.textPrimary)
-          .textAlign(TextAlign.Center)
+          .textAlign(TextAlign.Start)
           .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
-      .alignItems(HorizontalAlign.Center)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
     } else {
       // 无任务时显示提示
       this.renderNoTask();

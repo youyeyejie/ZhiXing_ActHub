@@ -21,6 +21,7 @@ export class AppNav extends NavPathStack {
   @Trace public detailRecordId: string = '';
   public actionSheetContentBuilder: () => void = () => {};
   public detailCardContentBuilder: () => void = () => {};
+  public detailCardTitle: string = '详情';
 
   /**
    * 按标签切换主页面。
@@ -68,14 +69,16 @@ export class AppNav extends NavPathStack {
    */
   openActionSheet(contentBuilder: () => void = () => {}): void {
     this.actionSheetContentBuilder = contentBuilder;
-    this.pushOverlayRoute(AppOverlayRoute.ACTION_SHEET, undefined, true);
+    // 禁用路由级动画，仅保留 ActionSheet 组件内部动画，避免遮罩随路由整体滑动。
+    this.pushOverlayRoute(AppOverlayRoute.ACTION_SHEET, undefined, false);
   }
 
   /**
    * 打开 DetailCard 覆盖页。
    */
-  openDetailCard(contentBuilder: () => void = () => {}): void {
+  openDetailCard(contentBuilder: () => void = () => {}, title: string = '详情'): void {
     this.detailCardContentBuilder = contentBuilder;
+    this.detailCardTitle = title;
     this.pushOverlayRoute(AppOverlayRoute.DETAIL_CARD, undefined, true);
   }
 
@@ -163,6 +166,7 @@ export class AppNav extends NavPathStack {
   private clearDetailState(): void {
     this.detailModuleName = '';
     this.detailRecordId = '';
+    this.detailCardTitle = '详情';
     this.actionSheetContentBuilder = () => {};
     this.detailCardContentBuilder = () => {};
   }

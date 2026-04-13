@@ -57,9 +57,14 @@ export struct TodoPickerSheet {
     try {
       // 设置专注引擎关联的待办ID
       const todoId = todo?.id ? String(todo.id) : '';
-      this.engine.setRelatedTodo(todoId);
-      
-      console.info(`[TodoPickerSheet] 已选择待办: ${todo.content.substring(0, 15)}... (ID: ${todoId})`);
+      if (todoId.length === 0) {
+        return;
+      }
+      this.engine.setRelatedTodo(todoId, `${todo.content || ''}`);
+
+      const preview = `${todo.content || ''}`;
+      const previewText = preview.length > 15 ? `${preview.substring(0, 15)}...` : preview;
+      console.info(`[TodoPickerSheet] 已选择待办: ${previewText} (ID: ${todoId})`);
 
       // 通过导航栈关闭 ActionSheet overlay route
       this.app.nav.back(false);
@@ -151,6 +156,8 @@ export struct TodoPickerSheet {
         }, (todo: Todo) => todo.id);
       }
       .width('100%')
+      .justifyContent(FlexAlign.Start)
+      .alignItems(HorizontalAlign.Start)
     }
     .scrollBar(BarState.Off)
     .width('100%')
@@ -187,5 +194,7 @@ export struct TodoPickerSheet {
     }
     .width('100%')
     .height('100%')
+    .justifyContent(FlexAlign.Start)
+    .alignItems(HorizontalAlign.Start)
   }
 }

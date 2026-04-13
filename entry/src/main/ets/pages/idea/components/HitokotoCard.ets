@@ -51,24 +51,9 @@ export struct HitokotoCard {
       }
       .width("100%")
       .alignItems(VerticalAlign.Center)
-      Row() {
-        Text("— 一言")
-          .fontSize(12)
-          .fontColor(this.app.theme.palette.textTertiary)
-        Blank()
-        if (this.loading) {
-          LoadingProgress().width(14).height(14).color(this.app.theme.palette.textTertiary);
-        } else {
-          Text("刷新")
-            .fontSize(12)
-            .fontColor(this.app.theme.palette.textTertiary)
-            .onClick(() => {
-              this.loadSentence();
-            });
-        }
-      }
-      .width("100%")
-      .margin({ top: 4 })
+      .onClick(() => {
+        this.loadSentence();
+      });
     }
     .width("100%")
     .padding(16)
