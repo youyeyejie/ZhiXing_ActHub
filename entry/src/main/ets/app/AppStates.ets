@@ -1,6 +1,7 @@
 import { ThemeManager, ThemeMode } from '../core/theme/ThemeManager';
 import { AppNav } from './AppNav';
 import { AppFlow } from './AppConstants';
+import { FocusTimerEngine } from '../core/services/FocusTimerEngine'; // <-- 新增引入
 
 /**
  * 类功能简介：
@@ -11,6 +12,7 @@ import { AppFlow } from './AppConstants';
  *
  * 返回行为：
  * - 提供全局 `theme/nav` 访问与流程切换能力。
+ * - 提供全局 `core/services/focusEngine`访问能力。
  *
  * 副作用：
  * - 会更新响应式应用状态并驱动界面刷新。
@@ -19,6 +21,7 @@ import { AppFlow } from './AppConstants';
 export class AppState {
   private themeManager: ThemeManager = new ThemeManager();
   private _nav: AppNav = new AppNav();
+  private _focusEngine: FocusTimerEngine = new FocusTimerEngine(); // <-- 新增：实例化全局计时引擎
   @Trace public flow: AppFlow = AppFlow.MAIN;
 
   /**
@@ -36,9 +39,14 @@ export class AppState {
   }
 
   /**
+   * 返回全局专注计时引擎实例。
+   */
+  get focusEngine(): FocusTimerEngine {
+    return this._focusEngine; // <-- 新增：提供外部访问接口
+  }
+
+  /**
    * 应用主题偏好。
-   * @param mode 用户选择的主题模式
-   * @param systemDarkMode 当前系统深色模式状态
    */
   applyThemePreference(mode: ThemeMode, systemDarkMode: boolean): void {
     this.themeManager.set(mode);
