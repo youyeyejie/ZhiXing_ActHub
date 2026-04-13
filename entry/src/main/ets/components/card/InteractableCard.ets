@@ -26,6 +26,14 @@ export struct InteractableCard {
   @Param enableSwipeRight: boolean = false;
   @Param swipeThreshold: number = 72;
   @Param maxSwipeOffset: number = 96;
+  @Param surfaceColor: string = '';
+  @Param cornerRadius: number = 20;
+  @Param contentPadding: number = 16;
+  @Param outerPaddingVertical: number = 3;
+  @Param shadowRadius: number = 12;
+  @Param shadowOffsetY: number = 4;
+  @Param swipeRightColor: string = '#3B82F6';
+  @Param swipeLeftColor: string = '#EF4444';
   @Event onSwipeLeft: () => void = () => {};
   @Event onSwipeRight: () => void = () => {};
   @Event onCardTap: () => void = () => {};
@@ -34,6 +42,7 @@ export struct InteractableCard {
   @Local private startX: number = 0;
   @Local private startY: number = 0;
   @Local private dragging: boolean = false;
+  @Local private contentLayerHeight: number = 0;
 
   @BuilderParam content: () => void = this.defaultContent;
 
@@ -54,6 +63,10 @@ export struct InteractableCard {
     this.offsetX = 0;
   }
 
+  private resolveCardSurfaceColor(): string {
+    return this.surfaceColor.length > 0 ? this.surfaceColor : this.app.theme.palette.surface;
+  }
+
   private handleTouch(event: TouchEvent): void {
     if (event.type === TouchType.Down) {
       this.dragging = true;
@@ -63,8 +76,17 @@ export struct InteractableCard {
     }
 
     if (event.type === TouchType.Move && this.dragging) {
-      const rawDelta = event.touches[0].x - this.startX;
-      let delta = rawDelta;
+      const deltaX = event.touches[0].x - this.startX;
+      const deltaY = event.touches[0].y - this.startY;
+
+      // 垂直滑动容差：若垂直移动距离明显大于水平移动，则取消本次横向拖拽
+      if (Math.abs(deltaY) > 10 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        this.dragging = false;
+        this.resetOffset();
+        return;
+      }
+
+      let delta = deltaX;
       if (!this.enableSwipeRight && delta > 0) {
         delta = 0;
       }
@@ -94,34 +116,69 @@ export struct InteractableCard {
   }
 
   build() {
-    Stack() {
+    Stack({ alignContent: Alignment.TopStart }) {
+      // 背景层：左右滑动提示，高度跟随内容 Column（即 Stack 高度）
       Row() {
-        Text(this.rightHint)
-          .fontSize(12)
-          .fontColor(this.app.theme.palette.primary);
-        Blank();
-        Text(this.leftHint)
-          .fontSize(12)
-          .fontColor(this.app.theme.palette.textSecondary);
+        Row() {
+          Text(this.rightHint)
+            .fontSize(12)
+            .lineHeight(12)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.app.theme.palette.surface);
+        }
+        .layoutWeight(1)
+        .height('100%')
+        .justifyContent(FlexAlign.Start)
+        .alignItems(VerticalAlign.Center)
+        .padding({ left: 18, top: 0, bottom: 0 })
+        .backgroundColor(this.offsetX >= Math.max(24, this.swipeThreshold) ? this.swipeRightColor :
+          (this.offsetX <= -Math.max(24, this.swipeThreshold) ? this.swipeLeftColor : 'transparent'));
+
+        Row() {
+          Text(this.leftHint)
+            .fontSize(12)
+            .lineHeight(12)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.app.theme.palette.surface);
+        }
+        .layoutWeight(1)
+        .height('100%')
+        .justifyContent(FlexAlign.End)
+        .alignItems(VerticalAlign.Center)
+        .padding({ right: 18, top: 0, bottom: 0 })
+        .backgroundColor(this.offsetX <= -Math.max(24, this.swipeThreshold) ? this.swipeLeftColor :
+          (this.offsetX >= Math.max(24, this.swipeThreshold) ? this.swipeRightColor : 'transparent'));
       }
       .width('100%')
-      .padding({ left: 18, right: 18 });
+      .height(this.contentLayerHeight > 0 ? this.contentLayerHeight : '100%')
+      .borderRadius(this.cornerRadius)
+      .clip(true);
 
-      Column() {
+      // 内容层：可平移的卡片主体，固定从顶部开始布局，避免默认居中导致的视觉空隙。
+      Column({ space: 0 }) {
         this.content();
       }
       .width('100%')
-      .padding(16)
-      .borderRadius(20)
-      .backgroundColor(this.app.theme.palette.surface)
-      .shadow({ radius: 12, color: this.app.theme.palette.mask, offsetX: 0, offsetY: 4 })
-      .translate({ x: this.offsetX, y: 0 })
+      .justifyContent(FlexAlign.Start)
+      .alignItems(HorizontalAlign.Start)
+      .padding(this.contentPadding)
+      .borderRadius(this.cornerRadius)
+      .backgroundColor(this.resolveCardSurfaceColor())
+      .shadow({ radius: this.shadowRadius, color: this.app.theme.palette.mask, offsetX: 3, offsetY: this.shadowOffsetY })
+      .translate({ x: this.offsetX, y: 2 })
       .animation({ duration: 180, curve: Curve.EaseOut, playMode: PlayMode.Normal })
+      .onAreaChange((_oldValue, newValue) => {
+        const nextHeight = Number(newValue.height);
+        if (nextHeight > 0) {
+          this.contentLayerHeight = nextHeight;
+        }
+      })
       .onTouch((event: TouchEvent) => {
         this.handleTouch(event);
       });
     }
     .width('100%')
-    .padding({ top: 6, bottom: 6 });
+    .borderRadius(this.cornerRadius)
+    .clip(true)
   }
 }

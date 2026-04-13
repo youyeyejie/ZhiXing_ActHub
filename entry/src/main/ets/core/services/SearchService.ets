@@ -95,10 +95,15 @@ export class SearchService {
     const todos: Array<Todo> = await this.todoRepository.findAll();
     const results: Array<SearchResultItem> = [];
     todos.forEach((item: Todo) => {
-      const haystack = `${item.content} ${item.categoryId}`.toLowerCase();
+      const titleText = `${item.content}`.trim();
+      const title = titleText === 'undefined' || titleText === 'null' ? '' : titleText;
+      const detailText = `${item.detail}`.trim();
+      const detail = detailText === 'undefined' || detailText === 'null' ? '' : detailText;
+      const haystack = `${title} ${detail} ${item.categoryId}`.toLowerCase();
       if (haystack.indexOf(keyword) >= 0) {
         const state = item.isDone === 1 ? '已完成' : '进行中';
-        results.push(this.createItem(item.id, item.content, state, SearchScope.Todo));
+        const subtitle = detail.length > 0 ? detail : state;
+        results.push(this.createItem(item.id, title.length > 0 ? title : '未命名待办', subtitle, SearchScope.Todo));
       }
     });
     return results;

@@ -1,113 +1,83 @@
-import { WeekCalendar } from './components/WeekCalendar';
-import { TimelineView } from './components/TimelineView';
-import { PlanCard } from './components/PlanCard';
-import { PlanEditorSheet } from './components/PlanEditorSheet';
-import { MainTabPageLayout } from '../../components/layout/MainTabPageLayout';
-import { AppOverlayRoute } from '../../app/AppConstants';
-import { AppState, useAppState } from '../../app/AppStates';
-import { EditableSuite } from '../../components/form/EditableSuite';
-import { PageScrollLayout } from '../../components/layout/PageScrollLayout';
+import { WeekCalendar } from "./components/WeekCalendar";
+import { TimelineView } from "./components/TimelineView";
+import { PlanEditorSheet } from "./components/PlanEditorSheet";
+import { PlanDetailOverlay } from "./components/PlanDetailOverlay";
+import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
+import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
+import { UndoNotification } from "../../components/feedback/UndoNotification";
+import { AppOverlayRoute } from "../../app/AppConstants";
+import { AppState, useAppState } from "../../app/AppStates";
+import { PlanPageState, usePlanPageState } from "./PlanPageState";
 
 /**
- * 组件功能简介：
- * - 日程模块主页，承载周历、时间轴、卡片与编辑入口测试骨架。
- * - TODO: 尚未接入真实日程数据、搜索联动和详情流。
- *
- * 可传入项：
- * - 无。
- *
- * 返回行为：
- * - 返回主标签页布局，内含日程相关测试组件与操作入口。
- *
- * 副作用：
- * - 按钮事件会调用 AppNav 打开搜索、ActionSheet 与 DetailCard overlay。
+ * 日程模块主页。
+ * 提供周视图、时间轴列表、右下角新建入口和删除撤销气泡。
  */
 @ComponentV2
 export struct PlanPage {
   @Local private app: AppState = useAppState();
+  @Local private state: PlanPageState = usePlanPageState();
 
-  @Builder
-  /**
-   * 构建日程 ActionSheet 的测试内容。
-   * TODO: 后续替换为真实日程编辑表单。
-   */
-  private buildPlanActionSheetContent() {
-    Column({ space: 12 }) {
-      Text('日程 ActionSheet 测试')
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium);
-
-      EditableSuite({
-        title: '日程动作编辑套件'
-      });
-
-      Button('关闭 ActionSheet')
-        .width('100%')
-        .height(42)
-        .onClick(() => {
-          this.app.nav.back(false);
-        });
-    }
-    .alignItems(HorizontalAlign.Start)
-    .width('100%');
-  }
-
-  @Builder
-  /**
-   * 构建日程 DetailCard 的测试内容。
-   * TODO: 后续接入真实日程详情展示与编辑入口。
-   */
-  private buildPlanDetailCardContent() {
-    Column({ space: 8 }) {
-      Text('日程 DetailCard 测试')
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.app.theme.palette.textPrimary);
-
-      Text('通过 AppNav 调用时已传入完整自定义 Builder 内容。')
-        .fontSize(12)
-        .fontColor(this.app.theme.palette.textSecondary);
-    }
-    .width('100%')
-    .alignItems(HorizontalAlign.Start);
+  aboutToAppear(): void {
+    this.state.refreshAll();
   }
 
   /**
    * 渲染日程主页骨架与测试交互入口。
    */
   build() {
-    MainTabPageLayout({
-      title: '日程',
-      actionIcon: $r('sys.symbol.magnifyingglass'),
-      showFloatButton: true,
-      onActionTap: () => {
-        this.app.nav.pushOverlayByName(AppOverlayRoute.SEARCH, this.app.nav.createSearchParam('plan', '搜索日程'));
-      },
-      onClickFloatingButton: () => {
-        this.app.nav.openActionSheet(this.buildPlanActionSheetContent);
-      }
-    }) {
-      Text("此页面目前组件均为测试，需要修改！")
-      WeekCalendar();
-
-      PageScrollLayout({
-        paddingBottom: 96
+    Stack({ alignContent: Alignment.BottomEnd }) {
+      MainTabPageLayout({
+        title: "日程",
+        actionIcon: $r("sys.symbol.magnifyingglass"),
+        onActionTap: () => {
+          this.app.nav.pushOverlayByName(
+            AppOverlayRoute.SEARCH,
+            this.app.nav.createSearchParam("plan", "搜索日程"),
+          );
+        },
       }) {
-      Row({ space: 10 }) {
-        Button('测试 DetailCard')
-          .height(36)
-          .onClick(() => {
-            this.app.nav.openDetailCard(this.buildPlanDetailCardContent);
-          });
+        WeekCalendar()
+        TimelineView()
       }
-        TimelineView();
-        PlanCard();
-        PlanCard();
-        PlanCard();
-        PlanCard();
-        PlanCard();
-        PlanEditorSheet();
+
+      if (!this.state.undoVisible) {
+        FloatingActionButton({
+          onTap: async () => {
+            await this.state.refreshAll();
+            this.state.openCreatePlan();
+          },
+        })
+      }
+
+      if (this.state.undoVisible) {
+        Column() {
+          UndoNotification({
+            message: this.state.undoMessage,
+            durationMs: 5000,
+            onUndo: () => {
+              this.state.undoDelete();
+            },
+            onTimeout: async () => {
+              await this.state.commitDeletePlan();
+            },
+            onClose: () => {
+              this.state.closeUndo();
+            },
+          })
+        }
+        .width("100%")
+        .padding({ left: 16, right: 16, bottom: 10 });
+      }
+
+      if (this.state.isEditorVisible) {
+        PlanEditorSheet()
+      }
+      if (this.state.isDetailVisible) {
+        PlanDetailOverlay()
       }
     }
+    .width("100%")
+    .height("100%");
   }
 }

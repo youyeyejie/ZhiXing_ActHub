@@ -1,4 +1,4 @@
-import { IBestORMInit, ORM } from '@ibestservices/ibest-orm';
+import { IBestORMInit, ORM, setORM } from '@ibestservices/ibest-orm';
 import { DatabaseConfig } from './DatabaseConfig';
 import { Focus, Idea, Plan, Todo, TodoCategory, User } from '../models';
 
@@ -34,6 +34,8 @@ export class AppDatabase {
       name: DatabaseConfig.DB_NAME,
       debug: true
     });
+    // 确保全局 getORM() 读取到当前实例，避免仓储层写入/查询落到未初始化的 ORM。
+    setORM(this.ormInstance);
     this.ormInstance.migrate(Plan, Todo, TodoCategory, Focus, Idea, User);
     this.initialized = true;
   }

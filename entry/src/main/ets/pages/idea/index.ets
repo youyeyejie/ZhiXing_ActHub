@@ -6,6 +6,7 @@ import { HitokotoCard } from "./components/HitokotoCard";
 import { ActivityHeatmap } from "./components/ActivityHeatmap";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
 import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
+import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
 import { AppOverlayRoute } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
 /**
@@ -149,25 +150,10 @@ export struct IdeaPage {
       }
 
       // 新建按钮（FAB）
-      Button() {
-        Image($r("sys.media.ohos_ic_public_add"))
-          .width(28)
-          .height(28)
-          .fillColor("#FFFFFF")
-      }
-      .type(ButtonType.Circle)
-      .width(56)
-      .height(56)
-      .backgroundColor(this.app.theme.palette.primary)
-      .shadow({
-        radius: 16,
-        color: this.app.theme.palette.primary + "40",
-        offsetX: 0,
-        offsetY: 4,
-      })
-      .margin({ right: 20, bottom: 100 })
-      .onClick(() => {
-        this.openNewEditor();
+      FloatingActionButton({
+        onTap: () => {
+          this.openNewEditor();
+        },
       })
 
       // 编辑器弹层（全屏遮罩）

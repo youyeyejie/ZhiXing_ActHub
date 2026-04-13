@@ -1,6 +1,5 @@
-import { QueryBuilder } from '@ibestservices/ibest-orm';
-import { User } from '../models/User';
-import { BaseRepository } from './BaseRepository';
+import { User } from "../models/User";
+import { BaseRepository } from "./BaseRepository";
 
 /**
  * 类功能简介：
@@ -21,25 +20,21 @@ export class UserRepository extends BaseRepository<User> {
   }
 
   findByAccount(account: string): Promise<User | null> {
-    return Promise.resolve(
-      this.query.where('name', account).first()
-    );
+    return Promise.resolve(this.query.where("name", account).first());
   }
 
   hasAccount(account: string): Promise<boolean> {
-    return Promise.resolve(
-      this.query.where('name', account).exists()
-    );
+    return Promise.resolve(this.query.where("name", account).exists());
   }
 
-  register(account: string, password: string, avatar: string = ''): Promise<User | null> {
+  register(account: string, password: string, avatar: string = ""): Promise<User | null> {
     const normalizedAccount: string = account.trim();
     const normalizedPassword: string = password.trim();
     if (normalizedAccount.length === 0 || normalizedPassword.length === 0) {
       return Promise.resolve(null);
     }
 
-    if (this.query.where('name', normalizedAccount).exists()) {
+    if (this.query.where("name", normalizedAccount).exists()) {
       return Promise.resolve(null);
     }
 
@@ -64,8 +59,8 @@ export class UserRepository extends BaseRepository<User> {
     }
 
     const user: User | null = this.query
-      .where('name', normalizedAccount)
-      .where('password', normalizedPassword)
+      .where("name", normalizedAccount)
+      .where("password", normalizedPassword)
       .first();
     if (user === null) {
       return Promise.resolve(null);

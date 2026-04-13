@@ -21,17 +21,28 @@ export struct AutoSaveText {
   @Local private app: AppState = useAppState();
   @Param label: string = '自动保存输入';
   @Param placeholder: string = '请输入内容';
+  @Param initialValue: string = '';
   @Param debounceMs: number = 600;
+  @Param inputHeight: number = 44;
   @Param saveOnBlur: boolean = true;
+  @Param saveOnChange: boolean = true;
   @Event onAutoSave: (value: string) => void = (_value: string) => {};
 
   @Local private value: string = '';
   @Local private isSaving: boolean = false;
   @Local private saveTip: string = '尚未保存';
+  @Local private lastSavedValue: string = '';
   private debounceTimerId: number = -1;
 
+  aboutToAppear(): void {
+    this.value = this.initialValue;
+    this.lastSavedValue = this.initialValue;
+    this.saveTip = this.initialValue.length > 0 ? '已加载' : '尚未保存';
+  }
+
   aboutToDisappear(): void {
-    this.clearDebounceTimer();
+    // 组件销毁前尝试落最后一次改动，避免关闭弹层导致未保存。
+    this.saveNow();
   }
 
   private clearDebounceTimer(): void {
@@ -41,17 +52,31 @@ export struct AutoSaveText {
     }
   }
 
+  private normalizeForCompare(value: string): string {
+    return `${value}`.trim();
+  }
+
   private saveNow(): void {
     this.clearDebounceTimer();
+    const currentValue = this.normalizeForCompare(this.value);
+    const savedValue = this.normalizeForCompare(this.lastSavedValue);
+    if (currentValue === savedValue) {
+      this.saveTip = '无改动';
+      return;
+    }
     this.isSaving = true;
     this.onAutoSave(this.value);
     this.isSaving = false;
+    this.lastSavedValue = this.value;
     this.saveTip = '已自动保存';
   }
 
   private scheduleSave(): void {
     this.saveTip = '输入中...';
     this.clearDebounceTimer();
+    if (!this.saveOnChange) {
+      return;
+    }
     const waitMs = Math.max(120, this.debounceMs);
     this.debounceTimerId = setTimeout(() => {
       this.saveNow();
@@ -68,6 +93,7 @@ export struct AutoSaveText {
       TextInput({ text: this.value, placeholder: this.placeholder })
         .fontSize(14)
         .width('100%')
+        .height(this.inputHeight)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
         .padding(12)

@@ -10,74 +10,48 @@ export class IdeaRepository extends BaseRepository<Idea> {
     super(Idea);
   }
 
-  /**
-   * 按关键词搜索闪记（模糊匹配 title 和 content）。
-   * @param keyword 搜索关键词
-   * @returns 匹配的闪记列表
-   */
-  search(keyword: string): Promise<Idea[]> {
-    if (!keyword || keyword.trim().length === 0) {
-      return this.findAll();
+  async getDailyCountMap(days: number): Promise<Record<string, number>> {
+    const ideas: Array<Idea> = await this.findAll();
+    const result: Record<string, number> = {};
+    const dayRange: number = days > 0 ? days : 0;
+    const now: number = Date.now();
+    const startTime: number = dayRange > 0 ? now - (dayRange - 1) * 24 * 60 * 60 * 1000 : now;
+
+    for (let i = 0; i < ideas.length; i++) {
+      const idea: Idea = ideas[i];
+      const createdAt: number = idea.createdAt > 0 ? idea.createdAt : idea.timestamp;
+      if (dayRange > 0 && createdAt < startTime) {
+        continue;
+      }
+
+      const dateKey: string = this.formatDateKey(createdAt);
+      const currentCount: number = result[dateKey] ? result[dateKey] : 0;
+      result[dateKey] = currentCount + 1;
     }
-    const lowerKeyword = keyword.trim().toLowerCase();
-    return this.findAll().then((ideas: Idea[]) => {
-      return ideas.filter(
-        (idea: Idea) =>
-          idea.title.toLowerCase().includes(lowerKeyword) ||
-          idea.content.toLowerCase().includes(lowerKeyword),
-      );
-    });
+
+    return result;
   }
 
-  /**
-   * 按时间范围查询闪记。
-   * @param startTime 起始时间戳（闭区间）
-   * @param endTime 结束时间戳（闭区间）
-   * @returns 时间范围内的闪记列表
-   */
-  findByTimeRange(startTime: number, endTime: number): Promise<Idea[]> {
-    return this.findAll().then((ideas: Idea[]) => {
-      return ideas.filter((idea: Idea) => idea.timestamp >= startTime && idea.timestamp <= endTime);
-    });
+  async getTotalCount(): Promise<number> {
+    const ideas: Array<Idea> = await this.findAll();
+    return ideas.length;
   }
 
-  /**
-   * 获取每日闪记创建数量统计（用于热力图）。
-   * @param days 统计天数，默认 30 天
-   * @returns 每日创建数量映射，key 为 YYYY-MM-DD 格式
-   */
-  getDailyCountMap(days: number = 30): Promise<Record<string, number>> {
-    const now = Date.now();
-    const startTime = now - days * 24 * 60 * 60 * 1000;
-    return this.findAll().then((ideas: Idea[]) => {
-      const countMap: Record<string, number> = {};
-      ideas
-        .filter((idea: Idea) => idea.timestamp >= startTime)
-        .forEach((idea: Idea) => {
-          const date = new Date(idea.timestamp);
-          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-          countMap[key] = (countMap[key] || 0) + 1;
-        });
-      return countMap;
-    });
+  async getTotalLength(): Promise<number> {
+    const ideas: Array<Idea> = await this.findAll();
+    let totalLength: number = 0;
+
+    for (let i = 0; i < ideas.length; i++) {
+      totalLength += ideas[i].length;
+    }
+
+    return totalLength;
   }
 
-  /**
-   * 获取闪记总数。
-   * @returns 闪记总数
-   */
-  getTotalCount(): Promise<number> {
-    const all = this.query.find();
-    return Promise.resolve(all.length);
-  }
-
-  /**
-   * 获取闪记总字数。
-   * @returns 总字数
-   */
-  getTotalLength(): Promise<number> {
-    const all = this.query.find();
-    const total = all.reduce((sum: number, idea: Idea) => sum + (idea.length || 0), 0);
-    return Promise.resolve(total);
+  private formatDateKey(timestamp: number): string {
+    const date: Date = new Date(timestamp);
+    const month: string = String(date.getMonth() + 1).padStart(2, "0");
+    const day: string = String(date.getDate()).padStart(2, "0");
+    return `${date.getFullYear()}-${month}-${day}`;
   }
 }
