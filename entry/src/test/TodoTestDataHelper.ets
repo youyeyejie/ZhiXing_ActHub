@@ -115,13 +115,9 @@ export class TodoTestDataHelper {
    */
   async clearTestTodos(): Promise<number> {
     try {
-      const allTodos = await this.repository.findAll();
-      const testTodos = allTodos.filter(todo => todo.id.startsWith('test_todo_'));
-      
-      console.log(`发现${testTodos.length}个测试待办需要清理，开始删除...`);
-      let deletedCount = 0;
-      
-      for (const todo of testTodos) {
+      const allTodos = await this.repository.findAll();  
+      let deletedCount = 0;    
+      for (const todo of allTodos) {
         try {
           await this.repository.removeById(todo.id);
           deletedCount++;
