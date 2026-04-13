@@ -41,10 +41,6 @@ export struct TodoPickerSheet {
   @Local private isLoading: boolean = true;
 
   aboutToAppear(): void {
-    console.log('TodoPickerSheet aboutToAppear');
-    console.log('控制器状态:', this.controller ? '有效' : 'undefined');
-    console.log('控制器dismiss:', typeof this.controller?.dismiss);
-    
     this.loadTodos();
   }
 
@@ -55,15 +51,10 @@ export struct TodoPickerSheet {
       const repository = new TodoRepository();
       const unfinishedTodos = await repository.getUnfinishedTodos();
       
-      // 诊断日志：检查待办ID类型
-      console.log(`加载了${unfinishedTodos.length}个未完成待办`);
-      unfinishedTodos.forEach((todo, index) => {
-        console.log(`待办${index + 1}: id="${todo.id}", 类型=${typeof todo.id}, 内容="${todo.content.substring(0, 30)}..."`);
-      });
-      
       this.todos = unfinishedTodos;
+      console.info(`[TodoPickerSheet] 加载了 ${unfinishedTodos.length} 个未完成待办`);
     } catch (error) {
-      console.error('加载待办列表失败:', error);
+      console.error('[TodoPickerSheet] 加载待办列表失败:', error);
     } finally {
       this.isLoading = false;
     }
@@ -72,37 +63,27 @@ export struct TodoPickerSheet {
   /** 处理待办项点击 */
   private onTodoItemClick(todo: Todo): void {
     try {
-      console.log('开始处理待办项点击，待办ID:', todo?.id);
-      console.log('ID类型:', typeof todo?.id);
-      console.log('引擎状态:', this.engine ? '有效' : 'undefined');
-      console.log('控制器状态:', this.controller ? '有效' : 'undefined');
-      console.log('控制器dismiss类型:', typeof this.controller?.dismiss);
-      
-      // 设置专注引擎关联的待办ID - 确保转换为字符串，使用封装方法
+      // 设置专注引擎关联的待办ID
       const todoId = todo?.id ? String(todo.id) : '';
       this.engine.setRelatedTodo(todoId);
-      console.log(`已选择待办: ${todo.content.substring(0, 20)}... (ID: ${todoId.substring(0, 8)})`);
       
-      // 关闭ActionSheet面板 - 添加防御性检查
+      console.info(`[TodoPickerSheet] 已选择待办: ${todo.content.substring(0, 15)}... (ID: ${todoId})`);
+      
+      // 关闭ActionSheet面板
       if (typeof this.controller.dismiss === 'function') {
-        console.log('通过controller.dismiss关闭ActionSheet');
         this.controller.dismiss();
       } else {
-        console.warn('controller.dismiss未定义，通过onClose事件关闭');
-        // 直接触发关闭事件，让父组件处理关闭逻辑
+        console.warn('[TodoPickerSheet] controller.dismiss未定义，通过onClose回退关闭');
         this.onClose();
       }
-      
-      console.log('待办项点击处理完成');
     } catch (error) {
-      console.error('处理待办项点击时发生错误:', error);
-      console.error('错误堆栈:', error?.stack);
+      console.error('[TodoPickerSheet] 处理待办项点击时发生错误:', error);
       
       // 尝试通过onClose事件安全关闭
       try {
         this.onClose();
       } catch (closeError) {
-        console.error('调用onClose也失败:', closeError);
+        // 忽略静默错误
       }
     }
   }
@@ -166,6 +147,7 @@ export struct TodoPickerSheet {
                 }
               }
               .layoutWeight(1)
+              .alignItems(HorizontalAlign.Start)
               
               // 选择箭头
               SymbolGlyph($r('sys.symbol.chevron_right'))
@@ -202,7 +184,6 @@ export struct TodoPickerSheet {
       panelHeight: '60%',
       keyboardOffset: 0,
       onDismiss: () => {
-        console.log('TodoPickerSheet已关闭');
         // 通知父组件关闭事件
         this.onClose();
       }

@@ -28,7 +28,7 @@ export class FocusRepository extends BaseRepository<Focus> {
   async insertFocusRecord(focus: Focus): Promise<boolean> {
     try {
       await this.save(focus);
-      console.log(`专注记录已保存: ${focus.id}, 时长: ${focus.duration}秒`);
+      console.log(`[focusRepository]专注记录已保存: ${focus.id}, 时长: ${focus.duration}秒, 专注对应的todoID ${focus.todoId}`);
       return true;
     } catch (error) {
       console.error('插入专注记录失败:', error);

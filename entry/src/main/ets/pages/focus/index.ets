@@ -51,16 +51,6 @@ export struct FocusPage {
     console.log('关闭待办选择器');
   }
 
-  aboutToAppear(): void {
-    this.generateTestDataForDevelopment(); //TEST
-  }
-
-  /** TEST 测试数据 */
-  private async generateTestDataForDevelopment(): Promise<void> {
-      const testHelper = new TodoTestDataHelper();
-      testHelper.generateFocusTestData();
-  }
-
   build() {
     Stack() {
       // 主内容区域
