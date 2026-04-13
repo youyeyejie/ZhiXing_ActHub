@@ -19,4 +19,20 @@ export class FocusRepository extends BaseRepository<Focus> {
   constructor() {
     super(Focus);
   }
+
+  /**
+   * 插入专注记录（带有异常处理）
+   * @param focus 专注记录实体
+   * @returns 插入成功返回true，失败返回false
+   */
+  async insertFocusRecord(focus: Focus): Promise<boolean> {
+    try {
+      await this.save(focus);
+      console.log(`[focusRepository]专注记录已保存: ${focus.id}, 时长: ${focus.duration}秒, 专注对应的todoID ${focus.todoId}`);
+      return true;
+    } catch (error) {
+      console.error('插入专注记录失败:', error);
+      return false;
+    }
+  }
 }
