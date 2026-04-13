@@ -1,5 +1,22 @@
 import { Plan } from '../../core/models/Plan';
 import { PlanRepository } from '../../core/repositories/PlanRepository';
+import { UndoStackItem } from '../../components/feedback/UndoNotificationStack';
+
+class PlanUndoTask {
+  taskId: string;
+  plan: Plan;
+  originalIndex: number;
+  timerId: number;
+  deadlineMs: number;
+
+  constructor(taskId: string, plan: Plan, originalIndex: number, timerId: number, deadlineMs: number) {
+    this.taskId = taskId;
+    this.plan = plan;
+    this.originalIndex = originalIndex;
+    this.timerId = timerId;
+    this.deadlineMs = deadlineMs;
+  }
+}
 
 @ObservedV2
 export class PlanPageState {
@@ -15,13 +32,8 @@ export class PlanPageState {
   @Trace public isDetailVisible: boolean = false;
   @Trace public editingPlanId: string = '';
   @Trace public creatingPlanId: string = '';
-
-  @Trace public undoVisible: boolean = false;
-  @Trace public undoMessage: string = '';
-
-  private pendingDeletePlanId: string = '';
-  private pendingDeletePlanSnapshot: Plan | null = null;
-  private pendingDeleteTimerId: number = -1;
+  @Trace public undoTasks: Array<PlanUndoTask> = [];
+  private undoTaskSeq: number = 0;
   private refreshTask: Promise<void> | null = null;
 
   constructor() {
@@ -106,10 +118,9 @@ export class PlanPageState {
   private syncVisiblePlans(): void {
     const dayStart = this.toDayStart(this.selectedDate);
     const dayEnd = dayStart + this.dayMs;
-    const pendingDeleteId = this.safeTrim(this.pendingDeletePlanId);
     const filtered = this.plans.filter((item: Plan) => {
       const itemId = this.safeTrim(item.id);
-      if (pendingDeleteId.length > 0 && itemId === pendingDeleteId) {
+      if (this.hasUndoTaskForPlan(itemId)) {
         return false;
       }
       const startTime = item.startTime;
@@ -336,42 +347,54 @@ export class PlanPageState {
     if (target === null) {
       return;
     }
+    if (this.hasUndoTaskForPlan(normalizedId)) {
+      return;
+    }
 
-    this.clearPendingDelete();
-    this.pendingDeletePlanId = normalizedId;
-    this.pendingDeletePlanSnapshot = this.copyPlan(target);
-    this.undoMessage = '已删除日程';
-    this.undoVisible = true;
-    this.plans = this.sortPlansByStartTime(
-      this.plans.filter((item: Plan) => this.safeTrim(item.id) !== normalizedId)
-    );
+    const originalIndex = this.findPlanIndexById(normalizedId);
+    const snapshot = this.copyPlan(target);
+    const taskId = `plan_delete_${this.undoTaskSeq}`;
+    this.undoTaskSeq = this.undoTaskSeq + 1;
+    const deadlineMs = Date.now() + 5000;
+    const timerId = setTimeout(async (): Promise<void> => {
+      await this.commitDeletePlan(taskId);
+    }, 5000);
+    this.undoTasks = [...this.undoTasks, new PlanUndoTask(taskId, snapshot, originalIndex, timerId, deadlineMs)];
+    this.plans = this.sortPlansByStartTime(this.plans.filter((item: Plan) => this.safeTrim(item.id) !== normalizedId));
     if (this.safeTrim(this.editingPlanId) === normalizedId) {
       this.closePlanDetail();
     }
     this.syncVisiblePlans();
-    this.pendingDeleteTimerId = setTimeout(async (): Promise<void> => {
-      await this.commitDeletePlan();
-    }, 5000);
   }
 
-  undoDelete(): void {
-    const snapshot = this.pendingDeletePlanSnapshot;
-    this.clearPendingDelete();
-    this.undoVisible = false;
-    if (snapshot !== null) {
-      const snapshotId = this.safeTrim(snapshot.id);
-      const exists = this.plans.some((item: Plan) => this.safeTrim(item.id) === snapshotId);
-      if (!exists) {
-        this.plans = this.sortPlansByStartTime([...this.plans, snapshot]);
+  undoDelete(taskId: string): void {
+    const task = this.findUndoTask(taskId);
+    if (task === null) {
+      return;
+    }
+    this.closeUndo(taskId);
+    const snapshotId = this.safeTrim(task.plan.id);
+    const exists = this.plans.some((item: Plan) => this.safeTrim(item.id) === snapshotId);
+    if (!exists) {
+      const insertIndex = Math.max(0, Math.min(task.originalIndex, this.plans.length));
+      const before = this.plans.slice(0, insertIndex);
+      const after = this.plans.slice(insertIndex);
+      this.plans = this.sortPlansByStartTime([...before, task.plan, ...after]);
+      if (!this.isCurrentSelectedDateCovered(task.plan)) {
+        this.syncVisiblePlans();
+        return;
       }
     }
     this.syncVisiblePlans();
   }
 
-  async commitDeletePlan(): Promise<void> {
-    const planId = this.safeTrim(this.pendingDeletePlanId);
-    this.clearPendingDelete();
-    this.undoVisible = false;
+  async commitDeletePlan(taskId: string): Promise<void> {
+    const task = this.findUndoTask(taskId);
+    if (task === null) {
+      return;
+    }
+    const planId = this.safeTrim(task.plan.id);
+    this.closeUndo(taskId);
     if (planId.length === 0) {
       return;
     }
@@ -379,17 +402,64 @@ export class PlanPageState {
     await this.refreshAll();
   }
 
-  closeUndo(): void {
-    this.undoVisible = false;
+  closeUndo(taskId: string): void {
+    const task = this.findUndoTask(taskId);
+    if (task === null) {
+      return;
+    }
+    if (task.timerId >= 0) {
+      clearTimeout(task.timerId);
+    }
+    this.undoTasks = this.undoTasks.filter((item: PlanUndoTask) => item.taskId !== taskId);
   }
 
-  private clearPendingDelete(): void {
-    this.pendingDeletePlanId = '';
-    this.pendingDeletePlanSnapshot = null;
-    if (this.pendingDeleteTimerId >= 0) {
-      clearTimeout(this.pendingDeleteTimerId);
-      this.pendingDeleteTimerId = -1;
+  buildUndoStackItems(): Array<UndoStackItem> {
+    const list: Array<UndoStackItem> = [];
+    for (let i = 0; i < this.undoTasks.length; i++) {
+      const task = this.undoTasks[i];
+      const title = this.safeTrim(task.plan.content);
+      list.push(
+        new UndoStackItem(
+          task.taskId,
+          `${title.length > 0 ? title : '日程'} 已删除`,
+          '撤销',
+          5000,
+          task.deadlineMs,
+        )
+      );
     }
+    return list;
+  }
+
+  private findUndoTask(taskId: string): PlanUndoTask | null {
+    for (let i = 0; i < this.undoTasks.length; i++) {
+      if (this.undoTasks[i].taskId === taskId) {
+        return this.undoTasks[i];
+      }
+    }
+    return null;
+  }
+
+  private hasUndoTaskForPlan(planId: string): boolean {
+    const normalizedId = this.safeTrim(planId);
+    return this.undoTasks.some((task: PlanUndoTask) => this.safeTrim(task.plan.id) === normalizedId);
+  }
+
+  private findPlanIndexById(planId: string): number {
+    for (let i = 0; i < this.plans.length; i++) {
+      if (this.safeTrim(this.plans[i].id) === planId) {
+        return i;
+      }
+    }
+    return this.plans.length;
+  }
+
+  private isCurrentSelectedDateCovered(plan: Plan): boolean {
+    const dayStart = this.toDayStart(this.selectedDate);
+    const dayEnd = dayStart + this.dayMs;
+    const startTime = plan.startTime;
+    const endTime = plan.endTime > startTime ? plan.endTime : startTime;
+    return startTime < dayEnd && endTime > dayStart;
   }
 
   private newId(prefix: string): string {

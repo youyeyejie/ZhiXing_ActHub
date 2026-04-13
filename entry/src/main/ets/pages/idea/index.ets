@@ -15,11 +15,13 @@ class IdeaUndoTask {
   taskId: string;
   idea: Idea;
   originalIndex: number;
+  deadlineMs: number;
 
-  constructor(taskId: string, idea: Idea, originalIndex: number) {
+  constructor(taskId: string, idea: Idea, originalIndex: number, deadlineMs: number) {
     this.taskId = taskId;
     this.idea = idea;
     this.originalIndex = originalIndex;
+    this.deadlineMs = deadlineMs;
   }
 }
 /**
@@ -102,8 +104,9 @@ export struct IdeaPage {
 
     const taskId = `idea_undo_${this.undoTaskSeq}`;
     this.undoTaskSeq = this.undoTaskSeq + 1;
+    const deadlineMs = Date.now() + 5000;
     this.ideas = this.ideas.filter((item: Idea) => item.id !== idea.id);
-    this.undoTasks = [...this.undoTasks, new IdeaUndoTask(taskId, idea, index)];
+    this.undoTasks = [...this.undoTasks, new IdeaUndoTask(taskId, idea, index, deadlineMs)];
     this.selectedIdea = null;
   }
 
@@ -112,7 +115,7 @@ export struct IdeaPage {
     for (let i = 0; i < this.undoTasks.length; i++) {
       const task = this.undoTasks[i];
       const title = task.idea.title.length > 0 ? task.idea.title : "闪记";
-      list.push(new UndoStackItem(task.taskId, `${title} 已删除`));
+      list.push(new UndoStackItem(task.taskId, `${title} 已删除`, "撤销", 5000, task.deadlineMs));
     }
     return list;
   }

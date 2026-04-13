@@ -23,6 +23,7 @@ export struct UndoNotification {
   @Param message: string = "操作已执行";
   @Param actionText: string = "撤销";
   @Param durationMs: number = 5000;
+  @Param deadlineMs: number = 0;
   @Event onUndo: () => void = () => {};
   @Event onTimeout: () => void = () => {};
   @Event onClose: () => void = () => {};
@@ -47,9 +48,11 @@ export struct UndoNotification {
 
   private startCountdown(): void {
     this.stopCountdown();
-    this.remainMs = Math.max(1000, this.durationMs);
+    const duration = Math.max(1000, this.durationMs);
+    const deadline = this.deadlineMs > 0 ? this.deadlineMs : Date.now() + duration;
+    this.remainMs = Math.max(0, deadline - Date.now());
     this.timerId = setInterval(() => {
-      this.remainMs = this.remainMs - 10;
+      this.remainMs = Math.max(0, deadline - Date.now());
       if (this.remainMs <= 0) {
         this.stopCountdown();
         this.onTimeout();

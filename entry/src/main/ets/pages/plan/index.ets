@@ -3,7 +3,7 @@ import { TimelineView } from "./components/TimelineView";
 import { PlanEditorSheet } from "./components/PlanEditorSheet";
 import { PlanDetailOverlay } from "./components/PlanDetailOverlay";
 import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
-import { UndoNotificationStack, UndoStackItem } from "../../components/feedback/UndoNotificationStack";
+import { UndoNotificationStack } from "../../components/feedback/UndoNotificationStack";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
 import { AppOverlayRoute } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
@@ -44,25 +44,23 @@ export struct PlanPage {
         .padding({ left: 20, right: 20 });
       }
 
-      if (!this.state.undoVisible) {
-        FloatingActionButton({
-          onTap: async () => {
-            await this.state.refreshAll();
-            this.state.openCreatePlan();
-          },
-        })
-      }
+      FloatingActionButton({
+        onTap: async () => {
+          await this.state.refreshAll();
+          this.state.openCreatePlan();
+        },
+      })
 
       UndoNotificationStack({
-        tasks: this.state.undoVisible ? [new UndoStackItem("plan_delete", this.state.undoMessage)] : [],
-        onUndo: (_taskId: string) => {
-          this.state.undoDelete();
+        tasks: this.state.buildUndoStackItems(),
+        onUndo: (taskId: string) => {
+          this.state.undoDelete(taskId);
         },
-        onTimeout: async (_taskId: string) => {
-          await this.state.commitDeletePlan();
+        onTimeout: async (taskId: string) => {
+          await this.state.commitDeletePlan(taskId);
         },
-        onClose: (_taskId: string) => {
-          this.state.closeUndo();
+        onClose: (taskId: string) => {
+          this.state.closeUndo(taskId);
         },
       })
 

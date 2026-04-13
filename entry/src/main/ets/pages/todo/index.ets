@@ -4,7 +4,7 @@ import { TodoEditorSheet } from "./components/TodoEditorSheet";
 import { TodoDetailOverlay } from "./components/TodoDetailOverlay";
 import { CategoryEditorOverlay } from "./components/CategoryEditorOverlay";
 import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
-import { UndoNotificationStack, UndoStackItem } from "../../components/feedback/UndoNotificationStack";
+import { UndoNotificationStack } from "../../components/feedback/UndoNotificationStack";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
 import { AppOverlayRoute } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
@@ -43,25 +43,23 @@ export struct TodoPage {
         .padding({ left: 20, right: 20 });
       }
 
-      if (!this.state.undoVisible) {
-        FloatingActionButton({
-          onTap: async () => {
-            await this.state.refreshAll();
-            this.state.openCreateTodo();
-          },
-        })
-      }
+      FloatingActionButton({
+        onTap: async () => {
+          await this.state.refreshAll();
+          this.state.openCreateTodo();
+        },
+      })
 
       UndoNotificationStack({
-        tasks: this.state.undoVisible ? [new UndoStackItem("todo_delete", this.state.undoMessage)] : [],
-        onUndo: (_taskId: string) => {
-          this.state.undoDelete();
+        tasks: this.state.buildUndoStackItems(),
+        onUndo: (taskId: string) => {
+          this.state.undoDelete(taskId);
         },
-        onTimeout: async (_taskId: string) => {
-          await this.state.commitDeleteTodo();
+        onTimeout: async (taskId: string) => {
+          await this.state.commitDeleteTodo(taskId);
         },
-        onClose: (_taskId: string) => {
-          this.state.closeUndo();
+        onClose: (taskId: string) => {
+          this.state.closeUndo(taskId);
         },
       })
 

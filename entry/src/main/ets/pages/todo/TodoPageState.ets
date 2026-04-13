@@ -2,6 +2,23 @@ import { Todo } from '../../core/models/Todo';
 import { TodoCategory } from '../../core/models/TodoCategory';
 import { TodoRepository } from '../../core/repositories/TodoRepository';
 import { TodoCategoryRepository } from '../../core/repositories/TodoCategoryRepository';
+import { UndoStackItem } from '../../components/feedback/UndoNotificationStack';
+
+class TodoUndoTask {
+  taskId: string;
+  todo: Todo;
+  originalIndex: number;
+  timerId: number;
+  deadlineMs: number;
+
+  constructor(taskId: string, todo: Todo, originalIndex: number, timerId: number, deadlineMs: number) {
+    this.taskId = taskId;
+    this.todo = todo;
+    this.originalIndex = originalIndex;
+    this.timerId = timerId;
+    this.deadlineMs = deadlineMs;
+  }
+}
 
 @ObservedV2
 export class TodoPageState {
@@ -30,12 +47,8 @@ export class TodoPageState {
 
   @Trace public editingTodoId: string = '';
   @Trace public creatingTodoId: string = '';
-
-  @Trace public undoVisible: boolean = false;
-  @Trace public undoMessage: string = '';
-  private pendingDeleteTodoId: string = '';
-  private pendingDeleteTodoSnapshot: Todo | null = null;
-  private pendingDeleteTimerId: number = -1;
+  @Trace public undoTasks: Array<TodoUndoTask> = [];
+  private undoTaskSeq: number = 0;
   private readonly defaultCategoryName: string = '学习';
 
   private refreshTask: Promise<void> | null = null;
@@ -300,10 +313,12 @@ export class TodoPageState {
   private syncVisibleTodos(): void {
     const categoryId = this.safeTrim(this.selectedCategoryId);
     if (categoryId.length === 0) {
-      this.visibleTodos = this.todos.slice();
+      this.visibleTodos = this.todos.filter((item: Todo) => !this.hasUndoTaskForTodo(item.id)).slice();
       return;
     }
-    this.visibleTodos = this.todos.filter((item: Todo) => item.categoryId === categoryId).slice();
+    this.visibleTodos = this.todos.filter((item: Todo) => {
+      return item.categoryId === categoryId && !this.hasUndoTaskForTodo(item.id);
+    }).slice();
   }
 
   resolveCategoryName(categoryId: string): string {
@@ -617,40 +632,50 @@ export class TodoPageState {
     if (!target) {
       return;
     }
+    if (this.hasUndoTaskForTodo(normalizedId)) {
+      return;
+    }
 
-    this.clearPendingDelete();
-    this.pendingDeleteTodoId = normalizedId;
-    this.pendingDeleteTodoSnapshot = this.copyTodo(target);
-    this.undoMessage = '已删除待办';
-    this.undoVisible = true;
+    const originalIndex = this.findTodoIndexById(normalizedId);
+    const snapshot = this.copyTodo(target);
+    const taskId = `todo_delete_${this.undoTaskSeq}`;
+    this.undoTaskSeq = this.undoTaskSeq + 1;
+    const deadlineMs = Date.now() + 5000;
+    const timerId = setTimeout(async () => {
+      await this.commitDeleteTodo(taskId);
+    }, 5000);
+    this.undoTasks = [...this.undoTasks, new TodoUndoTask(taskId, snapshot, originalIndex, timerId, deadlineMs)];
     this.todos = this.todos.filter((item: Todo) => this.safeTrim(item.id) !== normalizedId);
     if (this.safeTrim(this.editingTodoId) === normalizedId) {
       this.closeTodoDetail();
     }
     this.syncVisibleTodos();
-    this.pendingDeleteTimerId = setTimeout(async () => {
-      await this.commitDeleteTodo();
-    }, 5000);
   }
 
-  undoDelete(): void {
-    const snapshot = this.pendingDeleteTodoSnapshot;
-    this.clearPendingDelete();
-    this.undoVisible = false;
-    if (snapshot !== null) {
-      const snapshotId = this.safeTrim(snapshot.id);
-      const exists = this.todos.some((item: Todo) => this.safeTrim(item.id) === snapshotId);
-      if (!exists) {
-        this.todos = [snapshot, ...this.todos];
-      }
+  undoDelete(taskId: string): void {
+    const task = this.findUndoTask(taskId);
+    if (task === null) {
+      return;
+    }
+    this.closeUndo(taskId);
+    const snapshotId = this.safeTrim(task.todo.id);
+    const exists = this.todos.some((item: Todo) => this.safeTrim(item.id) === snapshotId);
+    if (!exists) {
+      const insertIndex = Math.max(0, Math.min(task.originalIndex, this.todos.length));
+      const before = this.todos.slice(0, insertIndex);
+      const after = this.todos.slice(insertIndex);
+      this.todos = [...before, task.todo, ...after];
     }
     this.syncVisibleTodos();
   }
 
-  async commitDeleteTodo(): Promise<void> {
-    const todoId = this.pendingDeleteTodoId;
-    this.clearPendingDelete();
-    this.undoVisible = false;
+  async commitDeleteTodo(taskId: string): Promise<void> {
+    const task = this.findUndoTask(taskId);
+    if (task === null) {
+      return;
+    }
+    const todoId = this.safeTrim(task.todo.id);
+    this.closeUndo(taskId);
     if (todoId.length === 0) {
       return;
     }
@@ -658,17 +683,56 @@ export class TodoPageState {
     await this.refreshTodos();
   }
 
-  closeUndo(): void {
-    this.undoVisible = false;
+  closeUndo(taskId: string): void {
+    const task = this.findUndoTask(taskId);
+    if (task === null) {
+      return;
+    }
+    if (task.timerId >= 0) {
+      clearTimeout(task.timerId);
+    }
+    this.undoTasks = this.undoTasks.filter((item: TodoUndoTask) => item.taskId !== taskId);
   }
 
-  private clearPendingDelete(): void {
-    this.pendingDeleteTodoId = '';
-    this.pendingDeleteTodoSnapshot = null;
-    if (this.pendingDeleteTimerId >= 0) {
-      clearTimeout(this.pendingDeleteTimerId);
-      this.pendingDeleteTimerId = -1;
+  buildUndoStackItems(): Array<UndoStackItem> {
+    const list: Array<UndoStackItem> = [];
+    for (let i = 0; i < this.undoTasks.length; i++) {
+      const task = this.undoTasks[i];
+      const title = this.safeTrim(task.todo.content);
+      list.push(
+        new UndoStackItem(
+          task.taskId,
+          `${title.length > 0 ? title : '待办'} 已删除`,
+          '撤销',
+          5000,
+          task.deadlineMs,
+        )
+      );
     }
+    return list;
+  }
+
+  private findUndoTask(taskId: string): TodoUndoTask | null {
+    for (let i = 0; i < this.undoTasks.length; i++) {
+      if (this.undoTasks[i].taskId === taskId) {
+        return this.undoTasks[i];
+      }
+    }
+    return null;
+  }
+
+  private hasUndoTaskForTodo(todoId: string): boolean {
+    const normalizedId = this.safeTrim(todoId);
+    return this.undoTasks.some((task: TodoUndoTask) => this.safeTrim(task.todo.id) === normalizedId);
+  }
+
+  private findTodoIndexById(todoId: string): number {
+    for (let i = 0; i < this.todos.length; i++) {
+      if (this.safeTrim(this.todos[i].id) === todoId) {
+        return i;
+      }
+    }
+    return this.todos.length;
   }
 
   private pickColorForNewCategory(): string {

@@ -9,12 +9,20 @@ export class UndoStackItem {
   message: string;
   actionText: string;
   durationMs: number;
+  deadlineMs: number;
 
-  constructor(taskId: string, message: string, actionText: string = "撤销", durationMs: number = 5000) {
+  constructor(
+    taskId: string,
+    message: string,
+    actionText: string = "撤销",
+    durationMs: number = 5000,
+    deadlineMs: number = Date.now() + Math.max(1000, durationMs),
+  ) {
     this.taskId = taskId;
     this.message = message;
     this.actionText = actionText;
     this.durationMs = durationMs;
+    this.deadlineMs = deadlineMs;
   }
 }
 
@@ -40,6 +48,7 @@ export struct UndoNotificationStack {
                 message: task.message,
                 actionText: task.actionText,
                 durationMs: task.durationMs,
+                deadlineMs: task.deadlineMs,
                 onUndo: () => {
                   this.onUndo(task.taskId);
                 },
@@ -54,14 +63,12 @@ export struct UndoNotificationStack {
                 .zIndex(this.tasks.length + 1 - index)
                 .translate({ x: 0, y: -(this.tasks.length - 1 - index) * 14 })
                 .opacity(Math.max(0.56, 1 - (this.tasks.length - 1 - index) * 0.12))
-                .margin({ left: 16, right: 16, bottom: 16 });
+                .margin({ left: "4%", right: "28%", bottom: "6%" });
             },
             (task: UndoStackItem) => task.taskId,
           )
-        }
-        .width("100%");
+        }.width("100%");
       }
-    }
-    .width("100%");
+    }.width("100%");
   }
 }

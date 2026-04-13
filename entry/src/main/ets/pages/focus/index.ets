@@ -5,8 +5,6 @@ import { FocusTaskSelector } from './components/FocusTaskSelector';
 import { FocusControlButtons } from './components/FocusControlButtons';
 import { TodoPickerSheet } from './components/TodoPickerSheet';
 import { ActionSheetController } from '../../components/card/ActionSheet';
-// 测试数据助手（仅开发环境使用）
-import { TodoTestDataHelper } from '../../../../test/TodoTestDataHelper.ets';
 
 /**
  * 组件功能简介：
@@ -49,16 +47,6 @@ export struct FocusPage {
   private closeTodoPicker(): void {
     this.isPickerVisible = false;
     console.log('关闭待办选择器');
-  }
-
-  aboutToAppear(): void {
-    this.generateTestDataForDevelopment(); //TEST
-  }
-
-  /** TEST 测试数据 */
-  private async generateTestDataForDevelopment(): Promise<void> {
-      const testHelper = new TodoTestDataHelper();
-      testHelper.generateFocusTestData();
   }
 
   build() {

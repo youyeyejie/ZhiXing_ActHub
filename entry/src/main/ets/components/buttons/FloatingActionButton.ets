@@ -27,7 +27,7 @@ export struct FloatingActionButton {
       offsetX: 0,
       offsetY: 4,
     })
-    .margin({ right: 20, bottom: 40 })
+    .margin({ right: 20, bottom: "6%" })
     .onClick(() => {
       this.onTap();
     });
