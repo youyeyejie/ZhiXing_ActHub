@@ -38,6 +38,7 @@ export struct ActionSheetOverlayDestination {
     .width('100%')
     .height('100%')
     .backgroundColor(Color.Transparent)
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .mode(NavDestinationMode.DIALOG)
     .onBackPressed(() => {
       this.actionSheetController.dismiss();

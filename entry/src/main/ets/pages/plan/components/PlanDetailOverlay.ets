@@ -230,6 +230,7 @@ export struct PlanDetailOverlay {
     this.state.closePlanDetail();
     this.state.requestDeletePlan(this.normalizeId(plan.id));
     this.loadedPlanId = '';
+    this.app.nav.back(false);
   }
 
   @Builder
@@ -433,75 +434,46 @@ export struct PlanDetailOverlay {
   }
 
   build() {
-    if (this.state.isDetailVisible) {
-      Stack({ alignContent: Alignment.Center }) {
-        Column()
-          .width('100%')
-          .height('100%')
-          .backgroundColor(this.app.theme.palette.mask)
-          .opacity(0.5)
-          .onClick(() => {
-            this.closeOverlay();
-          });
-
-        if (this.resolveEditingPlan() === null) {
-          Column({ space: 8 }) {
-            Text('未找到日程')
-              .fontSize(16)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(this.app.theme.palette.textPrimary);
-            Text('该日程可能已被删除。')
-              .fontSize(12)
-              .fontColor(this.app.theme.palette.textSecondary);
-          }
-          .width('82%')
-          .padding({ left: 16, right: 16, top: 20, bottom: 20 })
-          .borderRadius(18)
-          .backgroundColor(this.app.theme.palette.surface);
-        } else {
+    Column() {
+      if (this.resolveEditingPlan() === null) {
+        Column({ space: 8 }) {
+          Text('未找到日程')
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.app.theme.palette.textPrimary);
+          Text('该日程可能已被删除。')
+            .fontSize(12)
+            .fontColor(this.app.theme.palette.textSecondary);
+        }
+        .width('100%')
+        .padding({ left: 6, right: 6, top: 8, bottom: 8 });
+      } else {
+        Scroll() {
           Column() {
-            Scroll() {
-              Column() {
-                this.buildDetailCard();
-              }
-              .width('100%');
-            }
-            .width('100%')
-            .height('100%')
-            .scrollBar(BarState.Off);
+            this.buildDetailCard();
           }
-          .width('84%')
-          .height('74%')
-          .padding({ left: 14, right: 14, top: 16, bottom: 14 })
-          .borderRadius(18)
-          .backgroundColor(this.app.theme.palette.surface)
-          .shadow({ radius: 20, color: this.app.theme.palette.mask, offsetX: 0, offsetY: 8 })
-          .onClick(() => {
-          })
-          .onAppear(() => {
-            const currentPlan = this.resolveEditingPlan();
-            const currentPlanId = currentPlan ? this.normalizeId(currentPlan.id) : '';
-            if (this.loadedPlanId !== currentPlanId) {
-              this.loadDraftFromCurrentPlan();
-            }
-          });
+          .width('100%');
         }
+        .width('100%')
+        .height('100%')
+        .scrollBar(BarState.Off)
+        .onAppear(() => {
+          const currentPlan = this.resolveEditingPlan();
+          const currentPlanId = currentPlan ? this.normalizeId(currentPlan.id) : '';
+          if (this.loadedPlanId !== currentPlanId) {
+            this.loadDraftFromCurrentPlan();
+          }
+        });
       }
-      .width('100%')
-      .height('100%')
-      .focusable(true)
-      .onKeyEvent((event: KeyEvent) => {
-        if (event.type === KeyType.Down && event.keyCode === 2) {
-          this.closeOverlay();
-          return true;
-        }
-        return false;
-      });
     }
+    .width('100%')
+    .height('100%');
   }
 
   aboutToDisappear(): void {
     this.flushDraftSave();
     this.clearAllTimers();
+    this.state.closePlanDetail();
+    this.loadedPlanId = '';
   }
 }

@@ -123,7 +123,7 @@ export struct FocusOverlayDestination {
     NavDestination() {
       Column() {
         SafeAreaInsetLayout({
-          includeTop: true,
+          includeTop: false,
           surfaceColor: this.app.theme.palette.background,
         }) {
           FocusPage({

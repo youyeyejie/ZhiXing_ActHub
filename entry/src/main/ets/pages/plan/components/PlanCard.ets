@@ -2,6 +2,7 @@ import { AppState, useAppState } from "../../../app/AppStates";
 import { Plan } from "../../../core/models/Plan";
 import { InteractableCard } from "../../../components/card/InteractableCard";
 import { PlanPageState, usePlanPageState } from "../PlanPageState";
+import { PlanDetailOverlay } from "./PlanDetailOverlay";
 
 /**
  * 日程交互卡片。
@@ -87,6 +88,11 @@ export struct PlanCard {
     return Date.now() >= this.suppressDetailOpenUntil;
   }
 
+  @Builder
+  private buildPlanDetailContent() {
+    PlanDetailOverlay();
+  }
+
   build() {
     InteractableCard({
       leftHint: "删除",
@@ -107,6 +113,7 @@ export struct PlanCard {
           return;
         }
         this.state.openPlanDetail(this.plan.id);
+        this.app.nav.openDetailCard(this.buildPlanDetailContent);
       },
     }) {
       Column({ space: 8 }) {

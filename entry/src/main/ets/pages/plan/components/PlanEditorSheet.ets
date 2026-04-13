@@ -1,5 +1,4 @@
 import { AppState, useAppState } from "../../../app/AppStates";
-import { ActionSheet, ActionSheetController } from "../../../components/card/ActionSheet";
 import { PlanPageState, usePlanPageState } from "../PlanPageState";
 import { PlanPickerStyle } from "./PlanPickerStyle";
 import promptAction from "@ohos.promptAction";
@@ -12,7 +11,6 @@ import promptAction from "@ohos.promptAction";
 export struct PlanEditorSheet {
   @Local private app: AppState = useAppState();
   @Local private state: PlanPageState = usePlanPageState();
-  private sheetController: ActionSheetController = new ActionSheetController();
 
   @Local private draftTitle: string = "";
   @Local private draftLocation: string = "";
@@ -112,6 +110,7 @@ export struct PlanEditorSheet {
     this.draftTitle = "";
     this.draftLocation = "";
     this.draftDescription = "";
+    this.app.nav.back(false);
   }
 
   private resolveTypeLabel(type: number): string {
@@ -312,17 +311,7 @@ export struct PlanEditorSheet {
 
   build() {
     Column() {
-      if (this.state.isEditorVisible) {
-        ActionSheet({
-          panelHeight: "76%",
-          controller: this.sheetController,
-          onDismiss: () => {
-            this.close();
-          },
-        }) {
-          this.buildContent()
-        };
-      }
+      this.buildContent()
     }
     .width("100%")
     .height("100%");

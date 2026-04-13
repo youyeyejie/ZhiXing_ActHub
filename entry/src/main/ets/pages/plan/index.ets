@@ -1,7 +1,6 @@
 import { WeekCalendar } from "./components/WeekCalendar";
 import { TimelineView } from "./components/TimelineView";
 import { PlanEditorSheet } from "./components/PlanEditorSheet";
-import { PlanDetailOverlay } from "./components/PlanDetailOverlay";
 import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
 import { UndoNotificationStack } from "../../components/feedback/UndoNotificationStack";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
@@ -17,6 +16,11 @@ import { PlanPageState, usePlanPageState } from "./PlanPageState";
 export struct PlanPage {
   @Local private app: AppState = useAppState();
   @Local private state: PlanPageState = usePlanPageState();
+
+  @Builder
+  private buildPlanEditorContent() {
+    PlanEditorSheet();
+  }
 
   aboutToAppear(): void {
     this.state.refreshAll();
@@ -48,6 +52,7 @@ export struct PlanPage {
         onTap: async () => {
           await this.state.refreshAll();
           this.state.openCreatePlan();
+          this.app.nav.openActionSheet(this.buildPlanEditorContent);
         },
       })
 
@@ -64,12 +69,6 @@ export struct PlanPage {
         },
       })
 
-      if (this.state.isEditorVisible) {
-        PlanEditorSheet()
-      }
-      if (this.state.isDetailVisible) {
-        PlanDetailOverlay()
-      }
     }
     .width("100%")
     .height("100%");

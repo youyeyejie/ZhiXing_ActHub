@@ -1,5 +1,4 @@
 import { AppState, useAppState } from "../../../app/AppStates";
-import { ActionSheet, ActionSheetController } from "../../../components/card/ActionSheet";
 import { TodoCategory } from "../../../core/models/TodoCategory";
 import { useTodoPageState, TodoPageState } from "../TodoPageState";
 import promptAction from "@ohos.promptAction";
@@ -12,7 +11,6 @@ import promptAction from "@ohos.promptAction";
 export struct TodoEditorSheet {
   @Local private app: AppState = useAppState();
   @Local private state: TodoPageState = useTodoPageState();
-  private sheetController: ActionSheetController = new ActionSheetController();
 
   @Local private draftTitle: string = "";
   @Local private draftDetail: string = "";
@@ -68,6 +66,7 @@ export struct TodoEditorSheet {
     this.state.closeTodoEditor();
     this.draftTitle = "";
     this.draftDetail = "";
+    this.app.nav.back(false);
   }
 
   @Builder
@@ -166,17 +165,7 @@ export struct TodoEditorSheet {
 
   build() {
     Column() {
-      if (this.state.isTodoEditorVisible) {
-        ActionSheet({
-          panelHeight: "68%",
-          controller: this.sheetController,
-          onDismiss: () => {
-            this.close();
-          },
-        }) {
-          this.buildContent()
-        };
-      }
+      this.buildContent()
     }
     .width("100%")
     .height("100%");

@@ -37,11 +37,20 @@ export struct IdeaPage {
 
   @Local private ideas: Idea[] = [];
   @Local private loading: boolean = false;
-  @Local private showEditor: boolean = false;
   @Local private editingIdea: Idea | null = null;
   @Local private selectedIdea: Idea | null = null;
   @Local private undoTasks: Array<IdeaUndoTask> = [];
   private undoTaskSeq: number = 0;
+
+  @Builder
+  private buildIdeaEditorContent() {
+    IdeaEditorSheet({
+      editIdea: this.editingIdea,
+      onSaved: (idea: Idea) => {
+        this.onIdeaSaved(idea);
+      },
+    });
+  }
 
   aboutToAppear(): void {
     this.onBottomBarVisibleChange(true);
@@ -69,7 +78,7 @@ export struct IdeaPage {
    */
   private openNewEditor(): void {
     this.editingIdea = null;
-    this.showEditor = true;
+    this.app.nav.openActionSheet(this.buildIdeaEditorContent);
   }
 
   /**
@@ -78,7 +87,7 @@ export struct IdeaPage {
   private openEditIdea(idea: Idea): void {
     this.selectedIdea = idea;
     this.editingIdea = idea;
-    this.showEditor = true;
+    this.app.nav.openActionSheet(this.buildIdeaEditorContent);
   }
 
   /**
@@ -88,7 +97,6 @@ export struct IdeaPage {
    */
   private onIdeaSaved(_idea: Idea): void {
     this.loadIdeas();
-    this.showEditor = false;
     this.editingIdea = null;
     this.selectedIdea = null;
   }
@@ -237,19 +245,6 @@ export struct IdeaPage {
         },
       })
 
-      // 编辑器弹层（全屏遮罩）
-      if (this.showEditor) {
-        IdeaEditorSheet({
-          editIdea: this.editingIdea,
-          onSaved: (idea: Idea) => {
-            this.onIdeaSaved(idea);
-          },
-          onDismiss: () => {
-            this.showEditor = false;
-            this.editingIdea = null;
-          },
-        });
-      }
     }
     .width("100%")
     .height("100%");

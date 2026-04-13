@@ -2,7 +2,6 @@ import { AppState, useAppState } from '../../../app/AppStates';
 import { FocusTimerEngine } from '../../../core/services/FocusTimerEngine';
 import { Todo } from '../../../core/models/Todo';
 import { TodoRepository } from '../../../core/repositories/TodoRepository';
-import { ActionSheet, ActionSheetController } from '../../../components/card/ActionSheet';
 
 /**
  * 组件功能简介：
@@ -11,10 +10,9 @@ import { ActionSheet, ActionSheetController } from '../../../components/card/Act
  *
  * 可传入项：
  * - @Param engine: FocusTimerEngine - 专注引擎，用于设置关联待办ID
- * - @Param controller: ActionSheetController - ActionSheet控制器，用于控制面板显示/隐藏
  *
  * 返回行为：
- * - 渲染半屏弹层，包含未完成待办列表。
+ * - 渲染待办列表内容，交由外层 ActionSheet overlay 容器承载。
  * - 点击待办项会关联到专注引擎并关闭面板。
  *
  * 副作用：
@@ -28,12 +26,6 @@ export struct TodoPickerSheet {
   /** 外部传入的专注引擎 */
   @Require @Param engine: FocusTimerEngine;
   
-  /** 外部传入的ActionSheet控制器 */
-  @Require @Param controller: ActionSheetController;
-  
-  /** 关闭回调（当ActionSheet通过遮罩层关闭时调用） */
-  @Event onClose: () => void = () => {};
-
   /** 未完成待办列表 */
   @Local private todos: Todo[] = [];
   
@@ -68,23 +60,11 @@ export struct TodoPickerSheet {
       this.engine.setRelatedTodo(todoId);
       
       console.info(`[TodoPickerSheet] 已选择待办: ${todo.content.substring(0, 15)}... (ID: ${todoId})`);
-      
-      // 关闭ActionSheet面板
-      if (typeof this.controller.dismiss === 'function') {
-        this.controller.dismiss();
-      } else {
-        console.warn('[TodoPickerSheet] controller.dismiss未定义，通过onClose回退关闭');
-        this.onClose();
-      }
+
+      // 通过导航栈关闭 ActionSheet overlay route
+      this.app.nav.back(false);
     } catch (error) {
       console.error('[TodoPickerSheet] 处理待办项点击时发生错误:', error);
-      
-      // 尝试通过onClose事件安全关闭
-      try {
-        this.onClose();
-      } catch (closeError) {
-        // 忽略静默错误
-      }
     }
   }
 
@@ -178,45 +158,34 @@ export struct TodoPickerSheet {
   }
 
   build() {
-    // 使用ActionSheet作为容器
-    ActionSheet({
-      controller: this.controller,
-      panelHeight: '60%',
-      keyboardOffset: 0,
-      onDismiss: () => {
-        // 通知父组件关闭事件
-        this.onClose();
-      }
-    }) {
-      Column({ space: 16 }) {
-        // 标题栏
-        Row({ space: 12 }) {
-          Text('选择专注任务')
-            .fontSize(18)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.app.theme.palette.textPrimary);
-            
-          if (!this.isLoading) {
-            Text(`(${this.todos.length}个待办)`)
-              .fontSize(14)
-              .fontColor(this.app.theme.palette.textSecondary);
-          }
-        }
-        .width('100%')
-        .justifyContent(FlexAlign.Start)
-        .alignItems(VerticalAlign.Center)
-        
-        // 待办列表区域 - 根据状态显示不同内容
-        if (this.isLoading) {
-          this.renderLoading();
-        } else if (this.todos.length === 0) {
-          this.renderEmpty();
-        } else {
-          this.renderTodoList();
+    Column({ space: 16 }) {
+      // 标题栏
+      Row({ space: 12 }) {
+        Text('选择专注任务')
+          .fontSize(18)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.app.theme.palette.textPrimary);
+
+        if (!this.isLoading) {
+          Text(`(${this.todos.length}个待办)`)
+            .fontSize(14)
+            .fontColor(this.app.theme.palette.textSecondary);
         }
       }
       .width('100%')
-      .height('100%')
+      .justifyContent(FlexAlign.Start)
+      .alignItems(VerticalAlign.Center)
+
+      // 待办列表区域 - 根据状态显示不同内容
+      if (this.isLoading) {
+        this.renderLoading();
+      } else if (this.todos.length === 0) {
+        this.renderEmpty();
+      } else {
+        this.renderTodoList();
+      }
     }
+    .width('100%')
+    .height('100%')
   }
 }

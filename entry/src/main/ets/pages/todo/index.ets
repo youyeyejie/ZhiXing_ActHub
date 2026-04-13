@@ -1,7 +1,6 @@
 import { CategoryFilter } from "./components/CategoryFilter";
 import { TodoCard } from "./components/TodoCard";
 import { TodoEditorSheet } from "./components/TodoEditorSheet";
-import { TodoDetailOverlay } from "./components/TodoDetailOverlay";
 import { CategoryEditorOverlay } from "./components/CategoryEditorOverlay";
 import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
 import { UndoNotificationStack } from "../../components/feedback/UndoNotificationStack";
@@ -18,6 +17,11 @@ import { TodoPageState, useTodoPageState } from "./TodoPageState";
 export struct TodoPage {
   @Local private app: AppState = useAppState();
   @Local private state: TodoPageState = useTodoPageState();
+
+  @Builder
+  private buildTodoEditorContent() {
+    TodoEditorSheet();
+  }
 
   aboutToAppear(): void {
     this.state.refreshAll();
@@ -47,6 +51,7 @@ export struct TodoPage {
         onTap: async () => {
           await this.state.refreshAll();
           this.state.openCreateTodo();
+          this.app.nav.openActionSheet(this.buildTodoEditorContent);
         },
       })
 
@@ -63,12 +68,6 @@ export struct TodoPage {
         },
       })
 
-      if (this.state.isTodoEditorVisible) {
-        TodoEditorSheet()
-      }
-      if (this.state.isTodoDetailVisible) {
-        TodoDetailOverlay()
-      }
       if (this.state.isCategoryEditorVisible) {
         CategoryEditorOverlay()
       }

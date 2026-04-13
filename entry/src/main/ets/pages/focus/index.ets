@@ -4,7 +4,6 @@ import { FocusTimerDisplay } from './components/FocusTimerDisplay';
 import { FocusTaskSelector } from './components/FocusTaskSelector';
 import { FocusControlButtons } from './components/FocusControlButtons';
 import { TodoPickerSheet } from './components/TodoPickerSheet';
-import { ActionSheetController } from '../../components/card/ActionSheet';
 
 /**
  * 组件功能简介：
@@ -31,22 +30,17 @@ export struct FocusPage {
     return this.app.focusEngine;
   }
   
-  /** 控制TodoPickerSheet显示/隐藏 */
-  @Local private isPickerVisible: boolean = false;
-  
-  /** ActionSheet控制器，用于控制TodoPickerSheet的显示/隐藏 */
-  @Local private sheetController: ActionSheetController = new ActionSheetController();
-
   /** 打开待办选择器 */
   private openTodoPicker(): void {
     console.log('打开待办选择器');
-    this.isPickerVisible = true;
+    this.app.nav.openActionSheet(this.buildTodoPickerContent);
   }
 
-  /** 关闭待办选择器 */
-  private closeTodoPicker(): void {
-    this.isPickerVisible = false;
-    console.log('关闭待办选择器');
+  @Builder
+  private buildTodoPickerContent() {
+    TodoPickerSheet({
+      engine: this.engine
+    });
   }
 
   build() {
@@ -106,17 +100,6 @@ export struct FocusPage {
       .height('100%')
       .backgroundColor(this.app.theme.palette.background)
       .padding({ top: 16 });
-
-      // 当需要显示时挂载TodoPickerSheet
-      if (this.isPickerVisible) {
-        TodoPickerSheet({ 
-          engine: this.engine,
-          controller: this.sheetController,
-          onClose: () => {
-            this.closeTodoPicker();
-          }
-        });
-      }
     }
     .width('100%')
     .height('100%');

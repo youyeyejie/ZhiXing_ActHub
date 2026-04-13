@@ -1,6 +1,4 @@
 import { InteractableCard } from '../../components/card/InteractableCard';
-import { DetailCard, DetailCardController } from '../../components/card/DetailCard';
-import { ActionSheet, ActionSheetController } from '../../components/card/ActionSheet';
 import { AutoSaveText } from '../../components/form/AutoSaveText';
 import { EditableSuite } from '../../components/form/EditableSuite';
 import { UndoNotification } from '../../components/feedback/UndoNotification';
@@ -54,16 +52,8 @@ class UndoDeleteTask {
  * 组件功能简介：
  * - 通用交互抽象层测试页面，用于集中验证卡片、弹层、自动保存与仓储测试流程。
  *
- * 可传入项：
- * - @Param actionSheetVisible: 控制 ActionSheet 是否显示。
- * - @Param detailCardVisible: 控制 DetailCard 是否显示。
- * - @Param actionSheetController: 外部传入的 ActionSheet 控制器。
- * - @Param detailCardController: 外部传入的 DetailCard 控制器。
- * - @Event onOpenActionSheet/onCloseActionSheet: ActionSheet 打开与关闭事件。
- * - @Event onOpenDetailCard/onCloseDetailCard: DetailCard 打开与关闭事件。
- *
  * 返回行为：
- * - 返回可滚动测试页，按状态渲染撤销通知、ActionSheet 与 DetailCard。
+ * - 返回可滚动测试页，按状态渲染撤销通知。
  *
  * 副作用：
  * - 会更新本地日志、卡片数据与撤销任务栈。
@@ -84,14 +74,6 @@ export struct SharedInteractionTestPage {
   @Local private undoTasks: Array<UndoDeleteTask> = [];
   @Local private undoTaskSeq: number = 0;
   private todoRepository: TodoRepository = new TodoRepository();
-  @Param actionSheetVisible: boolean = false;
-  @Param detailCardVisible: boolean = false;
-  @Param actionSheetController: ActionSheetController = new ActionSheetController();
-  @Param detailCardController: DetailCardController = new DetailCardController();
-  @Event onOpenActionSheet: () => void = () => {};
-  @Event onCloseActionSheet: () => void = () => {};
-  @Event onOpenDetailCard: () => void = () => {};
-  @Event onCloseDetailCard: () => void = () => {};
 
   private logToConsole(message: string): void {
     hilog.info(SHARED_TEST_LOG_DOMAIN, SHARED_TEST_LOG_TAG, '%{public}s', message);
@@ -260,25 +242,11 @@ export struct SharedInteractionTestPage {
         .width('100%')
         .height(42)
         .onClick(() => {
-          this.actionSheetController.dismiss();
+          this.app.nav.back(false);
         });
     }
     .alignItems(HorizontalAlign.Start)
     .width('100%');
-  }
-
-  @Builder
-  private buildActionSheet() {
-    ActionSheet({
-      panelHeight: '60%',
-      keyboardOffset: this.keyboardOffset,
-      controller: this.actionSheetController,
-      onDismiss: () => {
-        this.onCloseActionSheet();
-      }
-    }) {
-      this.buildActionSheetContent();
-    }
   }
 
   @Builder
@@ -296,18 +264,6 @@ export struct SharedInteractionTestPage {
     }
     .alignItems(HorizontalAlign.Start)
     .width('100%');
-  }
-
-  @Builder
-  private buildDetailDialog() {
-    DetailCard({
-      controller: this.detailCardController,
-      content: this.buildDetailDialogContent,
-      onDismiss: () => {
-        this.onCloseDetailCard();
-        this.logs.push('DetailCard 已关闭');
-      }
-    });
   }
 
   build() {
@@ -357,7 +313,7 @@ export struct SharedInteractionTestPage {
                 this.logs.push(item.title + ' 右滑触发');
               },
               onCardTap: () => {
-                this.onOpenDetailCard();
+                this.app.nav.openDetailCard(this.buildDetailDialogContent);
                 this.logs.push(item.title + ' 点击打开详情卡片');
               }
             }) {
@@ -393,7 +349,7 @@ export struct SharedInteractionTestPage {
               .backgroundColor(this.app.theme.palette.primary)
               .fontColor(this.app.theme.palette.surface)
               .onClick(() => {
-                this.onOpenActionSheet();
+                this.app.nav.openActionSheet(this.buildActionSheetContent);
                 this.logs.push('ActionSheet 打开');
               });
 
@@ -419,7 +375,7 @@ export struct SharedInteractionTestPage {
               .backgroundColor(this.app.theme.palette.primary)
               .fontColor(this.app.theme.palette.surface)
               .onClick(() => {
-                this.onOpenDetailCard();
+                this.app.nav.openDetailCard(this.buildDetailDialogContent);
                 this.logs.push('通过 DetailCard 组件打开详情卡片');
               });
 
@@ -494,14 +450,6 @@ export struct SharedInteractionTestPage {
 
       if (this.undoTasks.length > 0) {
         this.buildUndoStack();
-      }
-
-      if (this.actionSheetVisible) {
-        this.buildActionSheet();
-      }
-
-      if (this.detailCardVisible) {
-        this.buildDetailDialog();
       }
     }
     .width('100%')

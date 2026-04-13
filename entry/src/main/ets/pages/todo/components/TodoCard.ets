@@ -3,6 +3,7 @@ import { InteractableCard } from "../../../components/card/InteractableCard";
 import { Todo } from "../../../core/models/Todo";
 import { AppRoute } from "../../../app/AppConstants";
 import { useTodoPageState, TodoPageState } from "../TodoPageState";
+import { TodoDetailOverlay } from "./TodoDetailOverlay";
 
 /**
  * 组件功能简介：
@@ -63,6 +64,11 @@ export struct TodoCard {
 
   private canOpenDetailNow(): boolean {
     return Date.now() >= this.suppressDetailOpenUntil;
+  }
+
+  @Builder
+  private buildTodoDetailContent() {
+    TodoDetailOverlay();
   }
 
   @Builder
@@ -130,6 +136,7 @@ export struct TodoCard {
             return;
           }
           this.state.openTodoDetail(todo.id);
+          this.app.nav.openDetailCard(this.buildTodoDetailContent);
         })
       }
       .width("100%")
