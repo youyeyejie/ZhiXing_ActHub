@@ -3,7 +3,6 @@ import { FocusRepository } from '../repositories/FocusRepository';
 import { TodoRepository } from '../repositories/TodoRepository';
 import { Todo } from '../models/Todo';
 import { Focus } from '../models/Focus';
-
 export enum FocusState {
   IDLE = 'idle',          // 空闲状态
   WORKING = 'working',    // 工作中（专注阶段）
@@ -172,10 +171,9 @@ export class FocusTimerEngine {
   }
   
   private sendCompletionNotification(title: string, content: string): void {
-    // const notificationService = new NotificationService();
-    // notificationService.sendFocusCompletionNotification(title, content);
+    console.info(`[TimerEngine] 触发系统通知：${title} - ${content}`);
+    NotificationService.sendNotification(title, content);
   }
-  
   /** 异步保存专注记录 */
   private async saveFocusRecord(duration: number): Promise<void> {
     if (duration <= 0) return;
