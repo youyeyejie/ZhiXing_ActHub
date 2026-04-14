@@ -13,16 +13,19 @@ import { FocusTimerEngine, FocusState } from '../../../core/services/FocusTimerE
 @ComponentV2
 export struct FocusTimerDisplay {
   @Local private app: AppState = useAppState();
-  @Require @Param engine: FocusTimerEngine;
+
+  private get engine(): FocusTimerEngine {
+    return this.app.focusEngine;
+  }
 
   build() {
     Column({ space: 0 }) {
       // 大圆环进度显示
       Stack({ alignContent: Alignment.Center }) {
-        // todo: 美化，第一次进入时主动渲染为满
+        // 美化与防御：当总秒数为0（如首次冷启动时），默认赋予100并让value为100，实现初始满环显示
         Progress({
-          value: this.engine.getLeftSeconds(),
-          total: this.engine.totalSeconds,
+          value: this.engine.totalSeconds > 0 ? this.engine.getLeftSeconds() : 100,
+          total: this.engine.totalSeconds > 0 ? this.engine.totalSeconds : 100,
           type: ProgressType.Ring
         })
           .width(238)

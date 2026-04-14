@@ -1,5 +1,4 @@
 import { AppState, useAppState } from '../../app/AppStates';
-import { FocusTimerEngine } from '../../core/services/FocusTimerEngine';
 import { FocusTimerDisplay } from './components/FocusTimerDisplay';
 import { FocusTaskSelector } from './components/FocusTaskSelector';
 import { FocusControlButtons } from './components/FocusControlButtons';
@@ -25,22 +24,15 @@ export struct FocusPage {
   @Local private app: AppState = useAppState();
   @Param onRequestDismiss: () => void = () => {};
   
-  // <-- 修改：利用 getter 获取全局单例，保持下方代码 this.engine 的引用不需要修改
-  get engine(): FocusTimerEngine {
-    return this.app.focusEngine;
-  }
-  
   /** 打开待办选择器 */
   private openTodoPicker(): void {
     console.log('打开待办选择器');
-    this.app.nav.openActionSheet(this.buildTodoPickerContent);
+    this.app.nav.openActionSheet(() => { this.buildTodoPickerContent() });
   }
 
   @Builder
   private buildTodoPickerContent() {
-    TodoPickerSheet({
-      engine: this.engine
-    });
+    TodoPickerSheet();
   }
 
   build() {
@@ -68,9 +60,8 @@ export struct FocusPage {
 
         // 内容区域
         Column({ space: 0 }) {
-          // 任务选择器 - 使用原生@Monitor监听，无需手动触发刷新
+          // 任务选择器
           FocusTaskSelector({ 
-            engine: this.engine,
             onOpenPicker: () => {
               this.openTodoPicker();
             }
@@ -78,10 +69,10 @@ export struct FocusPage {
             .margin({ top: 5 })
 
           // 计时显示组件
-          FocusTimerDisplay({ engine: this.engine })
+          FocusTimerDisplay()
             .margin({ top: 40 })
           
-          FocusControlButtons({ engine: this.engine })
+          FocusControlButtons()
             .margin({ top: 20 })
 
           // 激励文字

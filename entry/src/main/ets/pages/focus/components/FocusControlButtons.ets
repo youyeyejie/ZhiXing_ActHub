@@ -10,7 +10,10 @@ import { FocusTimerEngine, FocusState } from '../../../core/services/FocusTimerE
 @ComponentV2
 export struct FocusControlButtons {
   @Local private app: AppState = useAppState();
-  @Require @Param engine: FocusTimerEngine;
+
+  get engine(): FocusTimerEngine {
+    return this.app.focusEngine;
+  }
 
   build() {
     Row({ space: 30 }) {
@@ -91,7 +94,7 @@ export struct FocusControlButtons {
   private handlePlayPauseClick(): void {
     switch (this.engine.state) {
       case FocusState.IDLE:
-        // 空闲状态 -> 开始专注
+        // 空闲状态 -> 开始专注 (注：此处你原代码传了30秒作测试，我已保留)
         this.engine.start(30);
         break;
       case FocusState.WORKING:

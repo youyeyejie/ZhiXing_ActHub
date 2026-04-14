@@ -1,5 +1,4 @@
 import { AppState, useAppState } from '../../../app/AppStates';
-import { FocusTimerEngine } from '../../../core/services/FocusTimerEngine';
 import { Todo } from '../../../core/models/Todo';
 import { TodoRepository } from '../../../core/repositories/TodoRepository';
 
@@ -9,7 +8,7 @@ import { TodoRepository } from '../../../core/repositories/TodoRepository';
  * - 显示未完成的待办列表，支持选择关联到专注引擎。
  *
  * 可传入项：
- * - @Param engine: FocusTimerEngine - 专注引擎，用于设置关联待办ID
+ * - 无（已重构为直接读取全局 AppState 中的 focusEngine）
  *
  * 返回行为：
  * - 渲染待办列表内容，交由外层 ActionSheet overlay 容器承载。
@@ -17,14 +16,11 @@ import { TodoRepository } from '../../../core/repositories/TodoRepository';
  *
  * 副作用：
  * - 查询数据库获取未完成待办列表。
- * - 设置engine.todoId时会更新专注引擎状态。
+ * - 设置全局 focusEngine.todoId 时会更新专注引擎状态。
  */
 @ComponentV2
 export struct TodoPickerSheet {
   @Local private app: AppState = useAppState();
-  
-  /** 外部传入的专注引擎 */
-  @Require @Param engine: FocusTimerEngine;
   
   /** 未完成待办列表 */
   @Local private todos: Todo[] = [];
@@ -55,12 +51,12 @@ export struct TodoPickerSheet {
   /** 处理待办项点击 */
   private onTodoItemClick(todo: Todo): void {
     try {
-      // 设置专注引擎关联的待办ID
       const todoId = todo?.id ? String(todo.id) : '';
       if (todoId.length === 0) {
         return;
       }
-      this.engine.setRelatedTodo(todoId, `${todo.content || ''}`);
+      
+      this.app.focusEngine.setRelatedTodo(todoId, `${todo.content || ''}`);
 
       const preview = `${todo.content || ''}`;
       const previewText = preview.length > 15 ? `${preview.substring(0, 15)}...` : preview;
