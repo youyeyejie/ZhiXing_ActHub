@@ -66,7 +66,7 @@ export struct IdeaCard {
         Text(this.idea.content)
           .fontSize(14)
           .fontColor(this.app.theme.palette.textSecondary)
-          .maxLines(3)
+          .maxLines(6)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
 
         Text(this.formatTime(this.idea.timestamp))
