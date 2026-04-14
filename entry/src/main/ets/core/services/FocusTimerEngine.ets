@@ -3,6 +3,7 @@ import { FocusRepository } from '../repositories/FocusRepository';
 import { TodoRepository } from '../repositories/TodoRepository';
 import { Todo } from '../models/Todo';
 import { Focus } from '../models/Focus';
+
 export enum FocusState {
   IDLE = 'idle',          // 空闲状态
   WORKING = 'working',    // 工作中（专注阶段）
@@ -22,9 +23,10 @@ export class FocusTimerEngine {
   
   // 默认配置
   DefaultWorkDuration: number = 1500;
-  DefaultRestDuration: number = 20; // tmp，测试用
+  DefaultRestDuration: number = 300;
   
   private currentWorkDuration: number = this.DefaultWorkDuration;
+  private currentRestDuration: number = this.DefaultRestDuration; 
   
   // private
   private timerId: number = -1;
@@ -35,13 +37,15 @@ export class FocusTimerEngine {
   private todoRepository: TodoRepository | null = null;
   
   /** 启动一次专注计时。 */
-  start(duration?: number, todoId?: string): void {
+  start(workDuration?: number, restDuration?: number, todoId?: string): void {
     if (this.state !== FocusState.IDLE && this.state !== FocusState.RESTING) {
       console.warn('[TimerEngine] 警告: 无法在非空闲/休息状态下启动专注');
       return;
     }
 
-    this.currentWorkDuration = duration || this.DefaultWorkDuration;
+    this.currentWorkDuration = workDuration && workDuration > 0 ? workDuration : this.DefaultWorkDuration;
+    this.currentRestDuration = restDuration && restDuration > 0 ? restDuration : this.DefaultRestDuration;
+    
     this.todoId = todoId || this.todoId;
     this.focusRecordId = this.generateRecordId();
     
@@ -89,7 +93,7 @@ export class FocusTimerEngine {
       return;
     }
     this.cleanupTimer();
-    this.start(this.currentWorkDuration, this.todoId); 
+    this.start(this.currentWorkDuration, this.currentRestDuration, this.todoId); 
   }
   
   /** 重置引擎状态到空闲。 */
@@ -161,19 +165,20 @@ export class FocusTimerEngine {
   private onWorkComplete(): void {
     this.sendCompletionNotification('专注完成', '恭喜完成一段专注时间！开始休息。');
     this.saveCurrentSegment(); 
-    this.setupPhase(this.DefaultRestDuration, FocusState.RESTING);
+    this.setupPhase(this.currentRestDuration, FocusState.RESTING);
   }
   
   private onRestComplete(): void {
     this.sendCompletionNotification('休息完成', '休息时间结束，自动开始下一段专注！');
     this.cleanupTimer();
-    this.start(this.currentWorkDuration, this.todoId); 
+    this.start(this.currentWorkDuration, this.currentRestDuration, this.todoId); 
   }
   
   private sendCompletionNotification(title: string, content: string): void {
     console.info(`[TimerEngine] 触发系统通知：${title} - ${content}`);
     NotificationService.sendNotification(title, content);
   }
+
   /** 异步保存专注记录 */
   private async saveFocusRecord(duration: number): Promise<void> {
     if (duration <= 0) return;
