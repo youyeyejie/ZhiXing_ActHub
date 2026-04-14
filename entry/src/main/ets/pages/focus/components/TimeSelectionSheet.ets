@@ -2,8 +2,21 @@ import { AppState, useAppState } from '../../../app/AppStates';
 import promptAction from '@ohos.promptAction';
 
 /**
- * 专注高级时间设置 ActionSheet
- * 包含宽大的全行快捷预设列表、纯表单输入及软键盘退避
+ * 组件功能简介：
+ * - 专注时间选择输入设置组件，提供常用时间预设与自定义输入。
+ *
+ * 可传入项：
+ * - @Require @Param initialWorkDuration: number (初始加载的专注时间，单位秒)
+ * - @Event onSave: (workDuration: number, restDuration: number) => void (点击保存或预设项时触发，回传设定的工作和休息时间)
+ * - @Event onSheetClose: () => void (组件即将销毁时触发的回调，用于通知父组件清理状态)
+ *
+ * 返回行为：
+ * - 渲染包含标题栏、预设快捷选项列表（番茄钟/课堂/一小时）及手动输入框（分/秒）的滚动表单容器。
+ *
+ * 副作用：
+ * - 提交保存时，会直接更新全局引擎 `app.focusEngine.DefaultRestDuration` 的值。
+ * - 保存成功或点击预设后，会触发 `promptAction.showToast` 进行系统级弱提示。
+ * - 完成操作后调用 `app.nav.back(false)` 触发路由出栈并销毁自身。
  */
 @ComponentV2
 export struct TimeSelectionSheet {

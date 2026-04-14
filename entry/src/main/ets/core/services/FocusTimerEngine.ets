@@ -4,6 +4,22 @@ import { TodoRepository } from '../repositories/TodoRepository';
 import { Todo } from '../models/Todo';
 import { Focus } from '../models/Focus';
 
+/**
+ * 组件功能简介：
+ * - 专注倒计时核心引擎，负责管理专注/休息状态机、计时器循环、记录切片保存以及系统通知发送。
+ *
+ * 可传入项：
+ * - 无 UI @Param 参数。对外提供各种操作方法（start, pause, resume, stop, skipRest, setRelatedTodo等）供视图层调用。
+ *
+ * 返回行为：
+ * - 通过 @Trace 暴露引擎的实时状态（state, remainingSeconds, totalSeconds, todoId, todoTitle），供订阅了这些状态的 UI 组件响应式刷新。
+ *
+ * 副作用：
+ * - startTimer 时会触发 JavaScript 的 setInterval 维持一个每秒执行的计时轮询。
+ * - 专注阶段（WORKING）结束或中途切换绑定待办时，会异步调用 FocusRepository 将专注时长分片存入数据库。
+ * - 阶段切换时（WORKING -> RESTING 或 RESTING -> WORKING），会触发 NotificationService.sendNotification 抛出系统通知。
+ */
+ 
 export enum FocusState {
   IDLE = 'idle',          // 空闲状态
   WORKING = 'working',    // 工作中（专注阶段）

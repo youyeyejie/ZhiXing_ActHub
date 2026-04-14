@@ -7,6 +7,23 @@ import { TodoPickerSheet } from './components/TodoPickerSheet';
 import { TimeSelectionSheet } from './components/TimeSelectionSheet';
 import promptAction from '@ohos.promptAction';
 
+/**
+ * 组件功能简介：
+ * - 专注主页面，作为专注模块的核心容器，整合任务选择、倒计时显示、高级时间设置与专注状态控制功能。
+ *
+ * 可传入项：
+ * - @Param onRequestDismiss: () => void (请求关闭/下拉收起当前专注页面的回调函数)
+ *
+ * 返回行为：
+ * - 渲染全屏的专注沉浸界面，自上而下包含：顶部导航栏（退出与设置按钮）、任务选择器、中心倒计时展示区、控制按钮组以及底部励志标语。
+ *
+ * 副作用：
+ * - 管理 customDuration（工作时长）和 customRestDuration（休息时长）的本地状态，并向下级组件分发传递。
+ * - 交互时会通过 `app.nav` 挂载并唤起 `TodoPickerSheet` (待办选择弹层) 和 `TimeSelectionSheet` (高级时间设置弹层)。
+ * - 拦截全屏背景的点击事件，用于快捷退出中心时间滚轮的编辑状态。
+ * - 在引擎非空闲状态（计时中）点击设置按钮时，会拦截操作并调用系统 `promptAction.showToast` 弹出警告提示。
+ */
+ 
 @ComponentV2
 export struct FocusPage {
   @Local private app: AppState = useAppState();

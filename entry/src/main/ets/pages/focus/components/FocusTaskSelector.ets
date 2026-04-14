@@ -1,3 +1,16 @@
+/**
+ * 组件功能简介：
+ * - 专注任务选择器组件，显示当前关联的任务名称或提供“选择任务”的交互入口。
+ *
+ * 可传入项：
+ * - @Event onOpenPicker: () => void (点击组件触发的回调，用于通知父组件打开选择器面板)
+ *
+ * 返回行为：
+ * - 渲染一个圆角矩形的任务标签。有任务时显示书签图标和任务名（超长截断），无任务或加载中时显示相应的提示文案。
+ *
+ * 副作用：
+ * - `aboutToAppear` 和对 `app.focusEngine.todoId` 的 `@Monitor` 监听会触发异步调用 `engine.getTodoName()`，查询并更新组件内部的待办名称缓存 (`currentTodoName`)。
+ */
 import { AppState, useAppState } from '../../../app/AppStates';
 import { FocusTimerEngine } from '../../../core/services/FocusTimerEngine';
 

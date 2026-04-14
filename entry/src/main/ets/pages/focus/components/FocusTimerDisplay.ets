@@ -1,3 +1,21 @@
+/**
+ * 组件功能简介：
+ * - 专注倒计时显示组件，提供环形进度展现以及点击中心数字切换至滚轮调整时间的功能。
+ *
+ * 可传入项：
+ * - @Require @Param isEditingTime: boolean (控制当前是否显示时间选择滚轮)
+ * - @Require @Param customDuration: number (外部传入的自定义时间时长，单位秒)
+ * - @Event onToggleEdit: (edit: boolean) => void (点击中心时间文本触发，请求进入编辑状态)
+ * - @Event onDurationChange: (duration: number) => void (滑动滚轮修改时间时实时抛出的回调)
+ *
+ * 返回行为：
+ * - 渲染一个固定尺寸（238x238）的环形进度条容器。内部根据状态平滑切换：非编辑状态展示剩余大字号时间和阶段文案，编辑状态展示分/秒双列滑动选择器。
+ *
+ * 副作用：
+ * - 通过 @Monitor 监听 `isEditingTime`，在进入编辑模式时自动解析并同步外部时间到本地选择器。
+ * - 强依赖全局的 `app.focusEngine` 获取倒计时进度、总时间和阶段名称。
+ * - 拦截了容器内部点击事件防止冒泡触发外层关闭逻辑。
+ */
 import { AppState, useAppState } from '../../../app/AppStates';
 import { FocusTimerEngine, FocusState } from '../../../core/services/FocusTimerEngine';
 

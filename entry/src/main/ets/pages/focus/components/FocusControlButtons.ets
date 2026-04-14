@@ -1,3 +1,20 @@
+/**
+ * 组件功能简介：
+ * - 专注控制按钮组，提供专注计时启停、结束操作，并集成了白噪音快捷播放与长按轨道选择。
+ *
+ * 可传入项：
+ * - @Param customDuration: number (专注工作时长)
+ * - @Param customRestDuration: number (专注休息时长)
+ * - @Event goBackIndex: () => void (返回首页回调)
+ *
+ * 返回行为：
+ * - 渲染包含三个圆形按钮的控制条（白噪音开关、播放/暂停、停止），长按白噪音按钮弹出音轨选择器。
+ *
+ * 副作用：
+ * - 启停或重置内部的 FocusTimerEngine。
+ * - 调用 WhiteNoisePlayer 进行音频状态流转（播放、暂停），并更新当前选中的音轨资源。
+ * - 触发 AppNav 打开 DetailCard 覆盖页。
+ */
 import { AppState, useAppState } from '../../../app/AppStates';
 import { FocusTimerEngine, FocusState } from '../../../core/services/FocusTimerEngine';
 import { PlayerState } from '../../../core/services/WhiteNoisePlayer'; 

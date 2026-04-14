@@ -6,9 +6,20 @@ import { TodoPickerStyle } from './TodoPickerStyle';
 
 /**
  * 组件功能简介：
- * - 专注前待办选择器，基于ActionSheet实现。
- * - 显示未完成的待办列表，支持选择关联到专注引擎。
- * - 样式在todoPickerStyle中修改。
+ * - 专注前待办选择器弹层内容，用于展示未完成的待办任务列表，并允许用户将选中的任务绑定到当前的专注计时中。
+ * - 样式可由TodoPickerStyle.ets修改
+ *
+ * 可传入项：
+ * - 无显式 @Param 传参（组件完全依赖并消费全局的 AppState 和 TodoPageState）。
+ *
+ * 返回行为：
+ * - 渲染包含标题栏和“取消”按钮的顶部控制区。
+ * - 渲染内容区：根据加载状态动态切换 Loading 态、空数据提示态，或支持滚动的待办任务卡片列表（包含当前选中项高亮和其他可选列表）。
+ *
+ * 副作用：
+ * - 组件挂载 (aboutToAppear) 时，会触发本地数据库的异步查询，拉取未完成的待办事项数据。
+ * - 点击某个待办卡片后，会直接修改全局 FocusTimerEngine 中的 relatedTodoId。
+ * - 点击任务卡片或取消按钮时，会触发 app.nav.back(false) 强制销毁当前覆盖层路由。
  */
 @ComponentV2
 export struct TodoPickerSheet {

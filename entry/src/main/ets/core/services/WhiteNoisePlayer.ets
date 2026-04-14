@@ -2,6 +2,23 @@ import { media } from '@kit.MediaKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { common } from '@kit.AbilityKit';
 
+/**
+ * 类功能简介：
+ * - 白噪音播放引擎服务类，基于底层 AVPlayer 提供状态完整的本地音频循环播放控制。
+ *
+ * 可传入项：
+ * - 无直接 UI @Param 传参（作为单例或全局服务挂载）。对外暴露控制方法，接收如 context (资源上下文) 和 fileName (音频文件名) 等参数。
+ *
+ * 返回行为：
+ * - 维护并向外暴露 @Trace 响应式状态（state 播放状态、currentTrackName 当前播放名、volume 音量、selectedTrack 用户偏好音轨），供 UI 组件直接绑定以实现界面的实时刷新。
+ *
+ * 副作用：
+ * - 实例化时会异步调用系统 media.createAVPlayer 创建并持续持有底层硬件播放器实例。
+ * - 播放操作会调用资源管理器 resourceManager.getRawFd() 异步读取系统 rawfile 目录下的文件句柄。
+ * - 会监听底层音频状态机（stateChange），并在 prepared 阶段强制设置 loop = true 实现音频无限循环。
+ * - 切歌或重新加载前若系统不处于 IDLE 状态，会强制调用 avPlayer.reset() 重置底层状态，防止崩溃。
+ */
+ 
 export enum PlayerState {
   IDLE,       
   LOADING,    
