@@ -1,8 +1,8 @@
 import { ThemeManager, ThemeMode } from '../core/theme/ThemeManager';
 import { AppNav } from './AppNav';
 import { AppFlow } from './AppConstants';
-import { FocusTimerEngine } from '../core/services/FocusTimerEngine'; // <-- 新增引入
-
+import { FocusTimerEngine } from '../core/services/FocusTimerEngine';
+import { WhiteNoisePlayer } from '../core/services/WhiteNoisePlayer';
 /**
  * 类功能简介：
  * - 应用运行态单例，统一管理主题、导航与流程状态。
@@ -21,7 +21,8 @@ import { FocusTimerEngine } from '../core/services/FocusTimerEngine'; // <-- 新
 export class AppState {
   private themeManager: ThemeManager = new ThemeManager();
   private _nav: AppNav = new AppNav();
-  private _focusEngine: FocusTimerEngine = new FocusTimerEngine(); // <-- 新增：实例化全局计时引擎
+  private _focusEngine: FocusTimerEngine = new FocusTimerEngine(); 
+  private _whiteNoisePlayer: WhiteNoisePlayer = new WhiteNoisePlayer();
   @Trace public flow: AppFlow = AppFlow.MAIN;
 
   /**
@@ -42,9 +43,14 @@ export class AppState {
    * 返回全局专注计时引擎实例。
    */
   get focusEngine(): FocusTimerEngine {
-    return this._focusEngine; // <-- 新增：提供外部访问接口
+    return this._focusEngine;
   }
-
+  /**
+   * 返回白噪音播放器。
+   */
+  get whiteNoisePlayer(): WhiteNoisePlayer {
+    return this._whiteNoisePlayer;
+  }
   /**
    * 应用主题偏好。
    */
