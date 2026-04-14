@@ -64,7 +64,8 @@ export struct IdeaPage {
       // 主页面内容
       MainTabPageLayout({
         title: "闪记",
-        actionIcon: $r("sys.media.ohos_ic_public_search_filled"),
+        actionIcon: $r("sys.symbol.magnifyingglass"),
+        actionText: "搜索",
         onActionTap: () => {
           this.app.nav.pushOverlayByName(
             AppOverlayRoute.SEARCH,
@@ -111,9 +112,6 @@ export struct IdeaPage {
 
           // 热力图
           ActivityHeatmap()
-
-          // 底部留白（给 FAB 留空间）
-          Column().height(100)
         }
       }
 

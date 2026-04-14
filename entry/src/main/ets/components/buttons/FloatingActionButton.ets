@@ -15,7 +15,7 @@ export struct FloatingActionButton {
       Image(this.content)
         .width(28)
         .height(28)
-        .fillColor("#FFFFFF")
+        .fillColor(this.app.theme.palette.surface);
     }
     .type(ButtonType.Circle)
     .width(56)

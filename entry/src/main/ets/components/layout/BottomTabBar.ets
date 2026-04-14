@@ -56,15 +56,13 @@ export struct BottomTabBar {
   private buildFocusAction() {
     Column({ space: 6 }) {
       Row() {
-        Image($r("app.media.foreground"))
+        Image($r(this.app.theme.palette.logo))
       }
       .width(70)
       .height(70)
-      .borderColor(this.app.theme.palette.logo)
-      .borderWidth(4)
       .borderRadius(35)
       .justifyContent(FlexAlign.Center)
-      .backgroundColor(this.app.theme.palette.logobackground);
+      .backgroundColor(this.app.theme.palette.primary);
     }
     .padding({ top: 2, left: 8, right: 8 })
     .alignItems(HorizontalAlign.Center)

@@ -21,8 +21,7 @@ export class ThemePalette {
   textTertiary: string = '#98A2B3';
   border: string = '#E5E7EB';
   mask: string = '#66000000';
-  logo: string = '#004c24';
-  logobackground: string = '#e5efe8';
+  logo: string = "app.media.foreground_white";
 
   static light(): ThemePalette {
     const palette = new ThemePalette();
@@ -35,8 +34,7 @@ export class ThemePalette {
     palette.textTertiary = '#98A2B3';
     palette.border = '#E5E7EB';
     palette.mask = '#66000000';
-    palette.logo = '#004c24';
-    palette.logobackground = '#e4f9f7';
+    palette.logo = "app.media.foreground_white";
     return palette;
   }
 
@@ -51,8 +49,7 @@ export class ThemePalette {
     palette.textTertiary = '#94A3B8';
     palette.border = '#334155';
     palette.mask = '#99000000';
-    palette.logo = '#004c24';
-    palette.logobackground = '#0b2011';
+    palette.logo = "app.media.foreground"
     return palette;
   }
 }
