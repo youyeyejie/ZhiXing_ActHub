@@ -90,7 +90,7 @@ export struct FocusPage {
       .width('100%')
       .height('100%')
       .backgroundColor(this.app.theme.palette.background)
-      .padding({ top: 16 });
+      .padding({ top: 30 });
     }
     .width('100%')
     .height('100%');
