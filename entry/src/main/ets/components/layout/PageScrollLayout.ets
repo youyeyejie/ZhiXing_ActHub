@@ -47,6 +47,7 @@ export struct PageScrollLayout {
       });
     }
     .scrollable(ScrollDirection.Vertical)
+    .scrollBar(BarState.Off)
     .layoutWeight(1)
     .width('100%')
     .backgroundColor(this.app.theme.palette.background)

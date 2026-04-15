@@ -26,7 +26,7 @@ export struct ActionSheetOverlayDestination {
   build() {
     NavDestination() {
       ActionSheet({
-        panelHeight: '56%',
+        panelHeight: this.app.nav.actionSheetHeight,
         controller: this.actionSheetController,
         onDismiss: () => {
           this.app.nav.back(false);

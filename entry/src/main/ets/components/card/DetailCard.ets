@@ -23,6 +23,7 @@ export class DetailCardController {
  *
  * 可传入项：
  * - @Param controller: 外部控制器，用于主动关闭。
+ * - @Param cardHeight: 卡片高度，默认 60%。
  * - @Event onDismiss: 卡片关闭完成后的回调。
  * - @BuilderParam content: 详情主体内容。
  *
@@ -37,6 +38,7 @@ export class DetailCardController {
 export struct DetailCard {
   @Param controller: DetailCardController = new DetailCardController();
   @Param title: string = '详情';
+  @Param cardHeight: string = '60%';
   @Event onDismiss: () => void = () => {};
   @BuilderParam content: () => void = this.defaultContent;
   @Local private app: AppState = useAppState();
@@ -141,7 +143,7 @@ export struct DetailCard {
 				.alignItems(HorizontalAlign.Start);
 			}
 			.width('80%')
-			.height('60%')
+      .height(this.cardHeight)
       .justifyContent(FlexAlign.Start)
 			.padding(18)
 			.borderRadius(20)

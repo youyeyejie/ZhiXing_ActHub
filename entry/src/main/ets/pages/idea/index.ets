@@ -1,6 +1,7 @@
 import { Idea } from "../../core/models/Idea";
-import { IdeaCard } from "./components/IdeaCard";
-import { IdeaEditorSheet } from "./components/IdeaEditorSheet";
+import { IdeaCardLlist } from "./components/IdeaCardLlist";
+import { IdeaActionSheetContent } from "./components/IdeaActionSheetContent";
+import { IdeaDetailCardContent } from "./components/IdeaDetailCardContent";
 import { HitokotoCard } from "./components/HitokotoCard";
 import { ActivityHeatmap } from "./components/ActivityHeatmap";
 import { AIInsightPanel } from "./components/AIInsightPanel";
@@ -23,16 +24,12 @@ export struct IdeaPage {
 
   @Builder
   private buildIdeaCreateContent() {
-    IdeaEditorSheet({
-      hideInnerHeader: false,
-    });
+    IdeaActionSheetContent();
   }
 
   @Builder
   private buildIdeaDetailContent() {
-    IdeaEditorSheet({
-      hideInnerHeader: true,
-    });
+    IdeaDetailCardContent();
   }
 
   aboutToAppear(): void {
@@ -97,7 +94,7 @@ export struct IdeaPage {
           ForEach(
             this.state.ideas,
             (idea: Idea) => {
-              IdeaCard({
+              IdeaCardLlist({
                 idea: idea,
                 refreshVersion: this.state.refreshVersion,
                 onDeleteRequest: (deleting: Idea) => {

@@ -4,11 +4,12 @@ import { useTodoPageState, TodoPageState } from "../TodoPageState";
 import promptAction from "@ohos.promptAction";
 
 /**
- * 待办新建/编辑半屏页骨架。
+ * 待办新建表单内容。
+ * 作为内容区传入 ActionSheetOverlayDestination，不在此重复实现弹层容器。
  * TODO: 后续补充截止时间、提醒等扩展字段。
  */
 @ComponentV2
-export struct TodoEditorSheet {
+export struct TodoActionSheetContent {
   @Local private app: AppState = useAppState();
   @Local private state: TodoPageState = useTodoPageState();
 

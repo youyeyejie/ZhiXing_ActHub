@@ -3,11 +3,11 @@ import { AppState, useAppState } from "../../app/AppStates";
 import { SearchResultItem, SearchScope, SearchService } from "../../core/services/SearchService";
 import { PlanPageState, usePlanPageState } from "../plan/PlanPageState";
 import { TodoPageState, useTodoPageState } from "../todo/TodoPageState";
-import { PlanDetailOverlay } from "../plan/components/PlanDetailOverlay";
-import { TodoDetailOverlay } from "../todo/components/TodoDetailOverlay";
+import { PlanDetailCardContent } from "../plan/components/PlanDetailCardContent";
+import { TodoDetailCardContent } from "../todo/components/TodoDetailCardContent";
 import { Idea } from "../../core/models/Idea";
 import { IdeaRepository } from "../../core/repositories/IdeaRepository";
-import { IdeaEditorSheet } from "../idea/components/IdeaEditorSheet";
+import { IdeaDetailCardContent } from "../idea/components/IdeaDetailCardContent";
 import { IdeaPageState, useIdeaPageState } from "../idea/IdeaPageState";
 import { KeyboardAvoidMode } from "@kit.ArkUI";
 import { SafeAreaUtils } from "../../core/theme/SafeAreaUtils";
@@ -51,19 +51,17 @@ export struct SearchPage {
 
   @Builder
   private buildPlanDetailContent() {
-    PlanDetailOverlay();
+    PlanDetailCardContent();
   }
 
   @Builder
   private buildTodoDetailContent() {
-    TodoDetailOverlay();
+    TodoDetailCardContent();
   }
 
   @Builder
   private buildIdeaDetailContent() {
-    IdeaEditorSheet({
-      hideInnerHeader: true,
-    });
+    IdeaDetailCardContent();
   }
 
   /**

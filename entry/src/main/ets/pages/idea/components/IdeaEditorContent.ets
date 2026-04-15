@@ -9,7 +9,7 @@ import { IdeaPageState, useIdeaPageState } from "../IdeaPageState";
  * 支持新建和编辑闪记，提供标题和内容的手动保存。
  */
 @ComponentV2
-export struct IdeaEditorSheet {
+export struct IdeaEditorContent {
   @Local private app: AppState = useAppState();
   @Local private state: IdeaPageState = useIdeaPageState();
   @Param hideInnerHeader: boolean = false;

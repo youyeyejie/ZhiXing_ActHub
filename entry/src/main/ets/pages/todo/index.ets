@@ -1,6 +1,6 @@
 import { CategoryFilter } from "./components/CategoryFilter";
-import { TodoCard } from "./components/TodoCard";
-import { TodoEditorSheet } from "./components/TodoEditorSheet";
+import { TodoCardLlist } from "./components/TodoCardLlist";
+import { TodoActionSheetContent } from "./components/TodoActionSheetContent";
 import { CategoryEditorOverlay } from "./components/CategoryEditorOverlay";
 import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
 import { UndoNotificationStack } from "../../components/feedback/UndoNotificationStack";
@@ -21,7 +21,7 @@ export struct TodoPage {
 
   @Builder
   private buildTodoEditorContent() {
-    TodoEditorSheet();
+    TodoActionSheetContent();
   }
 
   aboutToAppear(): void {
@@ -44,7 +44,7 @@ export struct TodoPage {
         CategoryFilter()
         .width("90%")
         PageScrollLayout({ space: 12, paddingTop: 12 }) {
-          TodoCard()
+          TodoCardLlist()
         }
       }
 

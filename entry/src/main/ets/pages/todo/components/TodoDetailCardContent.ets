@@ -1,18 +1,18 @@
-import { AppState, useAppState } from '../../../app/AppStates';
-import { Todo } from '../../../core/models/Todo';
-import { TodoCategory } from '../../../core/models/TodoCategory';
-import { useTodoPageState, TodoPageState } from '../TodoPageState';
+import { AppState, useAppState } from "../../../app/AppStates";
+import { Todo } from "../../../core/models/Todo";
+import { TodoCategory } from "../../../core/models/TodoCategory";
+import { useTodoPageState, TodoPageState } from "../TodoPageState";
 
 /**
- * 待办详情编辑全屏遮罩层。
- * 目标：覆盖整屏并置于最上层，不推动页面与底栏布局。
+ * 待办详情卡片内容。
+ * 作为内容区传入 DetailCardOverlayDestination，不在此重复实现卡片容器。
  */
 @ComponentV2
-export struct TodoDetailOverlay {
+export struct TodoDetailCardContent {
   @Local private app: AppState = useAppState();
   @Local private state: TodoPageState = useTodoPageState();
-  @Local private titleDraft: string = '';
-  @Local private detailDraft: string = '';
+  @Local private titleDraft: string = "";
+  @Local private detailDraft: string = "";
   @Local private loadedTodoId: number = 0;
   @Local private selectedCategoryIdDraft: number = 0;
   @Local private doneDraft: number = -1;
@@ -26,8 +26,8 @@ export struct TodoDetailOverlay {
 
   private normalizeText(value: string): string {
     const text = `${value}`.trim();
-    if (text === 'undefined' || text === 'null') {
-      return '';
+    if (text === "undefined" || text === "null") {
+      return "";
     }
     return text;
   }
@@ -45,8 +45,8 @@ export struct TodoDetailOverlay {
     const todo = this.resolveEditingTodo();
     if (todo === null) {
       this.loadedTodoId = 0;
-      this.titleDraft = '';
-      this.detailDraft = '';
+      this.titleDraft = "";
+      this.detailDraft = "";
       this.selectedCategoryIdDraft = 0;
       this.doneDraft = -1;
       return;
@@ -127,14 +127,6 @@ export struct TodoDetailOverlay {
     this.persistDetailDraft();
   }
 
-  private closeOverlay(): void {
-    this.flushDraftSave();
-    this.state.closeTodoDetail();
-    this.loadedTodoId = 0;
-    this.selectedCategoryIdDraft = 0;
-    this.doneDraft = -1;
-  }
-
   private resolveCurrentCategoryId(): number {
     const localCategoryId = this.normalizeId(this.selectedCategoryIdDraft);
     if (localCategoryId > 0) {
@@ -204,7 +196,9 @@ export struct TodoDetailOverlay {
       .height(28)
       .fontSize(13)
       .fontColor(selected ? this.app.theme.palette.surface : this.app.theme.palette.textSecondary)
-      .backgroundColor(selected ? this.app.theme.palette.primary : this.app.theme.palette.surfaceSecondary)
+      .backgroundColor(
+        selected ? this.app.theme.palette.primary : this.app.theme.palette.surfaceSecondary,
+      )
       .borderRadius(999)
       .padding({ left: 12, right: 12, top: 4, bottom: 4 })
       .onClick(() => {
@@ -215,8 +209,8 @@ export struct TodoDetailOverlay {
   @Builder
   private buildDetailCard() {
     Column({ space: 14 }) {
-      TextInput({ text: this.titleDraft, placeholder: '标题' })
-        .width('100%')
+      TextInput({ text: this.titleDraft, placeholder: "标题" })
+        .width("100%")
         .height(56)
         .fontSize(16)
         .fontWeight(FontWeight.Medium)
@@ -229,10 +223,9 @@ export struct TodoDetailOverlay {
         })
         .onBlur(() => {
           this.persistTitleDraft();
-        });
-
-      TextArea({ text: this.detailDraft, placeholder: '详情描述' })
-        .width('100%')
+        })
+      TextArea({ text: this.detailDraft, placeholder: "详情描述" })
+        .width("100%")
         .height(128)
         .fontSize(14)
         .fontColor(this.app.theme.palette.textSecondary)
@@ -245,35 +238,34 @@ export struct TodoDetailOverlay {
         })
         .onBlur(() => {
           this.persistDetailDraft();
-        });
-
+        })
       Scroll() {
         Row({ space: 8 }) {
           if (this.state.categories.length === 0) {
-            Text('暂无分类')
-              .fontSize(12)
-              .fontColor(this.app.theme.palette.textSecondary);
+            Text("暂无分类").fontSize(12).fontColor(this.app.theme.palette.textSecondary);
           }
-
-          ForEach(this.state.categories, (cat: TodoCategory) => {
-            this.buildCategoryChip(
-              cat.category,
-              this.resolveCurrentCategoryId() === this.normalizeId(cat.id),
-              () => {
-                this.switchCategory(this.normalizeId(cat.id));
-              }
-            );
-          }, (cat: TodoCategory) => `${this.normalizeId(cat.id)}_${this.resolveCurrentCategoryId()}`);
+          ForEach(
+            this.state.categories,
+            (cat: TodoCategory) => {
+              this.buildCategoryChip(
+                cat.category,
+                this.resolveCurrentCategoryId() === this.normalizeId(cat.id),
+                () => {
+                  this.switchCategory(this.normalizeId(cat.id));
+                },
+              );
+            },
+            (cat: TodoCategory) => `${this.normalizeId(cat.id)}_${this.resolveCurrentCategoryId()}`,
+          )
         }
-        .padding({ top: 2, bottom: 2 });
+        .padding({ top: 2, bottom: 2 })
       }
       .scrollable(ScrollDirection.Horizontal)
       .scrollBar(BarState.Off)
-      .width('100%')
-      .margin({ top: 2, bottom: 6 });
-
+      .width("100%")
+      .margin({ top: 2, bottom: 6 })
       Row({ space: 10 }) {
-        Button(this.resolveCurrentDone() === 1 ? '标为未完成' : '标为已完成')
+        Button(this.resolveCurrentDone() === 1 ? "标为未完成" : "标为已完成")
           .type(ButtonType.Capsule)
           .layoutWeight(1)
           .height(50)
@@ -282,9 +274,8 @@ export struct TodoDetailOverlay {
           .fontSize(16)
           .onClick(() => {
             this.toggleDoneAndSave();
-          });
-
-        Button('删除')
+          })
+        Button("删除")
           .type(ButtonType.Capsule)
           .layoutWeight(1)
           .height(50)
@@ -293,34 +284,33 @@ export struct TodoDetailOverlay {
           .fontSize(16)
           .onClick(() => {
             this.deleteCurrentTodo();
-          });
+          })
       }
-      .width('100%')
-      .margin({ top: 6 });
-    }
-    .width('100%');
+      .width("100%")
+      .margin({ top: 6 })
+    }.width("100%");
   }
 
   build() {
     Column() {
       if (this.resolveEditingTodo() === null) {
         Column({ space: 8 }) {
-          Text('未找到待办')
+          Text("未找到待办")
             .fontSize(16)
             .fontWeight(FontWeight.Medium)
-            .fontColor(this.app.theme.palette.textPrimary);
-          Text('该待办可能已被删除。')
+            .fontColor(this.app.theme.palette.textPrimary)
+          Text("该待办可能已被删除。")
             .fontSize(12)
-            .fontColor(this.app.theme.palette.textSecondary);
+            .fontColor(this.app.theme.palette.textSecondary)
         }
-        .width('100%')
+        .width("100%")
         .padding({ left: 6, right: 6, top: 8, bottom: 8 });
       } else {
         Scroll() {
-          this.buildDetailCard();
+          this.buildDetailCard()
         }
-        .width('100%')
-        .height('100%')
+        .width("100%")
+        .height("100%")
         .scrollBar(BarState.Off)
         .onAppear(() => {
           const currentTodo = this.resolveEditingTodo();
@@ -331,8 +321,8 @@ export struct TodoDetailOverlay {
         });
       }
     }
-    .width('100%')
-    .height('100%');
+    .width("100%")
+    .height("100%");
   }
 
   aboutToDisappear(): void {

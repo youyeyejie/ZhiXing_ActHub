@@ -8,7 +8,7 @@ import { PlanPickerStyle } from './PlanPickerStyle';
  * 支持自动保存与删除撤销联动。
  */
 @ComponentV2
-export struct PlanDetailOverlay {
+export struct PlanDetailCardContent {
   @Local private app: AppState = useAppState();
   @Local private state: PlanPageState = usePlanPageState();
 

@@ -1,6 +1,6 @@
 import { WeekCalendar } from "./components/WeekCalendar";
 import { TimelineView } from "./components/TimelineView";
-import { PlanEditorSheet } from "./components/PlanEditorSheet";
+import { PlanActionSheetContent } from "./components/PlanActionSheetContent";
 import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
 import { UndoNotificationStack } from "../../components/feedback/UndoNotificationStack";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
@@ -20,7 +20,7 @@ export struct PlanPage {
 
   @Builder
   private buildPlanEditorContent() {
-    PlanEditorSheet();
+    PlanActionSheetContent();
   }
 
   aboutToAppear(): void {
