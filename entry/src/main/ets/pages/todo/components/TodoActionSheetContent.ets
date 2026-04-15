@@ -1,7 +1,6 @@
 import { AppState, useAppState } from "../../../app/AppStates";
 import { TodoCategory } from "../../../core/models/TodoCategory";
 import { useTodoPageState, TodoPageState } from "../TodoPageState";
-import promptAction from "@ohos.promptAction";
 
 /**
  * 待办新建表单内容。
@@ -12,6 +11,8 @@ import promptAction from "@ohos.promptAction";
 export struct TodoActionSheetContent {
   @Local private app: AppState = useAppState();
   @Local private state: TodoPageState = useTodoPageState();
+  @Local private saving: boolean = false;
+  @Local private saveEnabled: boolean = false;
 
   @Local private draftTitle: string = "";
   @Local private draftDetail: string = "";
@@ -25,10 +26,12 @@ export struct TodoActionSheetContent {
     return `${value}`.trim();
   }
 
-  private safeToast(message: string): void {
-    try {
-      promptAction.showToast({ message, duration: 1500 });
-    } catch (_error) {}
+  private normalizeText(value: string): string {
+    const text = `${value}`.trim();
+    if (text === "undefined" || text === "null") {
+      return "";
+    }
+    return text;
   }
 
   private async prepareDraftForCreate(): Promise<void> {
@@ -42,25 +45,33 @@ export struct TodoActionSheetContent {
     if (this.draftCategoryId.length === 0 && this.state.categories.length > 0) {
       this.draftCategoryId = this.normalizeId(this.state.categories[0].id);
     }
+    this.recalculateSaveEnabled();
   }
 
-  private submit(): void {
-    const title = this.draftTitle;
+  private recalculateSaveEnabled(): void {
+    this.saveEnabled = this.computeCanSave();
+  }
+
+  private async submit(): Promise<void> {
+    if (!this.computeCanSave()) {
+      this.recalculateSaveEnabled();
+      return;
+    }
+    this.saving = true;
+    this.recalculateSaveEnabled();
+    const title = this.normalizeText(this.draftTitle);
     const detail = this.draftDetail;
     const categoryId = this.draftCategoryId;
-    this.state
-      .createTodo(title, detail, categoryId)
-      .then((ok: boolean) => {
-        if (ok) {
-          this.close();
-          this.safeToast("待办已添加");
-        } else {
-          this.safeToast("添加失败：请填写标题");
-        }
-      })
-      .catch((_error: object) => {
-        this.safeToast("添加失败：数据库异常 " + `${_error}`);
-      });
+    try {
+      const ok = await this.state.createTodo(title, detail, categoryId);
+      if (ok) {
+        this.close();
+      }
+    } catch (_error) {
+    } finally {
+      this.saving = false;
+      this.recalculateSaveEnabled();
+    }
   }
 
   private close(): void {
@@ -68,6 +79,10 @@ export struct TodoActionSheetContent {
     this.draftTitle = "";
     this.draftDetail = "";
     this.app.nav.back(false);
+  }
+
+  private computeCanSave(): boolean {
+    return !this.saving && this.normalizeText(this.draftTitle).length > 0;
   }
 
   @Builder
@@ -89,36 +104,65 @@ export struct TodoActionSheetContent {
   }
 
   @Builder
+  private buildHeaderActionButton(icon: Resource, enabled: boolean, onTap: () => void) {
+    Button({ type: ButtonType.Circle, stateEffect: enabled }) {
+      SymbolGlyph(icon)
+        .fontSize(18)
+        .fontColor([enabled ? this.app.theme.palette.surface : this.app.theme.palette.textSecondary]);
+    }
+      .width(34)
+      .height(34)
+      .backgroundColor(enabled ? this.app.theme.palette.primary : this.app.theme.palette.border)
+      .opacity(enabled ? 1 : 0.56)
+      .onClick(() => {
+        if (!enabled) {
+          return;
+        }
+        onTap();
+      });
+  }
+
+  @Builder
   private buildContent() {
     Column({ space: 12 }) {
       Row() {
         Text("新增待办")
-          .fontSize(16)
+          .fontSize(17)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.textPrimary)
           .layoutWeight(1)
-        Button("完成")
-          .type(ButtonType.Capsule)
-          .height(40)
-          .backgroundColor(this.app.theme.palette.primary)
-          .fontColor(this.app.theme.palette.surface)
-          .onClick(() => {
+
+        if (this.saveEnabled) {
+          this.buildHeaderActionButton($r("sys.symbol.save"), true, () => {
             this.submit();
-          })
+          });
+        } else {
+          this.buildHeaderActionButton($r("sys.symbol.save"), false, () => {
+            this.submit();
+          });
+        }
       }
       .width("100%")
       .alignItems(VerticalAlign.Center)
+
       TextInput({ text: this.draftTitle, placeholder: "请输入待办标题" })
-        .fontSize(14)
+        .fontSize(16)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.app.theme.palette.textPrimary)
+        .placeholderColor(this.app.theme.palette.textTertiary)
         .width("100%")
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
         .padding(12)
         .onChange((value: string) => {
           this.draftTitle = value;
+          this.recalculateSaveEnabled();
         })
+
       TextArea({ text: this.draftDetail, placeholder: "请输入待办详情（选填）" })
         .fontSize(14)
+        .fontColor(this.app.theme.palette.textSecondary)
+        .placeholderColor(this.app.theme.palette.textTertiary)
         .width("100%")
         .height(112)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
@@ -126,11 +170,9 @@ export struct TodoActionSheetContent {
         .padding(12)
         .onChange((value: string) => {
           this.draftDetail = value;
+          this.recalculateSaveEnabled();
         })
-      Text("分类")
-        .fontSize(14)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.app.theme.palette.textPrimary)
+
       Scroll() {
         Row({ space: 10 }) {
           if (this.state.categories.length === 0) {
@@ -158,9 +200,7 @@ export struct TodoActionSheetContent {
       .scrollable(ScrollDirection.Horizontal)
       .scrollBar(BarState.Off)
       .width("100%")
-      Text("提示：右滑待办可进入专注；左滑删除并支持 5 秒撤销。")
-        .fontSize(12)
-        .fontColor(this.app.theme.palette.textSecondary)
+
     }.width("100%");
   }
 

@@ -25,7 +25,7 @@ export class DetailCardController {
  * - @Param controller: 外部控制器，用于主动关闭。
  * - @Param cardHeight: 卡片高度，默认 60%。
  * - @Event onDismiss: 卡片关闭完成后的回调。
- * - @BuilderParam content: 详情主体内容。
+ * - @BuilderParam content: 详情主体内容（包含标题与关闭入口）。
  *
  * 返回行为：
  * - 返回全屏遮罩与居中详情卡片。
@@ -37,7 +37,6 @@ export class DetailCardController {
 @ComponentV2
 export struct DetailCard {
   @Param controller: DetailCardController = new DetailCardController();
-  @Param title: string = '详情';
   @Param cardHeight: string = '60%';
   @Event onDismiss: () => void = () => {};
   @BuilderParam content: () => void = this.defaultContent;
@@ -76,36 +75,6 @@ export struct DetailCard {
   }
 
   @Builder
-  private buildHeader() {
-    Row() {
-      Text(this.title)
-        .fontSize(17)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.app.theme.palette.textPrimary)
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .layoutWeight(1);
-
-      Button({ type: ButtonType.Circle, stateEffect: true }) {
-        Text('×')
-          .fontSize(18)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(this.app.theme.palette.textSecondary);
-      }
-        .width(28)
-        .height(28)
-      .backgroundColor(this.app.theme.palette.surface)
-      .margin({ left: 8 })
-      .onClick(() => {
-        this.requestDismiss();
-      });
-    }
-    .width('100%')
-    .justifyContent(FlexAlign.SpaceBetween)
-    .alignItems(VerticalAlign.Center);
-  }
-
-  @Builder
   private defaultContent() {
     Column({ space: 8 }) {
       Text('DetailCard')
@@ -132,15 +101,7 @@ export struct DetailCard {
 				});
 
 			Column({ space: 10 }) {
-				this.buildHeader();
-
-				Column({ space: 10 }) {
-					this.content();
-				}
-				.width('100%')
-				.layoutWeight(1)
-        .justifyContent(FlexAlign.Start)
-				.alignItems(HorizontalAlign.Start);
+        this.content();
 			}
 			.width('80%')
       .height(this.cardHeight)

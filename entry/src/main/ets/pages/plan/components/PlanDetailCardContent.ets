@@ -5,26 +5,34 @@ import { PlanPickerStyle } from './PlanPickerStyle';
 
 /**
  * 日程详情编辑全屏遮罩层。
- * 支持自动保存与删除撤销联动。
+ * 支持手动保存与删除撤销联动。
  */
 @ComponentV2
 export struct PlanDetailCardContent {
   @Local private app: AppState = useAppState();
   @Local private state: PlanPageState = usePlanPageState();
+  @Local private saving: boolean = false;
+  @Local private saveEnabled: boolean = false;
 
   @Local private loadedPlanId: string = '';
   @Local private titleDraft: string = '';
+  @Local private initialTitle: string = '';
   @Local private locationDraft: string = '';
+  @Local private initialLocation: string = '';
   @Local private descriptionDraft: string = '';
+  @Local private initialDescription: string = '';
   @Local private isCourseDraft: number = 0;
+  @Local private initialIsCourse: number = 0;
   @Local private startDateDraft: Date = new Date();
   @Local private startTimeDraft: Date = new Date();
+  @Local private initialStartMs: number = 0;
   @Local private endDateDraft: Date = new Date();
   @Local private endTimeDraft: Date = new Date();
+  @Local private initialEndMs: number = 0;
 
-  private titleSaveTimerId: number = -1;
-  private locationSaveTimerId: number = -1;
-  private descriptionSaveTimerId: number = -1;
+  aboutToAppear(): void {
+    this.loadDraftFromCurrentPlan();
+  }
 
   private normalizeText(value: string): string {
     const text = `${value}`.trim();
@@ -92,7 +100,7 @@ export struct PlanDetailCardContent {
       const accepted = new Date(value.getTime());
       this.startDateDraft = accepted;
       this.startTimeDraft = accepted;
-      this.persistTimeDraftIfValid();
+      this.recalculateSaveEnabled();
     });
   }
 
@@ -102,7 +110,7 @@ export struct PlanDetailCardContent {
       const accepted = new Date(value.getTime());
       this.endDateDraft = accepted;
       this.endTimeDraft = accepted;
-      this.persistTimeDraftIfValid();
+      this.recalculateSaveEnabled();
     });
   }
 
@@ -115,41 +123,21 @@ export struct PlanDetailCardContent {
     return found ? found : null;
   }
 
-  private clearTitleSaveTimer(): void {
-    if (this.titleSaveTimerId >= 0) {
-      clearTimeout(this.titleSaveTimerId);
-      this.titleSaveTimerId = -1;
-    }
-  }
-
-  private clearLocationSaveTimer(): void {
-    if (this.locationSaveTimerId >= 0) {
-      clearTimeout(this.locationSaveTimerId);
-      this.locationSaveTimerId = -1;
-    }
-  }
-
-  private clearDescriptionSaveTimer(): void {
-    if (this.descriptionSaveTimerId >= 0) {
-      clearTimeout(this.descriptionSaveTimerId);
-      this.descriptionSaveTimerId = -1;
-    }
-  }
-
-  private clearAllTimers(): void {
-    this.clearTitleSaveTimer();
-    this.clearLocationSaveTimer();
-    this.clearDescriptionSaveTimer();
-  }
-
   private loadDraftFromCurrentPlan(): void {
     const plan = this.resolveEditingPlan();
     if (plan === null) {
       this.loadedPlanId = '';
       this.titleDraft = '';
+      this.initialTitle = '';
       this.locationDraft = '';
+      this.initialLocation = '';
       this.descriptionDraft = '';
+      this.initialDescription = '';
       this.isCourseDraft = 0;
+      this.initialIsCourse = 0;
+      this.initialStartMs = 0;
+      this.initialEndMs = 0;
+      this.recalculateSaveEnabled();
       return;
     }
 
@@ -158,81 +146,63 @@ export struct PlanDetailCardContent {
     const endMs = plan.endTime > plan.startTime ? plan.endTime : (startMs + 60 * 60 * 1000);
     this.loadedPlanId = this.normalizeId(plan.id);
     this.titleDraft = this.normalizeText(plan.content);
+    this.initialTitle = this.titleDraft;
     this.locationDraft = this.normalizeText(plan.location);
+    this.initialLocation = this.locationDraft;
     this.descriptionDraft = this.normalizeText(plan.description);
+    this.initialDescription = this.descriptionDraft;
     this.isCourseDraft = plan.isCourse === 1 ? 1 : 0;
+    this.initialIsCourse = this.isCourseDraft;
     this.startDateDraft = new Date(startMs);
     this.startTimeDraft = new Date(startMs);
+    this.initialStartMs = startMs;
     this.endDateDraft = new Date(endMs);
     this.endTimeDraft = new Date(endMs);
+    this.initialEndMs = endMs;
+    this.recalculateSaveEnabled();
   }
 
-  private scheduleTitleSave(): void {
-    this.clearTitleSaveTimer();
-    this.titleSaveTimerId = setTimeout(() => {
-      this.persistTitleDraft();
-    }, 420);
+  private hasDraftChanges(): boolean {
+    const startMs = this.composeDateTime(this.startDateDraft, this.startTimeDraft);
+    const endMs = this.composeDateTime(this.endDateDraft, this.endTimeDraft);
+    return this.normalizeText(this.titleDraft) !== this.initialTitle
+      || this.normalizeText(this.locationDraft) !== this.initialLocation
+      || this.normalizeText(this.descriptionDraft) !== this.initialDescription
+      || this.isCourseDraft !== this.initialIsCourse
+      || startMs !== this.initialStartMs
+      || endMs !== this.initialEndMs;
   }
 
-  private scheduleLocationSave(): void {
-    this.clearLocationSaveTimer();
-    this.locationSaveTimerId = setTimeout(() => {
-      this.persistLocationDraft();
-    }, 520);
+  private computeCanSave(): boolean {
+    if (this.saving) {
+      return false;
+    }
+    if (this.normalizeText(this.titleDraft).length === 0) {
+      return false;
+    }
+    const startMs = this.composeDateTime(this.startDateDraft, this.startTimeDraft);
+    const endMs = this.composeDateTime(this.endDateDraft, this.endTimeDraft);
+    if (endMs <= startMs) {
+      return false;
+    }
+    return this.resolveEditingPlan() !== null;
   }
 
-  private scheduleDescriptionSave(): void {
-    this.clearDescriptionSaveTimer();
-    this.descriptionSaveTimerId = setTimeout(() => {
-      this.persistDescriptionDraft();
-    }, 680);
+  private recalculateSaveEnabled(): void {
+    this.saveEnabled = this.computeCanSave();
   }
 
-  private persistTitleDraft(): void {
-    this.clearTitleSaveTimer();
+  private async saveChanges(): Promise<void> {
     const plan = this.resolveEditingPlan();
-    if (plan === null) {
+    if (plan === null || !this.computeCanSave()) {
       return;
     }
-    const nextTitle = this.normalizeText(this.titleDraft);
-    const currentTitle = this.normalizeText(plan.content);
-    if (nextTitle === currentTitle) {
+    if (!this.hasDraftChanges()) {
+      this.app.nav.back(false);
       return;
     }
-    this.state.updatePlanContent(this.normalizeId(plan.id), nextTitle);
-  }
-
-  private persistLocationDraft(): void {
-    this.clearLocationSaveTimer();
-    const plan = this.resolveEditingPlan();
-    if (plan === null) {
-      return;
-    }
-    const nextLocation = this.normalizeText(this.locationDraft);
-    const currentLocation = this.normalizeText(plan.location);
-    if (nextLocation === currentLocation) {
-      return;
-    }
-    this.state.updatePlanLocation(this.normalizeId(plan.id), nextLocation);
-  }
-
-  private persistDescriptionDraft(): void {
-    this.clearDescriptionSaveTimer();
-    const plan = this.resolveEditingPlan();
-    if (plan === null) {
-      return;
-    }
-    const nextDescription = this.normalizeText(this.descriptionDraft);
-    const currentDescription = this.normalizeText(plan.description);
-    if (nextDescription === currentDescription) {
-      return;
-    }
-    this.state.updatePlanDescription(this.normalizeId(plan.id), nextDescription);
-  }
-
-  private persistTimeDraftIfValid(): void {
-    const plan = this.resolveEditingPlan();
-    if (plan === null) {
+    const planId = this.normalizeId(plan.id);
+    if (planId.length === 0) {
       return;
     }
     const startMs = this.composeDateTime(this.startDateDraft, this.startTimeDraft);
@@ -240,14 +210,26 @@ export struct PlanDetailCardContent {
     if (endMs <= startMs) {
       return;
     }
-    this.state.updatePlanTime(this.normalizeId(plan.id), startMs, endMs);
-  }
+    this.saving = true;
+    this.recalculateSaveEnabled();
+    try {
+      await this.state.updatePlanContent(planId, this.normalizeText(this.titleDraft));
+      await this.state.updatePlanTime(planId, startMs, endMs);
+      await this.state.updatePlanLocation(planId, this.normalizeText(this.locationDraft));
+      await this.state.updatePlanDescription(planId, this.normalizeText(this.descriptionDraft));
+      await this.state.updatePlanType(planId, this.isCourseDraft);
 
-  private flushDraftSave(): void {
-    this.persistTitleDraft();
-    this.persistLocationDraft();
-    this.persistDescriptionDraft();
-    this.persistTimeDraftIfValid();
+      this.initialTitle = this.normalizeText(this.titleDraft);
+      this.initialLocation = this.normalizeText(this.locationDraft);
+      this.initialDescription = this.normalizeText(this.descriptionDraft);
+      this.initialIsCourse = this.isCourseDraft;
+      this.initialStartMs = startMs;
+      this.initialEndMs = endMs;
+      this.app.nav.back(false);
+    } finally {
+      this.saving = false;
+      this.recalculateSaveEnabled();
+    }
   }
 
   private resolveTypeLabel(type: number): string {
@@ -259,20 +241,15 @@ export struct PlanDetailCardContent {
   }
 
   private switchType(isCourse: number): void {
-    const plan = this.resolveEditingPlan();
-    if (plan === null) {
-      return;
-    }
     const nextType = isCourse === 1 ? 1 : 0;
     if (this.isCourseDraft === nextType) {
       return;
     }
     this.isCourseDraft = nextType;
-    this.state.updatePlanType(this.normalizeId(plan.id), nextType);
+    this.recalculateSaveEnabled();
   }
 
   private closeOverlay(): void {
-    this.flushDraftSave();
     this.state.closePlanDetail();
     this.loadedPlanId = '';
   }
@@ -282,11 +259,49 @@ export struct PlanDetailCardContent {
     if (plan === null) {
       return;
     }
-    this.flushDraftSave();
     this.state.closePlanDetail();
     this.state.requestDeletePlan(this.normalizeId(plan.id));
     this.loadedPlanId = '';
     this.app.nav.back(false);
+  }
+
+  private resolveHeaderActionButtonBackground(enabled: boolean, danger: boolean): string {
+    if (danger) {
+      return this.app.theme.palette.dangerSurface;
+    }
+    if (enabled) {
+      return this.app.theme.palette.primary;
+    }
+    return this.app.theme.palette.surfaceSecondary;
+  }
+
+  private resolveHeaderActionButtonForeground(enabled: boolean, danger: boolean): string {
+    if (danger) {
+      return this.app.theme.palette.danger;
+    }
+    if (enabled) {
+      return this.app.theme.palette.surface;
+    }
+    return this.app.theme.palette.textTertiary;
+  }
+
+  @Builder
+  private buildHeaderActionButton(icon: Resource, enabled: boolean, danger: boolean, onTap: () => void) {
+    Button({ type: ButtonType.Circle, stateEffect: enabled }) {
+      SymbolGlyph(icon)
+        .fontSize(18)
+        .fontColor([this.resolveHeaderActionButtonForeground(enabled, danger)]);
+    }
+      .width(34)
+      .height(34)
+      .backgroundColor(this.resolveHeaderActionButtonBackground(enabled, danger))
+      .opacity(enabled ? 1 : 0.56)
+      .onClick(() => {
+        if (!enabled) {
+          return;
+        }
+        onTap();
+      });
   }
 
   @Builder
@@ -308,31 +323,54 @@ export struct PlanDetailCardContent {
   @Builder
   private buildDetailCard() {
     Column({ space: 12 }) {
+      Row({ space: 10 }) {
+        Text('编辑日程')
+          .fontSize(17)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.app.theme.palette.textPrimary)
+          .layoutWeight(1);
+
+        if (this.saveEnabled) {
+          this.buildHeaderActionButton($r('sys.symbol.save'), true, false, () => {
+            this.saveChanges();
+          });
+        } else {
+          this.buildHeaderActionButton($r('sys.symbol.save'), false, false, () => {
+            this.saveChanges();
+          });
+        }
+
+        this.buildHeaderActionButton($r('sys.symbol.trash'), true, true, () => {
+          this.deleteCurrentPlan();
+        });
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center);
+
       TextInput({ text: this.titleDraft, placeholder: '标题' })
         .width('100%')
         .height(52)
         .fontSize(16)
         .fontWeight(FontWeight.Medium)
+        .fontColor(this.app.theme.palette.textPrimary)
+        .placeholderColor(this.app.theme.palette.textTertiary)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
         .padding({ left: 12, right: 12, top: 10, bottom: 10 })
         .onChange((value: string) => {
           this.titleDraft = value;
-          this.scheduleTitleSave();
-        })
-        .onBlur(() => {
-          this.persistTitleDraft();
+          this.recalculateSaveEnabled();
         });
 
-      Row() {
+      Row({ space: 10 }) {
         Text('开始时间')
-          .fontSize(13)
+          .fontSize(14)
           .fontColor(this.app.theme.palette.textSecondary)
-          .layoutWeight(1);
+          .padding({ left: 8, right: 8 });
         Button(this.formatDateTimeLabel(this.startDateDraft, this.startTimeDraft))
           .type(ButtonType.Normal)
           .height(PlanPickerStyle.PANEL_HEIGHT)
-          .width(PlanPickerStyle.TRIGGER_WIDTH)
+          .layoutWeight(1)
           .backgroundColor(this.app.theme.palette.surfaceSecondary)
           .borderRadius(12)
           .fontSize(PlanPickerStyle.TEXT_FONT_SIZE)
@@ -344,15 +382,15 @@ export struct PlanDetailCardContent {
       .width('100%')
       .alignItems(VerticalAlign.Center);
 
-      Row() {
+      Row({ space: 10 }) {
         Text('结束时间')
-          .fontSize(13)
+          .fontSize(14)
           .fontColor(this.app.theme.palette.textSecondary)
-          .layoutWeight(1);
+          .padding({ left: 8, right: 8 });
         Button(this.formatDateTimeLabel(this.endDateDraft, this.endTimeDraft))
           .type(ButtonType.Normal)
           .height(PlanPickerStyle.PANEL_HEIGHT)
-          .width(PlanPickerStyle.TRIGGER_WIDTH)
+          .layoutWeight(1)
           .backgroundColor(this.app.theme.palette.surfaceSecondary)
           .borderRadius(12)
           .fontSize(PlanPickerStyle.TEXT_FONT_SIZE)
@@ -368,15 +406,14 @@ export struct PlanDetailCardContent {
         .width('100%')
         .height(46)
         .fontSize(14)
+        .fontColor(this.app.theme.palette.textSecondary)
+        .placeholderColor(this.app.theme.palette.textTertiary)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
         .padding({ left: 12, right: 12, top: 9, bottom: 9 })
         .onChange((value: string) => {
           this.locationDraft = value;
-          this.scheduleLocationSave();
-        })
-        .onBlur(() => {
-          this.persistLocationDraft();
+          this.recalculateSaveEnabled();
         });
 
       TextArea({ text: this.descriptionDraft, placeholder: '描述（选填）' })
@@ -384,15 +421,13 @@ export struct PlanDetailCardContent {
         .height(92)
         .fontSize(14)
         .fontColor(this.app.theme.palette.textSecondary)
+        .placeholderColor(this.app.theme.palette.textTertiary)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
         .padding({ left: 12, right: 12, top: 10, bottom: 10 })
         .onChange((value: string) => {
           this.descriptionDraft = value;
-          this.scheduleDescriptionSave();
-        })
-        .onBlur(() => {
-          this.persistDescriptionDraft();
+          this.recalculateSaveEnabled();
         });
 
       Row({ space: 10 }) {
@@ -447,9 +482,15 @@ export struct PlanDetailCardContent {
   }
 
   aboutToDisappear(): void {
-    this.flushDraftSave();
-    this.clearAllTimers();
     this.state.closePlanDetail();
+    this.saving = false;
+    this.saveEnabled = false;
+    this.initialTitle = '';
+    this.initialLocation = '';
+    this.initialDescription = '';
+    this.initialIsCourse = 0;
+    this.initialStartMs = 0;
+    this.initialEndMs = 0;
     this.loadedPlanId = '';
   }
 }

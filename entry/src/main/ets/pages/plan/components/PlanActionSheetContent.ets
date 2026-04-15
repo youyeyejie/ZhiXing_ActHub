@@ -1,7 +1,6 @@
 import { AppState, useAppState } from "../../../app/AppStates";
 import { PlanPageState, usePlanPageState } from "../PlanPageState";
 import { PlanPickerStyle } from "./PlanPickerStyle";
-import promptAction from "@ohos.promptAction";
 
 /**
  * 日程新建半屏页。
@@ -11,6 +10,8 @@ import promptAction from "@ohos.promptAction";
 export struct PlanActionSheetContent {
   @Local private app: AppState = useAppState();
   @Local private state: PlanPageState = usePlanPageState();
+  @Local private saving: boolean = false;
+  @Local private saveEnabled: boolean = false;
 
   @Local private draftTitle: string = "";
   @Local private draftLocation: string = "";
@@ -23,12 +24,6 @@ export struct PlanActionSheetContent {
 
   aboutToAppear(): void {
     this.prepareDraftForCreate();
-  }
-
-  private safeToast(message: string): void {
-    try {
-      promptAction.showToast({ message, duration: 1500 });
-    } catch (_error) {}
   }
 
   private buildDateWithTime(dayMs: number, hour: number, minute: number): Date {
@@ -92,6 +87,7 @@ export struct PlanActionSheetContent {
       this.draftStartDate = accepted;
       this.draftStartTime = accepted;
       this.ensureValidDraftTimeRange();
+      this.recalculateSaveEnabled();
     });
   }
 
@@ -102,6 +98,7 @@ export struct PlanActionSheetContent {
       this.draftEndDate = accepted;
       this.draftEndTime = accepted;
       this.ensureValidDraftTimeRange();
+      this.recalculateSaveEnabled();
     });
   }
 
@@ -119,6 +116,7 @@ export struct PlanActionSheetContent {
     this.draftEndDate = new Date(dayMs);
     this.draftStartTime = this.buildDateWithTime(dayMs, 9, 0);
     this.draftEndTime = this.buildDateWithTime(dayMs, 10, 0);
+    this.recalculateSaveEnabled();
   }
 
   private ensureValidDraftTimeRange(): void {
@@ -132,33 +130,50 @@ export struct PlanActionSheetContent {
     this.draftEndTime = fallbackEnd;
   }
 
+  private recalculateSaveEnabled(): void {
+    this.saveEnabled = this.computeCanSave();
+  }
+
+  private computeCanSave(): boolean {
+    if (this.saving) {
+      return false;
+    }
+    const title = `${this.draftTitle}`.trim();
+    if (title.length === 0) {
+      return false;
+    }
+    const startTime = this.composeDateTime(this.draftStartDate, this.draftStartTime);
+    const endTime = this.composeDateTime(this.draftEndDate, this.draftEndTime);
+    return endTime > startTime;
+  }
+
   private async submit(): Promise<void> {
+    if (!this.computeCanSave()) {
+      this.recalculateSaveEnabled();
+      return;
+    }
+    this.saving = true;
+    this.recalculateSaveEnabled();
     const title = `${this.draftTitle}`.trim();
     const startTime = this.composeDateTime(this.draftStartDate, this.draftStartTime);
     const endTime = this.composeDateTime(this.draftEndDate, this.draftEndTime);
-    if (title.length === 0) {
-      this.safeToast("请填写日程标题");
-      return;
+    try {
+      const ok = await this.state.createPlan(
+        title,
+        startTime,
+        endTime,
+        this.draftLocation,
+        this.draftIsCourse,
+        this.draftDescription,
+      );
+      if (!ok) {
+        return;
+      }
+      this.close();
+    } finally {
+      this.saving = false;
+      this.recalculateSaveEnabled();
     }
-    if (endTime <= startTime) {
-      this.safeToast("结束时间必须晚于开始时间");
-      return;
-    }
-
-    const ok = await this.state.createPlan(
-      title,
-      startTime,
-      endTime,
-      this.draftLocation,
-      this.draftIsCourse,
-      this.draftDescription,
-    );
-    if (!ok) {
-      this.safeToast("创建失败：请检查必填项");
-      return;
-    }
-    this.close();
-    this.safeToast("日程已添加");
   }
 
   private close(): void {
@@ -196,44 +211,71 @@ export struct PlanActionSheetContent {
   }
 
   @Builder
+  private buildHeaderActionButton(icon: Resource, enabled: boolean, onTap: () => void) {
+    Button({ type: ButtonType.Circle, stateEffect: enabled }) {
+      SymbolGlyph(icon)
+        .fontSize(18)
+        .fontColor([enabled ? this.app.theme.palette.surface : this.app.theme.palette.textSecondary]);
+    }
+      .width(34)
+      .height(34)
+      .backgroundColor(enabled ? this.app.theme.palette.primary : this.app.theme.palette.border)
+      .opacity(enabled ? 1 : 0.56)
+      .onClick(() => {
+        if (!enabled) {
+          return;
+        }
+        onTap();
+      });
+  }
+
+  @Builder
   private buildContent() {
     Column({ space: 12 }) {
       Row() {
         Text("新建日程")
-          .fontSize(16)
+          .fontSize(17)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.textPrimary)
           .layoutWeight(1)
-        Button("保存")
-          .type(ButtonType.Capsule)
-          .height(40)
-          .backgroundColor(this.app.theme.palette.primary)
-          .fontColor(this.app.theme.palette.surface)
-          .onClick(async () => {
-            await this.submit();
-          })
+
+        if (this.saveEnabled) {
+          this.buildHeaderActionButton($r("sys.symbol.save"), true, () => {
+            this.submit();
+          });
+        } else {
+          this.buildHeaderActionButton($r("sys.symbol.save"), false, () => {
+            this.submit();
+          });
+        }
       }
       .width("100%")
       .alignItems(VerticalAlign.Center)
+
       TextInput({ text: this.draftTitle, placeholder: "日程标题（必填）" })
-        .fontSize(14)
+        .fontSize(16)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.app.theme.palette.textPrimary)
+        .placeholderColor(this.app.theme.palette.textTertiary)
         .width("100%")
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
         .padding(12)
         .onChange((value: string) => {
           this.draftTitle = value;
+          this.recalculateSaveEnabled();
         })
-      Row() {
-        Text("开始时间（必填）")
-          .fontSize(13)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(this.app.theme.palette.textPrimary)
-          .layoutWeight(1)
+
+
+      Row({ space: 10 }) {
+        Text('开始时间')
+          .fontSize(14)
+          .fontColor(this.app.theme.palette.textSecondary)
+          .padding({ left: 8, right: 8 })
         Button(this.formatDateTimeLabel(this.draftStartDate, this.draftStartTime))
           .type(ButtonType.Normal)
           .height(PlanPickerStyle.PANEL_HEIGHT)
-          .width(PlanPickerStyle.TRIGGER_WIDTH)
+          .layoutWeight(1)
           .backgroundColor(this.app.theme.palette.surfaceSecondary)
           .borderRadius(12)
           .fontSize(PlanPickerStyle.TEXT_FONT_SIZE)
@@ -245,37 +287,42 @@ export struct PlanActionSheetContent {
       .width("100%")
       .alignItems(VerticalAlign.Center)
 
-      Row() {
-        Text("结束时间（必填）")
-          .fontSize(13)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(this.app.theme.palette.textPrimary)
-          .layoutWeight(1)
+      Row({ space: 10 }) {
+        Text('结束时间')
+          .fontSize(14)
+          .fontColor(this.app.theme.palette.textSecondary)
+          .padding({ left: 8, right: 8 });
         Button(this.formatDateTimeLabel(this.draftEndDate, this.draftEndTime))
           .type(ButtonType.Normal)
           .height(PlanPickerStyle.PANEL_HEIGHT)
-          .width(PlanPickerStyle.TRIGGER_WIDTH)
+          .layoutWeight(1)
           .backgroundColor(this.app.theme.palette.surfaceSecondary)
           .borderRadius(12)
           .fontSize(PlanPickerStyle.TEXT_FONT_SIZE)
           .fontColor(this.app.theme.palette.textSecondary)
           .onClick(() => {
             this.openEndDateTimeDialog();
-          })
+          });
       }
       .width("100%")
       .alignItems(VerticalAlign.Center)
+
       TextInput({ text: this.draftLocation, placeholder: "地点（选填）" })
         .fontSize(14)
+        .fontColor(this.app.theme.palette.textSecondary)
+        .placeholderColor(this.app.theme.palette.textTertiary)
         .width("100%")
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
         .padding(12)
         .onChange((value: string) => {
           this.draftLocation = value;
+          this.recalculateSaveEnabled();
         })
       TextArea({ text: this.draftDescription, placeholder: "备注描述（选填）" })
         .fontSize(14)
+        .fontColor(this.app.theme.palette.textSecondary)
+        .placeholderColor(this.app.theme.palette.textTertiary)
         .width("100%")
         .height(92)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
@@ -283,6 +330,7 @@ export struct PlanActionSheetContent {
         .padding(12)
         .onChange((value: string) => {
           this.draftDescription = value;
+          this.recalculateSaveEnabled();
         })
       Row({ space: 10 }) {
         ForEach(
@@ -290,6 +338,7 @@ export struct PlanActionSheetContent {
           (type: number) => {
             this.buildTypeChip(this.resolveTypeLabel(type), this.draftIsCourse === type, () => {
               this.draftIsCourse = type;
+              this.recalculateSaveEnabled();
             });
           },
           (type: number) => this.resolveTypeRenderToken(type),

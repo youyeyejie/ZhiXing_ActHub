@@ -11,14 +11,21 @@ import { useTodoPageState, TodoPageState } from '../TodoPageState';
 export struct TodoDetailCardContent {
   @Local private app: AppState = useAppState();
   @Local private state: TodoPageState = useTodoPageState();
+  @Local private saving: boolean = false;
+  @Local private saveEnabled: boolean = false;
   @Local private titleDraft: string = '';
   @Local private detailDraft: string = '';
+  @Local private initialTitle: string = '';
+  @Local private initialDetail: string = '';
   @Local private loadedTodoId: string = '';
   @Local private selectedCategoryIdDraft: string = '';
+  @Local private initialCategoryId: string = '';
   @Local private doneDraft: number = -1;
+  @Local private initialDone: number = 0;
 
-  private titleSaveTimerId: number = -1;
-  private detailSaveTimerId: number = -1;
+  aboutToAppear(): void {
+    this.loadDraftFromCurrentTodo();
+  }
 
   private normalizeId(value: string): string {
     return `${value}`.trim();
@@ -47,84 +54,78 @@ export struct TodoDetailCardContent {
       this.loadedTodoId = '';
       this.titleDraft = '';
       this.detailDraft = '';
+      this.initialTitle = '';
+      this.initialDetail = '';
       this.selectedCategoryIdDraft = '';
+      this.initialCategoryId = '';
       this.doneDraft = -1;
+      this.initialDone = 0;
+      this.recalculateSaveEnabled();
       return;
     }
     this.loadedTodoId = this.normalizeId(todo.id);
     this.titleDraft = this.normalizeText(todo.content);
     this.detailDraft = this.normalizeText(todo.detail);
+    this.initialTitle = this.titleDraft;
+    this.initialDetail = this.detailDraft;
     this.selectedCategoryIdDraft = this.normalizeId(todo.categoryId);
+    this.initialCategoryId = this.selectedCategoryIdDraft;
     this.doneDraft = todo.isDone === 1 ? 1 : 0;
+    this.initialDone = this.doneDraft;
+    this.recalculateSaveEnabled();
   }
 
-  private clearTitleSaveTimer(): void {
-    if (this.titleSaveTimerId >= 0) {
-      clearTimeout(this.titleSaveTimerId);
-      this.titleSaveTimerId = -1;
+  private hasDraftChanges(): boolean {
+    return this.normalizeText(this.titleDraft) !== this.initialTitle
+      || this.normalizeText(this.detailDraft) !== this.initialDetail
+      || this.resolveCurrentCategoryId() !== this.initialCategoryId
+      || this.resolveCurrentDone() !== this.initialDone;
+  }
+
+  private computeCanSave(): boolean {
+    if (this.saving) {
+      return false;
     }
-  }
-
-  private clearDetailSaveTimer(): void {
-    if (this.detailSaveTimerId >= 0) {
-      clearTimeout(this.detailSaveTimerId);
-      this.detailSaveTimerId = -1;
+    if (this.normalizeText(this.titleDraft).length === 0) {
+      return false;
     }
+    return this.resolveEditingTodo() !== null;
   }
 
-  private scheduleTitleSave(): void {
-    this.clearTitleSaveTimer();
-    this.titleSaveTimerId = setTimeout(() => {
-      this.persistTitleDraft();
-    }, 450);
+  private recalculateSaveEnabled(): void {
+    this.saveEnabled = this.computeCanSave();
   }
 
-  private scheduleDetailSave(): void {
-    this.clearDetailSaveTimer();
-    this.detailSaveTimerId = setTimeout(() => {
-      this.persistDetailDraft();
-    }, 650);
-  }
-
-  private persistTitleDraft(): void {
-    this.clearTitleSaveTimer();
+  private async saveChanges(): Promise<void> {
     const todo = this.resolveEditingTodo();
-    if (todo === null) {
+    if (todo === null || !this.computeCanSave()) {
+      return;
+    }
+    if (!this.hasDraftChanges()) {
+      this.app.nav.back(false);
       return;
     }
     const todoId = this.normalizeId(todo.id);
     if (todoId.length === 0) {
       return;
     }
-    const nextTitle = this.normalizeText(this.titleDraft);
-    const currentTitle = this.normalizeText(todo.content);
-    if (nextTitle === currentTitle) {
-      return;
-    }
-    this.state.updateTodoTitle(todoId, nextTitle);
-  }
+    this.saving = true;
+    this.recalculateSaveEnabled();
+    try {
+      await this.state.updateTodoTitle(todoId, this.normalizeText(this.titleDraft));
+      await this.state.updateTodoDetail(todoId, this.normalizeText(this.detailDraft));
+      await this.state.updateTodoCategory(todoId, this.resolveCurrentCategoryId());
+      await this.state.toggleDone(todoId, this.resolveCurrentDone() === 1);
 
-  private persistDetailDraft(): void {
-    this.clearDetailSaveTimer();
-    const todo = this.resolveEditingTodo();
-    if (todo === null) {
-      return;
+      this.initialTitle = this.normalizeText(this.titleDraft);
+      this.initialDetail = this.normalizeText(this.detailDraft);
+      this.initialCategoryId = this.resolveCurrentCategoryId();
+      this.initialDone = this.resolveCurrentDone();
+      this.app.nav.back(false);
+    } finally {
+      this.saving = false;
+      this.recalculateSaveEnabled();
     }
-    const todoId = this.normalizeId(todo.id);
-    if (todoId.length === 0) {
-      return;
-    }
-    const nextDetail = this.normalizeText(this.detailDraft);
-    const currentDetail = this.normalizeText(todo.detail);
-    if (nextDetail === currentDetail) {
-      return;
-    }
-    this.state.updateTodoDetail(todoId, nextDetail);
-  }
-
-  private flushDraftSave(): void {
-    this.persistTitleDraft();
-    this.persistDetailDraft();
   }
 
   private resolveCurrentCategoryId(): string {
@@ -150,28 +151,19 @@ export struct TodoDetailCardContent {
     return todo.isDone === 1 ? 1 : 0;
   }
 
-  private toggleDoneAndSave(): void {
-    const todo = this.resolveEditingTodo();
-    if (todo === null) {
-      return;
-    }
-    this.flushDraftSave();
+  private toggleDoneDraft(): void {
     const nextDone = this.resolveCurrentDone() === 1 ? 0 : 1;
     this.doneDraft = nextDone;
-    this.state.toggleDone(todo.id, nextDone === 1);
+    this.recalculateSaveEnabled();
   }
 
   private switchCategory(categoryId: string): void {
-    const todo = this.resolveEditingTodo();
-    if (todo === null) {
-      return;
-    }
     const normalizedCategoryId = this.normalizeId(categoryId);
     if (normalizedCategoryId.length === 0) {
       return;
     }
     this.selectedCategoryIdDraft = normalizedCategoryId;
-    this.state.updateTodoCategory(this.normalizeId(todo.id), normalizedCategoryId);
+    this.recalculateSaveEnabled();
   }
 
   private deleteCurrentTodo(): void {
@@ -179,13 +171,39 @@ export struct TodoDetailCardContent {
     if (todo === null) {
       return;
     }
-    this.flushDraftSave();
     this.state.closeTodoDetail();
     this.state.requestDeleteTodo(todo.id);
     this.loadedTodoId = '';
     this.selectedCategoryIdDraft = '';
     this.doneDraft = -1;
     this.app.nav.back(false);
+  }
+
+  @Builder
+  private buildHeaderActionButton(icon: Resource, enabled: boolean, danger: boolean, onTap: () => void) {
+    Button({ type: ButtonType.Circle, stateEffect: enabled }) {
+      SymbolGlyph(icon)
+        .fontSize(18)
+        .fontColor([
+          danger
+            ? this.app.theme.palette.danger
+            : (enabled ? this.app.theme.palette.surface : this.app.theme.palette.textTertiary)
+        ]);
+    }
+      .width(34)
+      .height(34)
+      .backgroundColor(
+        danger
+          ? this.app.theme.palette.dangerSurface
+          : (enabled ? this.app.theme.palette.primary : this.app.theme.palette.surfaceSecondary)
+      )
+      .opacity(enabled ? 1 : 0.56)
+      .onClick(() => {
+        if (!enabled) {
+          return;
+        }
+        onTap();
+      });
   }
 
   @Builder
@@ -207,20 +225,43 @@ export struct TodoDetailCardContent {
   @Builder
   private buildDetailCard() {
     Column({ space: 14 }) {
+      Row({ space: 10 }) {
+        Text('编辑待办')
+          .fontSize(17)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.app.theme.palette.textPrimary)
+          .layoutWeight(1);
+
+        if (this.saveEnabled) {
+          this.buildHeaderActionButton($r('sys.symbol.save'), true, false, () => {
+            this.saveChanges();
+          });
+        } else {
+          this.buildHeaderActionButton($r('sys.symbol.save'), false, false, () => {
+            this.saveChanges();
+          });
+        }
+
+        this.buildHeaderActionButton($r('sys.symbol.trash'), true, true, () => {
+          this.deleteCurrentTodo();
+        });
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center);
+
       TextInput({ text: this.titleDraft, placeholder: '标题' })
         .width('100%')
         .height(56)
         .fontSize(16)
         .fontWeight(FontWeight.Medium)
+        .fontColor(this.app.theme.palette.textPrimary)
+        .placeholderColor(this.app.theme.palette.textTertiary)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
         .padding({ left: 12, right: 12, top: 10, bottom: 10 })
         .onChange((value: string) => {
           this.titleDraft = value;
-          this.scheduleTitleSave();
-        })
-        .onBlur(() => {
-          this.persistTitleDraft();
+          this.recalculateSaveEnabled();
         });
 
       TextArea({ text: this.detailDraft, placeholder: '详情描述' })
@@ -228,15 +269,13 @@ export struct TodoDetailCardContent {
         .height(128)
         .fontSize(14)
         .fontColor(this.app.theme.palette.textSecondary)
+        .placeholderColor(this.app.theme.palette.textTertiary)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
         .padding({ left: 12, right: 12, top: 10, bottom: 10 })
         .onChange((value: string) => {
           this.detailDraft = value;
-          this.scheduleDetailSave();
-        })
-        .onBlur(() => {
-          this.persistDetailDraft();
+          this.recalculateSaveEnabled();
         });
 
       Scroll() {
@@ -267,24 +306,13 @@ export struct TodoDetailCardContent {
       Row({ space: 10 }) {
         Button(this.resolveCurrentDone() === 1 ? '标为未完成' : '标为已完成')
           .type(ButtonType.Capsule)
-          .layoutWeight(1)
+          .width('100%')
           .height(50)
           .backgroundColor(this.app.theme.palette.primary)
           .fontColor(this.app.theme.palette.surface)
           .fontSize(16)
           .onClick(() => {
-            this.toggleDoneAndSave();
-          });
-
-        Button('删除')
-          .type(ButtonType.Capsule)
-          .layoutWeight(1)
-          .height(50)
-          .backgroundColor(this.app.theme.palette.dangerSurface)
-          .fontColor(this.app.theme.palette.danger)
-          .fontSize(16)
-          .onClick(() => {
-            this.deleteCurrentTodo();
+            this.toggleDoneDraft();
           });
       }
       .width('100%')
@@ -328,10 +356,13 @@ export struct TodoDetailCardContent {
   }
 
   aboutToDisappear(): void {
-    this.flushDraftSave();
-    this.clearTitleSaveTimer();
-    this.clearDetailSaveTimer();
     this.state.closeTodoDetail();
+    this.saving = false;
+    this.saveEnabled = false;
+    this.initialTitle = '';
+    this.initialDetail = '';
+    this.initialCategoryId = '';
+    this.initialDone = 0;
     this.loadedTodoId = '';
     this.selectedCategoryIdDraft = '';
     this.doneDraft = -1;
