@@ -6,6 +6,7 @@ export class AppConstants {
 
 export class AppPreferenceKey {
   static readonly PREFERRED_THEME_MODE: string = 'preferredThemeMode';
+  static readonly NOTIFICATION_ENABLED: string = 'notificationEnabled';
   static readonly PLAN_REMINDER_ENABLED: string = 'planReminderEnabled';
 }
 

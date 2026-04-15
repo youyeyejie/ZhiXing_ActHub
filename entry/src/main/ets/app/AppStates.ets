@@ -1,8 +1,10 @@
 import { ThemeManager, ThemeMode } from '../core/theme/ThemeManager';
 import { AppNav } from './AppNav';
 import { AppFlow, AppPreferenceKey } from './AppConstants';
+import { common } from '@kit.AbilityKit';
 import { AuthService } from '../core/services/AuthService';
 import { FocusTimerEngine } from '../core/services/FocusTimerEngine';
+import { NotificationService } from '../core/services/NotificationService';
 import { WhiteNoisePlayer } from '../core/services/WhiteNoisePlayer';
 import { User } from '../core/models/User';
 import { UserPreferenceRepository } from '../core/repositories/UserPreferenceRepository';
@@ -46,6 +48,7 @@ export class AppState {
   @Trace public currentUserId: number = 0;
   @Trace public currentUserName: string = '';
   @Trace public currentUserAvatar: string = '';
+  @Trace public hasRequestedNotificationPermissionOnLaunch: boolean = false;
 
   get theme(): ThemeManager {
     return this.themeManager;
@@ -182,6 +185,14 @@ export class AppState {
     this.applyThemePreference(ThemeMode.SYSTEM, this.readSystemDarkMode());
     this.enterAuth();
     hilog.info(DOMAIN, TAG, 'logout -> AUTH');
+  }
+
+  async tryRequestNotificationPermissionOnLaunch(context: common.UIAbilityContext): Promise<void> {
+    if (this.hasRequestedNotificationPermissionOnLaunch) {
+      return;
+    }
+    this.hasRequestedNotificationPermissionOnLaunch = true;
+    await NotificationService.requestNotificationPermission(context);
   }
 
   enterSplash(): void {

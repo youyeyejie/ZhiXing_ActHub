@@ -128,6 +128,14 @@ export default class EntryAbility extends UIAbility {
             return;
           }
           hilog.info(DOMAIN, 'EntryAbility', 'Succeeded in loading content.');
+          this.app.tryRequestNotificationPermissionOnLaunch(this.context).catch((requestError: Error) => {
+            hilog.error(
+              DOMAIN,
+              'EntryAbility',
+              'Failed to request notification permission on launch. %{public}s',
+              JSON.stringify(requestError),
+            );
+          });
         });
       })
       .catch((err: Error): void => {

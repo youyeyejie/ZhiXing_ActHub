@@ -113,6 +113,20 @@ export class AuthService {
     await this.userPreferenceRepository.setString(AppPreferenceKey.PREFERRED_THEME_MODE, mode);
     hilog.info(DOMAIN, TAG, 'ensureUserDefaults theme=%{public}s', mode);
 
+    let notificationFlag: string = await this.userPreferenceRepository.getString(
+      AppPreferenceKey.NOTIFICATION_ENABLED,
+      '',
+    );
+    if (notificationFlag.length === 0) {
+      hilog.info(DOMAIN, TAG, 'ensureUserDefaults notification missing, defer to NotificationService');
+    } else {
+      await this.userPreferenceRepository.setBoolean(
+        AppPreferenceKey.NOTIFICATION_ENABLED,
+        notificationFlag === '1',
+      );
+    }
+    hilog.info(DOMAIN, TAG, 'ensureUserDefaults notification=%{public}s', notificationFlag);
+
     let reminderFlag: string = await this.userPreferenceRepository.getString(
       AppPreferenceKey.PLAN_REMINDER_ENABLED,
       '',
