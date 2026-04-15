@@ -189,42 +189,44 @@ export struct IdeaEditorContent {
     this.app.nav.back(false);
   }
 
-  private resolveHeaderActionButtonBackground(enabled: boolean, danger: boolean): string {
-    if (danger) {
-      return this.app.theme.palette.dangerSurface;
-    }
-    if (enabled) {
-      return this.app.theme.palette.primary;
-    }
-    return this.app.theme.palette.surfaceSecondary;
-  }
-
-  private resolveHeaderActionButtonForeground(enabled: boolean, danger: boolean): string {
+  private resolveHeaderActionButtonForeground(danger: boolean): string {
     if (danger) {
       return this.app.theme.palette.danger;
     }
-    if (enabled) {
-      return this.app.theme.palette.surface;
-    }
-    return this.app.theme.palette.textTertiary;
+    return this.app.theme.palette.surface;
   }
 
   @Builder
-  private buildHeaderActionButton(icon: Resource, enabled: boolean, danger: boolean, onTap: () => void) {
-    Button({ type: ButtonType.Circle, stateEffect: enabled }) {
-      SymbolGlyph(icon)
+  private buildSaveButton() {
+    Button({ type: ButtonType.Circle }) {
+      SymbolGlyph($r("sys.symbol.save"))
         .fontSize(18)
-        .fontColor([this.resolveHeaderActionButtonForeground(enabled, danger)]);
+        .fontColor([this.app.theme.palette.surface]);
     }
       .width(34)
       .height(34)
-      .backgroundColor(this.resolveHeaderActionButtonBackground(enabled, danger))
-      .opacity(enabled ? 1 : 0.56)
+      .backgroundColor(this.app.theme.palette.primary)
+      .enabled(
+        !this.isSaving && (this.content.trim().length > 0 || this.title.trim().length > 0)
+      )
       .onClick(() => {
-        if (!enabled) {
-          return;
-        }
-        onTap();
+        this.saveToRepository();
+      });
+  }
+
+  @Builder
+  private buildDeleteButton() {
+    Button({ type: ButtonType.Circle }) {
+      SymbolGlyph($r("sys.symbol.trash"))
+        .fontSize(18)
+        .fontColor([this.app.theme.palette.danger]);
+    }
+      .width(34)
+      .height(34)
+      .backgroundColor(this.app.theme.palette.surface)
+      .enabled(this.canDelete())
+      .onClick(() => {
+        this.deleteCurrentIdea();
       });
   }
 
@@ -237,25 +239,14 @@ export struct IdeaEditorContent {
           .fontColor(this.app.theme.palette.textPrimary)
           .layoutWeight(1)
 
-        if (this.saveEnabled) {
-          this.buildHeaderActionButton($r("sys.symbol.save"), true, false, () => {
-            this.saveToRepository();
-          });
-        } else {
-          this.buildHeaderActionButton($r("sys.symbol.save"), false, false, () => {
-            this.saveToRepository();
-          });
-        }
-
-        if (this.hideInnerHeader) {
-          this.buildHeaderActionButton($r("sys.symbol.trash"), this.canDelete(), true, () => {
-            this.deleteCurrentIdea();
-          });
+        this.buildSaveButton();
+        if (!this.hideInnerHeader) {
+          this.buildDeleteButton();
         }
       }
       .width("100%")
 
-      TextInput({ placeholder: "标题（可选）", text: this.title })
+      TextInput({ placeholder: "标题", text: this.title })
         .width("100%")
         .height(52)
         .fontSize(16)
@@ -270,7 +261,7 @@ export struct IdeaEditorContent {
           this.recalculateSaveEnabled();
         })
 
-      TextArea({ placeholder: "写下你的闪念（必填）...", text: this.content })
+      TextArea({ placeholder: "写下你的闪念...", text: this.content })
         .width("100%")
         .layoutWeight(1)
         .fontSize(14)
