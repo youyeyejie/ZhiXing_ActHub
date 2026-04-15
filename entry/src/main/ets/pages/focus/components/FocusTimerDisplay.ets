@@ -78,7 +78,7 @@ export struct FocusTimerDisplay {
           .height(238)
           .color(this.app.theme.palette.primary)
           .backgroundColor(this.app.theme.palette.surfaceSecondary)
-          .style({ strokeWidth: 20, enableSmoothEffect: true })
+          .style({ strokeWidth: 20, enableSmoothEffect: false })
 
         Stack({ alignContent: Alignment.Center }) {
           if (this.isEditingTime) {
