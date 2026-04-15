@@ -1,15 +1,12 @@
 import { notificationManager } from '@kit.NotificationKit';
 import { reminderAgentManager } from '@kit.BackgroundTasksKit';
 import { BusinessError } from '@kit.BasicServicesKit';
-import { hilog } from '@kit.PerformanceAnalysisKit';
 import { common, wantAgent } from '@kit.AbilityKit';
 import { AppPreferenceKey } from '../../app/AppConstants';
 import { Plan } from '../models/Plan';
 import { PlanRepository } from '../repositories/PlanRepository';
 import { UserPreferenceRepository } from '../repositories/UserPreferenceRepository';
 
-const TAG: string = '[NotificationService]';
-const DOMAIN_NUMBER: number = 0xFF00;
 const NOTIFICATION_PERMISSION_REFUSED_CODE: number = 1600004;
 
 /**
@@ -53,8 +50,7 @@ export class NotificationService {
         AppPreferenceKey.PLAN_REMINDER_ENABLED,
         false,
       );
-    } catch (err) {
-      hilog.warn(DOMAIN_NUMBER, TAG, `读取日程提醒总开关失败. ${JSON.stringify(err)}`);
+    } catch (_err) {
       return false;
     }
   }
@@ -65,10 +61,7 @@ export class NotificationService {
     }
     try {
       await reminderAgentManager.cancelReminder(reminderId);
-      hilog.info(DOMAIN_NUMBER, TAG, `取消代理提醒成功: ${reminderId}`);
-    } catch (err) {
-      hilog.warn(DOMAIN_NUMBER, TAG, `取消代理提醒失败: ${reminderId}, ${JSON.stringify(err)}`);
-    }
+    } catch (_err) {}
   }
 
   private static buildPlanReminderRequest(plan: Plan): reminderAgentManager.ReminderRequestCalendar {
@@ -123,7 +116,6 @@ export class NotificationService {
 
     const triggerTime = NotificationService.resolvePlanReminderTime(plan);
     if (triggerTime <= Date.now()) {
-      hilog.warn(DOMAIN_NUMBER, TAG, `日程提醒时间已过，跳过注册. planId=${plan.id}`);
       if (plan.reminderId > 0) {
         await NotificationService.cancelAgentReminder(plan.reminderId);
         plan.reminderId = 0;
@@ -140,12 +132,10 @@ export class NotificationService {
       const reminderId = await reminderAgentManager.publishReminder(
         NotificationService.buildPlanReminderRequest(plan),
       );
-      hilog.info(DOMAIN_NUMBER, TAG, `注册日程代理提醒成功. planId=${plan.id}, reminderId=${reminderId}`);
       const changed = plan.reminderId !== reminderId;
       plan.reminderId = reminderId;
       return changed;
-    } catch (err) {
-      hilog.error(DOMAIN_NUMBER, TAG, `注册日程代理提醒失败. planId=${plan.id}, ${JSON.stringify(err)}`);
+    } catch (_err) {
       if (plan.reminderId !== 0) {
         plan.reminderId = 0;
         return true;
@@ -169,9 +159,7 @@ export class NotificationService {
         AppPreferenceKey.NOTIFICATION_ENABLED,
       );
       if (storedValue.length > 0) {
-        const enabled = storedValue === '1';
-        hilog.info(DOMAIN_NUMBER, TAG, `通知总开关状态: ${enabled}`);
-        return enabled;
+        return storedValue === '1';
       }
 
       const permissionEnabled = await NotificationService.isNotificationPermissionEnabled();
@@ -179,10 +167,8 @@ export class NotificationService {
         AppPreferenceKey.NOTIFICATION_ENABLED,
         permissionEnabled,
       );
-      hilog.info(DOMAIN_NUMBER, TAG, `通知总开关缺失，按系统权限初始化: ${permissionEnabled}`);
       return permissionEnabled;
-    } catch (err) {
-      hilog.warn(DOMAIN_NUMBER, TAG, `读取通知总开关失败，回退为关闭. ${JSON.stringify(err)}`);
+    } catch (_err) {
       return false;
     }
   }
@@ -190,13 +176,11 @@ export class NotificationService {
   static async canSendNotification(): Promise<boolean> {
     const switchEnabled = await NotificationService.isNotificationSwitchEnabled();
     if (!switchEnabled) {
-      hilog.info(DOMAIN_NUMBER, TAG, '通知总开关已关闭，跳过通知发送');
       return false;
     }
 
     const permissionEnabled = await NotificationService.isNotificationPermissionEnabled();
     if (!permissionEnabled) {
-      hilog.warn(DOMAIN_NUMBER, TAG, '系统通知权限未开启，跳过通知发送');
       return false;
     }
     return true;
@@ -207,16 +191,8 @@ export class NotificationService {
    */
   static async isNotificationPermissionEnabled(): Promise<boolean> {
     try {
-      const enabled = await notificationManager.isNotificationEnabled();
-      hilog.info(DOMAIN_NUMBER, TAG, `通知权限状态: ${enabled}`);
-      return enabled;
-    } catch (err) {
-      const error = err as BusinessError;
-      hilog.error(
-        DOMAIN_NUMBER,
-        TAG,
-        `查询通知权限失败. Code: ${error.code}, message: ${error.message}`,
-      );
+      return await notificationManager.isNotificationEnabled();
+    } catch (_err) {
       return false;
     }
   }
@@ -235,24 +211,12 @@ export class NotificationService {
 
     try {
       await notificationManager.requestEnableNotification(context);
-      hilog.info(DOMAIN_NUMBER, TAG, '请求通知权限成功');
       return true;
     } catch (err) {
       const error = err as BusinessError;
       if (error.code === NOTIFICATION_PERMISSION_REFUSED_CODE) {
-        hilog.warn(
-          DOMAIN_NUMBER,
-          TAG,
-          `用户拒绝通知权限申请. Code: ${error.code}, message: ${error.message}`,
-        );
         return false;
       }
-
-      hilog.error(
-        DOMAIN_NUMBER,
-        TAG,
-        `请求通知权限失败. Code: ${error.code}, message: ${error.message}`,
-      );
       return false;
     }
   }
@@ -267,10 +231,10 @@ export class NotificationService {
       return;
     }
 
-    let wantAgentInfo: wantAgent.WantAgentInfo = {
+    const wantAgentInfo: wantAgent.WantAgentInfo = {
       wants: [
         {
-          bundleName: 'com.nis3366.ZhixingActhub', 
+          bundleName: 'com.nis3366.ZhixingActhub',
           abilityName: 'EntryAbility',
         }
       ],
@@ -281,7 +245,7 @@ export class NotificationService {
 
     try {
       const wantAgentObj = await wantAgent.getWantAgent(wantAgentInfo);
-      let notificationRequest: notificationManager.NotificationRequest = {
+      const notificationRequest: notificationManager.NotificationRequest = {
         id: NotificationService.FOCUS_NOTIFICATION_ID,
         notificationSlotType: notificationManager.SlotType.SERVICE_INFORMATION,
         content: {
@@ -291,40 +255,23 @@ export class NotificationService {
             text: content
           }
         },
-        wantAgent: wantAgentObj 
+        wantAgent: wantAgentObj
       };
 
-      // 发布通知
-      notificationManager.publish(notificationRequest, (err: BusinessError) => {
-        if (err) {
-          hilog.error(DOMAIN_NUMBER, TAG, `发布通知失败. Code: ${err.code}, message: ${err.message}`);
-          return;
-        }
-        hilog.info(DOMAIN_NUMBER, TAG, `成功发布通知: [${title}]`);
-      });
-
-    } catch (error) {
-      hilog.error(DOMAIN_NUMBER, TAG, `获取 WantAgent 失败: ${JSON.stringify(error)}`);
-    }
+      notificationManager.publish(notificationRequest, (_err: BusinessError) => {});
+    } catch (_error) {}
   }
 
   /**
    * 取消专注通知（预留：比如用户手动提前中断了专注，可以清理掉通知栏的提示）
    */
   static cancelFocusNotification(): void {
-    notificationManager.cancel(NotificationService.FOCUS_NOTIFICATION_ID, (err: BusinessError) => {
-      if (err) {
-        hilog.warn(DOMAIN_NUMBER, TAG, `取消通知失败或通知不存在. Code: ${err.code}`);
-        return;
-      }
-      hilog.info(DOMAIN_NUMBER, TAG, '成功取消专注通知');
-    });
+    notificationManager.cancel(NotificationService.FOCUS_NOTIFICATION_ID, (_err: BusinessError) => {});
   }
 
   registerPlanReminder(): Promise<void> {
     return NotificationService.isPlanReminderSwitchEnabled().then(async (switchEnabled: boolean) => {
       if (!switchEnabled) {
-        hilog.info(DOMAIN_NUMBER, TAG, '日程提醒总开关关闭，跳过重建提醒');
         return;
       }
       const plans = await NotificationService.planRepository.findAll();

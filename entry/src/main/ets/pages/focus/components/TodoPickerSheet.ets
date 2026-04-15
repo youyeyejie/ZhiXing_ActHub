@@ -56,8 +56,7 @@ export struct TodoPickerSheet {
         }
         this.currentTodo = matchedTodo;
       }
-    } catch (error) {
-      console.error('[TodoPickerSheet] 加载待办列表失败:', error);
+    } catch (_error) {
     } finally {
       this.isLoading = false;
     }

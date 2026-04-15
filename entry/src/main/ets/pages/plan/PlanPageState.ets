@@ -483,6 +483,30 @@ export class PlanPageState {
     return startTime < dayEnd && endTime > dayStart;
   }
 
+  resetForReload(): void {
+    for (let index = 0; index < this.undoTasks.length; index++) {
+      if (this.undoTasks[index].timerId >= 0) {
+        clearTimeout(this.undoTasks[index].timerId);
+      }
+    }
+    const today = this.toDayStart(Date.now());
+    this.selectedDate = today;
+    this.currentWeekBase = this.resolveWeekStart(today);
+    this.plans = [];
+    this.visiblePlans = [];
+    this.isEditorVisible = false;
+    this.isDetailVisible = false;
+    this.editingPlanId = 0;
+    this.undoTasks = [];
+    this.refreshTask = null;
+  }
+
+  clearListCache(): void {
+    this.plans = [];
+    this.visiblePlans = [];
+    this.refreshTask = null;
+  }
+
 }
 
 const PLAN_PAGE_STATE: PlanPageState = new PlanPageState();

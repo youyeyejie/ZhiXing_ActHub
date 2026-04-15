@@ -169,6 +169,22 @@ export class IdeaPageState {
   closeUndo(taskId: string): void {
     this.undoTasks = this.undoTasks.filter((task: IdeaUndoTask) => task.taskId !== taskId);
   }
+
+  resetForReload(): void {
+    this.ideas = [];
+    this.loading = false;
+    this.editingIdeaId = 0;
+    this.undoTasks = [];
+    this.refreshVersion += 1;
+    this.refreshTask = null;
+  }
+
+  clearListCache(): void {
+    this.ideas = [];
+    this.loading = false;
+    this.refreshVersion += 1;
+    this.refreshTask = null;
+  }
 }
 
 const IDEA_PAGE_STATE: IdeaPageState = new IdeaPageState();

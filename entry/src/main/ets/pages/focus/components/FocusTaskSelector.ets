@@ -59,8 +59,7 @@ export struct FocusTaskSelector {
       // 优先从引擎获取名称（引擎内包含缓存逻辑）
       const todoName = await this.engine.getTodoName();
       this.currentTodoName = todoName || '';
-    } catch (error) {
-      console.error('[FocusTaskSelector] 获取待办名称失败:', error);
+    } catch (_error) {
       this.currentTodoName = '';
     } finally {
       this.isLoading = false;

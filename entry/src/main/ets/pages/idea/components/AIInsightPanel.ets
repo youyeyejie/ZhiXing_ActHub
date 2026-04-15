@@ -69,9 +69,7 @@ export struct AIInsightPage {
 
     try {
       const content = this.prepareIdeasContent();
-      console.log(`[AIInsight] 准备发送请求，内容长度: ${content.length}`);
       const result = await this.aiService.generateInsight(content);
-      console.log(`[AIInsight] 收到响应: ${result.substring(0, 100)}...`);
       // 检查返回结果是否是错误信息
       if (result.startsWith("请求失败") || result.startsWith("请求出错") || result.startsWith("请先配置") || result.startsWith("API 错误") || result.startsWith("网络错误")) {
         this.errorMessage = result;
@@ -80,7 +78,6 @@ export struct AIInsightPage {
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[AIInsight] 请求异常: ${errorMsg}`);
       this.errorMessage = `生成失败：${errorMsg}`;
     } finally {
       this.loading = false;

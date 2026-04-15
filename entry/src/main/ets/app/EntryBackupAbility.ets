@@ -1,7 +1,4 @@
-import { hilog } from '@kit.PerformanceAnalysisKit';
 import { BackupExtensionAbility, BundleVersion } from '@kit.CoreFileKit';
-
-const DOMAIN = 0x0000;
 
 /**
  * 类功能简介：
@@ -23,7 +20,6 @@ export default class EntryBackupAbility extends BackupExtensionAbility {
    * TODO: 后续写入实际备份文件与元信息。
    */
   async onBackup() {
-    hilog.info(DOMAIN, 'testTag', 'onBackup ok');
     await Promise.resolve();
   }
 
@@ -32,7 +28,7 @@ export default class EntryBackupAbility extends BackupExtensionAbility {
    * TODO: 后续按版本恢复数据并处理兼容迁移。
    */
   async onRestore(bundleVersion: BundleVersion) {
-    hilog.info(DOMAIN, 'testTag', 'onRestore ok %{public}s', JSON.stringify(bundleVersion));
+    void bundleVersion;
     await Promise.resolve();
   }
 }

@@ -986,6 +986,38 @@ export class TodoPageState {
     const colorPalette = this.getCategoryColorPalette();
     return colorPalette[index % colorPalette.length];
   }
+
+  resetForReload(): void {
+    for (let index = 0; index < this.undoTasks.length; index++) {
+      if (this.undoTasks[index].timerId >= 0) {
+        clearTimeout(this.undoTasks[index].timerId);
+      }
+    }
+    this.categories = [];
+    this.selectedCategoryId = 0;
+    this.todos = [];
+    this.visibleTodos = [];
+    this.visibleTodoCards = [];
+    this.isCategoryEditorVisible = false;
+    this.isTodoEditorVisible = false;
+    this.isTodoDetailVisible = false;
+    this.editingTodoId = 0;
+    this.undoTasks = [];
+    this.pendingRestoreMoveTodoIds = [];
+    this.refreshTask = null;
+    this.ensureDefaultCategoryTask = null;
+    this.todoCardItemMap = new Map<number, TodoCardItem>();
+  }
+
+  clearListCache(): void {
+    this.categories = [];
+    this.todos = [];
+    this.visibleTodos = [];
+    this.visibleTodoCards = [];
+    this.refreshTask = null;
+    this.ensureDefaultCategoryTask = null;
+    this.todoCardItemMap = new Map<number, TodoCardItem>();
+  }
 }
 
 const TODO_PAGE_STATE: TodoPageState = new TodoPageState();

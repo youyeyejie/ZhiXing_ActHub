@@ -103,7 +103,6 @@ export class AIService {
   async testConnection(): Promise<string> {
     const httpRequest = http.createHttp();
     try {
-      console.log(`[AIService] 测试连接到 ${this.config.baseUrl}`);
       const result = await httpRequest.request(`${this.config.baseUrl}/v1/models`, {
         method: http.RequestMethod.GET,
         header: {
@@ -112,14 +111,12 @@ export class AIService {
         connectTimeout: 10000,
         readTimeout: 10000,
       });
-      console.log(`[AIService] 测试响应状态码: ${result.responseCode}`);
       if (result.responseCode === 200) {
         return "连接成功";
       }
       return `连接测试失败，状态码: ${result.responseCode}`;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`[AIService] 连接测试异常: ${errorMessage}`);
       return `连接测试出错: ${errorMessage}`;
     } finally {
       httpRequest.destroy();
@@ -132,7 +129,6 @@ export class AIService {
   private async chat(messages: ChatMessage[]): Promise<string> {
     const httpRequest = http.createHttp();
     try {
-      console.log(`[AIService] 发送请求到 ${this.config.baseUrl}/v1/chat/completions`);
       const result = await httpRequest.request(`${this.config.baseUrl}/v1/chat/completions`, {
         method: http.RequestMethod.POST,
         header: {
@@ -148,7 +144,6 @@ export class AIService {
         connectTimeout: 30000,
         readTimeout: 90000,
       });
-      console.log(`[AIService] 响应状态码: ${result.responseCode}`);
 
       if (result.responseCode === 200 && result.result) {
         try {
