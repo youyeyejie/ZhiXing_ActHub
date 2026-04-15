@@ -141,6 +141,11 @@ export default class EntryAbility extends UIAbility {
   onForeground(): void {
     // Ability has brought to foreground
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onForeground');
+    try {
+      useAppState().focusEngine.enterForeground();
+    } catch (e) {
+      hilog.error(DOMAIN, 'testTag', 'Failed to call enterForeground: %{public}s', JSON.stringify(e));
+    }
   }
 
   /**
@@ -149,6 +154,11 @@ export default class EntryAbility extends UIAbility {
   onBackground(): void {
     // Ability has back to background
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
+    try {
+      useAppState().focusEngine.enterBackground();
+    } catch (e) {
+      hilog.error(DOMAIN, 'testTag', 'Failed to call enterBackground: %{public}s', JSON.stringify(e));
+    }
   }
 
 }
