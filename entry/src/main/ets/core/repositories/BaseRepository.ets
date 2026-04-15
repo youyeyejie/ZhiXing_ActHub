@@ -1,4 +1,4 @@
-import { QueryBuilder, getORM, Class } from "@ibestservices/ibest-orm";
+import { QueryBuilder, getORM, Class, ORM } from "@ibestservices/ibest-orm";
 import { BaseEntity } from "../models/BaseEntity";
 
 /**
@@ -15,11 +15,14 @@ import { BaseEntity } from "../models/BaseEntity";
  * - `save/removeById` 会直接写入或删除数据库记录。
  */
 export abstract class BaseRepository<T extends BaseEntity> {
-  protected orm = getORM();
   protected entityClass: Class<T>;
 
   constructor(entityClass: Class<T>) {
     this.entityClass = entityClass;
+  }
+
+  protected get orm(): ORM {
+    return getORM();
   }
 
   get query(): QueryBuilder<T> {

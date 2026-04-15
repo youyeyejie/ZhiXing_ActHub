@@ -1,84 +1,151 @@
+import promptAction from '@ohos.promptAction';
 import { AppState, useAppState } from '../../../app/AppStates';
-import { ThemeMode } from '../../../core/theme/ThemeManager';
+import { AppPreferenceKey } from '../../../app/AppConstants';
+import { PreferenceStorage } from '../../../core/storage/PreferenceStorage';
+import { NotificationService } from '../../../core/services/NotificationService';
 
-/**
- * 组件功能简介：
- * - 设置面板组件，当前提供主题模式切换能力。
- * - TODO: 尚未接入提醒开关、导入导出和退出登录入口。
- *
- * 可传入项：
- * - 无。
- *
- * 返回行为：
- * - 渲染设置项容器与主题模式切换按钮。
- *
- * 副作用：
- * - 读取并写入 AppStorage 主题偏好。
- * - 会调用 AppState 同步全局主题。
- */
 @ComponentV2
 export struct SettingsPanel {
   @Local private app: AppState = useAppState();
-  @Local private preferredThemeMode: ThemeMode = ThemeMode.SYSTEM;
+  @Local private reminderEnabled: boolean = false;
+  @Event onLogoutTap: () => void = () => {};
 
-  private readSystemDarkMode(): boolean {
-    const value: Object | undefined = AppStorage.get('systemDarkMode');
-    return value === true;
-  }
+  private preferenceStorage: PreferenceStorage = PreferenceStorage.getInstance();
+  private notificationService: NotificationService = new NotificationService();
 
   aboutToAppear(): void {
-    const value: Object | undefined = AppStorage.get('preferredThemeMode');
-    if (value === ThemeMode.DARK) {
-      this.preferredThemeMode = ThemeMode.DARK;
-    } else if (value === ThemeMode.LIGHT) {
-      this.preferredThemeMode = ThemeMode.LIGHT;
-    } else {
-      this.preferredThemeMode = ThemeMode.SYSTEM;
+    this.loadSettings();
+  }
+
+  private async loadSettings(): Promise<void> {
+    this.reminderEnabled = await this.preferenceStorage.getBoolean(
+      AppPreferenceKey.PLAN_REMINDER_ENABLED,
+      false,
+    );
+  }
+
+  private safeToast(message: string): void {
+    try {
+      promptAction.showToast({ message, duration: 1400 });
+    } catch (_error) {
     }
-    this.app.applyThemePreference(this.preferredThemeMode, this.readSystemDarkMode());
   }
 
-  private selectTheme(mode: ThemeMode): void {
-    this.preferredThemeMode = mode;
-    AppStorage.set('preferredThemeMode', mode);
-    this.app.applyThemePreference(mode, this.readSystemDarkMode());
-  }
-
-  private isActiveMode(mode: ThemeMode): boolean {
-    return this.preferredThemeMode === mode;
+  private async handleReminderToggle(enabled: boolean): Promise<void> {
+    this.reminderEnabled = enabled;
+    await this.preferenceStorage.setBoolean(AppPreferenceKey.PLAN_REMINDER_ENABLED, enabled);
+    if (enabled) {
+      await this.notificationService.registerPlanReminder();
+      this.safeToast('日程提醒已开启');
+      return;
+    }
+    await this.notificationService.cancelPlanReminder();
+    this.safeToast('日程提醒已关闭');
   }
 
   @Builder
-  private buildModeButton(label: string, mode: ThemeMode) {
-    Button(label)
+  private buildActionRow(title: string, subtitle: string, buttonLabel: string, onTap: () => void) {
+    Row({ space: 12 }) {
+      Column({ space: 4 }) {
+        Text(title)
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.app.theme.palette.textPrimary);
+
+        Text(subtitle)
+          .fontSize(12)
+          .lineHeight(18)
+          .fontColor(this.app.theme.palette.textSecondary);
+      }
       .layoutWeight(1)
-      .height(36)
-      .fontSize(13)
-      .fontWeight(this.isActiveMode(mode) ? FontWeight.Medium : FontWeight.Regular)
-      .fontColor(this.isActiveMode(mode) ? this.app.theme.palette.surface : this.app.theme.palette.textSecondary)
-      .backgroundColor(this.isActiveMode(mode) ? this.app.theme.palette.primary : this.app.theme.palette.surfaceSecondary)
-      .onClick(() => {
-        this.selectTheme(mode);
-      });
+      .alignItems(HorizontalAlign.Start);
+
+      Button(buttonLabel)
+        .height(34)
+        .fontSize(12)
+        .fontColor(this.app.theme.palette.textPrimary)
+        .backgroundColor(this.app.theme.palette.surface)
+        .borderRadius(999)
+        .onClick(() => {
+          onTap();
+        });
+    }
+    .width('100%')
+    .padding(16)
+    .borderRadius(18)
+    .backgroundColor(this.app.theme.palette.surfaceSecondary);
   }
 
   build() {
-    Column({ space: 8 }) {
-      Text('显示模式')
+    Column({ space: 12 }) {
+      Text('设置选项')
         .fontSize(16)
         .fontWeight(FontWeight.Medium)
         .fontColor(this.app.theme.palette.textPrimary);
 
-      Text('可选择跟随系统、深色或浅色模式。')
-        .fontSize(12)
-        .fontColor(this.app.theme.palette.textSecondary);
+      Row({ space: 12 }) {
+        Column({ space: 4 }) {
+          Text('日程提醒通知')
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.app.theme.palette.textPrimary);
 
-      Row({ space: 8 }) {
-        this.buildModeButton('跟随系统', ThemeMode.SYSTEM);
-        this.buildModeButton('浅色', ThemeMode.LIGHT);
-        this.buildModeButton('深色', ThemeMode.DARK);
+          Text('预留提醒总开关，后续接入系统通知后可以直接沿用。')
+            .fontSize(12)
+            .lineHeight(18)
+            .fontColor(this.app.theme.palette.textSecondary);
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start);
+
+        Toggle({ type: ToggleType.Switch, isOn: this.reminderEnabled })
+          .onChange(async (value: boolean) => {
+            await this.handleReminderToggle(value);
+          });
       }
-      .width('100%');
+      .width('100%')
+      .padding(16)
+      .borderRadius(18)
+      .backgroundColor(this.app.theme.palette.surfaceSecondary);
+
+      this.buildActionRow(
+        '导入日程',
+        '预留 ICS / CSV 文件导入入口，后续只需接文件选择器和解析逻辑。',
+        '预留',
+        () => {
+          this.safeToast('导入日程入口已预留');
+        },
+      );
+
+      this.buildActionRow(
+        '导出本地数据',
+        '预留本地数据导出能力，后续可选择导出待办、日程、闪记等内容。',
+        '预留',
+        () => {
+          this.safeToast('导出本地数据入口已预留');
+        },
+      );
+
+      this.buildActionRow(
+        '同步空间',
+        '云同步是扩展功能，本期先保留设置位置，方便后续直接接入。',
+        '预留',
+        () => {
+          this.safeToast('同步能力为扩展预留项');
+        },
+      );
+
+      Button('退出登录')
+        .width('100%')
+        .height(44)
+        .fontSize(15)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.app.theme.palette.surface)
+        .backgroundColor(this.app.theme.palette.primary)
+        .borderRadius(16)
+        .onClick(() => {
+          this.onLogoutTap();
+        });
     }
     .width('100%')
     .padding(16)

@@ -1,38 +1,62 @@
 import { Focus } from '../models/Focus';
 import { BaseRepository } from './BaseRepository';
 
-/**
- * 类功能简介：
- * - 专注仓储实现，承载 Focus 实体的数据访问。
- * - TODO: 尚未补充按日期与待办维度聚合报表。
- *
- * 可传入项：
- * - 无。
- *
- * 返回行为：
- * - 继承并提供 Focus 实体的基础 CRUD 能力。
- *
- * 副作用：
- * - 写操作会更新数据库中的 Focus 记录。
- */
 export class FocusRepository extends BaseRepository<Focus> {
   constructor() {
     super(Focus);
   }
 
-  /**
-   * 插入专注记录（带有异常处理）
-   * @param focus 专注记录实体
-   * @returns 插入成功返回true，失败返回false
-   */
   async insertFocusRecord(focus: Focus): Promise<boolean> {
     try {
       await this.save(focus);
-      console.log(`[focusRepository]专注记录已保存: ${focus.id}, 时长: ${focus.duration}秒, 专注对应的todoID ${focus.todoId}`);
       return true;
-    } catch (error) {
-      console.error('插入专注记录失败:', error);
+    } catch (_error) {
       return false;
     }
+  }
+
+  async getDailyDurationMap(days: number): Promise<Record<string, number>> {
+    const records: Array<Focus> = await this.findAll();
+    const result: Record<string, number> = {};
+    const safeDays: number = days > 0 ? days : 0;
+    const now: number = Date.now();
+    const startTime: number = safeDays > 0 ? now - (safeDays - 1) * 24 * 60 * 60 * 1000 : now;
+
+    for (let index = 0; index < records.length; index++) {
+      const focus: Focus = records[index];
+      const timestamp: number = focus.startTime > 0 ? focus.startTime : focus.timestamp;
+      if (safeDays > 0 && timestamp < startTime) {
+        continue;
+      }
+
+      const dateKey: string = this.formatDateKey(timestamp);
+      const currentValue: number = result[dateKey] ? result[dateKey] : 0;
+      result[dateKey] = currentValue + Math.max(0, focus.duration);
+    }
+
+    return result;
+  }
+
+  async getTotalCount(): Promise<number> {
+    const records: Array<Focus> = await this.findAll();
+    return records.length;
+  }
+
+  async getTotalDuration(): Promise<number> {
+    const records: Array<Focus> = await this.findAll();
+    let totalDuration: number = 0;
+
+    for (let index = 0; index < records.length; index++) {
+      totalDuration += Math.max(0, records[index].duration);
+    }
+
+    return totalDuration;
+  }
+
+  private formatDateKey(timestamp: number): string {
+    const date: Date = new Date(timestamp);
+    const month: string = String(date.getMonth() + 1).padStart(2, '0');
+    const day: string = String(date.getDate()).padStart(2, '0');
+    return `${date.getFullYear()}-${month}-${day}`;
   }
 }

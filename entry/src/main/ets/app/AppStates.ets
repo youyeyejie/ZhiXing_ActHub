@@ -1,8 +1,19 @@
 import { ThemeManager, ThemeMode } from '../core/theme/ThemeManager';
 import { AppNav } from './AppNav';
-import { AppFlow } from './AppConstants';
+import { AppFlow, AppPreferenceKey } from './AppConstants';
+import { AuthService } from '../core/services/AuthService';
 import { FocusTimerEngine } from '../core/services/FocusTimerEngine';
 import { WhiteNoisePlayer } from '../core/services/WhiteNoisePlayer';
+import { PreferenceStorage } from '../core/storage/PreferenceStorage';
+import { User } from '../core/models/User';
+
+
+
+export interface AuthActionResult {
+  success: boolean;
+  message: string;
+}
+
 /**
  * 类功能简介：
  * - 应用运行态单例，统一管理主题、导航与流程状态。
@@ -20,30 +31,28 @@ import { WhiteNoisePlayer } from '../core/services/WhiteNoisePlayer';
 @ObservedV2
 export class AppState {
   private themeManager: ThemeManager = new ThemeManager();
-  private _nav: AppNav = new AppNav();
-  private _focusEngine: FocusTimerEngine = new FocusTimerEngine(); 
+  private navState: AppNav = new AppNav();
+  private focusTimerEngine: FocusTimerEngine = new FocusTimerEngine();
   private _whiteNoisePlayer: WhiteNoisePlayer = new WhiteNoisePlayer();
-  @Trace public flow: AppFlow = AppFlow.MAIN;
+  private authService: AuthService = new AuthService();
+  private preferenceStorage: PreferenceStorage = PreferenceStorage.getInstance();
+  private currentUserValue: User | null = null;
 
-  /**
-   * 返回全局主题管理器实例。
-   */
+  @Trace public flow: AppFlow = AppFlow.SPLASH;
+  @Trace public currentUserId: string = '';
+  @Trace public currentUserName: string = '';
+  @Trace public currentUserAvatar: string = '';
+
   get theme(): ThemeManager {
     return this.themeManager;
   }
 
-  /**
-   * 返回全局导航状态对象。
-   */
   get nav(): AppNav {
-    return this._nav;
+    return this.navState;
   }
 
-  /**
-   * 返回全局专注计时引擎实例。
-   */
   get focusEngine(): FocusTimerEngine {
-    return this._focusEngine;
+    return this.focusTimerEngine;
   }
   /**
    * 返回白噪音播放器。
@@ -54,38 +63,136 @@ export class AppState {
   /**
    * 应用主题偏好。
    */
+
+  get currentUser(): User | null {
+    return this.currentUserValue;
+  }
+
+  get isLoggedIn(): boolean {
+    return this.currentUserId.length > 0;
+  }
   applyThemePreference(mode: ThemeMode, systemDarkMode: boolean): void {
     this.themeManager.set(mode);
     this.themeManager.setSystemDark(systemDarkMode);
   }
 
-  /**
-   * 切换到启动流程。
-   */
+  setPreferredThemeMode(mode: ThemeMode): void {
+    AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, mode);
+    this.applyThemePreference(mode, this.readSystemDarkMode());
+    this.preferenceStorage.setStringSync(AppPreferenceKey.PREFERRED_THEME_MODE, mode);
+  }
+
+  toggleThemeMode(): void {
+    const nextMode: ThemeMode = this.theme.isDark ? ThemeMode.LIGHT : ThemeMode.DARK;
+    this.setPreferredThemeMode(nextMode);
+  }
+
+  async bootstrap(): Promise<void> {
+    this.enterSplash();
+    try {
+      const storedUserId: string = await this.preferenceStorage.getString(
+        AppPreferenceKey.SESSION_USER_ID,
+        '',
+      );
+      if (`${storedUserId}`.trim().length === 0) {
+        this.applyCurrentUser(null);
+        this.enterAuth();
+        return;
+      }
+
+      const restoredUser: User | null = await this.authService.restoreSession(storedUserId);
+      if (restoredUser === null) {
+        await this.clearStoredSession();
+        this.applyCurrentUser(null);
+        this.enterAuth();
+        return;
+      }
+
+      this.applyCurrentUser(restoredUser);
+      this.enterMain();
+    } catch (_error) {
+      this.applyCurrentUser(null);
+      this.enterAuth();
+    }
+  }
+
+  async login(account: string, password: string): Promise<AuthActionResult> {
+    const user: User | null = await this.authService.login(account, password);
+    if (user === null) {
+      return {
+        success: false,
+        message: '账号或密码错误',
+      };
+    }
+
+    this.applyCurrentUser(user);
+    await this.persistSession(user);
+    this.enterMain();
+    return {
+      success: true,
+      message: '欢迎回来，' + user.name,
+    };
+  }
+
+  async register(account: string, password: string): Promise<AuthActionResult> {
+    const user: User | null = await this.authService.register(account, password);
+    if (user === null) {
+      return {
+        success: false,
+        message: '注册失败，账号可能已存在',
+      };
+    }
+
+    this.applyCurrentUser(user);
+    await this.persistSession(user);
+    this.enterMain();
+    return {
+      success: true,
+      message: '注册成功，' + user.name,
+    };
+  }
+
+  async logout(): Promise<void> {
+    this.authService.logout();
+    this.applyCurrentUser(null);
+    await this.clearStoredSession();
+    this.enterAuth();
+  }
+
   enterSplash(): void {
     this.flow = AppFlow.SPLASH;
   }
 
-  /**
-   * 切换到认证流程。
-   */
   enterAuth(): void {
     this.flow = AppFlow.AUTH;
   }
 
-  /**
-   * 切换到主流程。
-   */
   enterMain(): void {
     this.flow = AppFlow.MAIN;
+  }
+
+  private applyCurrentUser(user: User | null): void {
+    this.currentUserValue = user;
+    this.currentUserId = user !== null ? user.id : '';
+    this.currentUserName = user !== null ? user.name : '';
+    this.currentUserAvatar = user !== null ? user.avatar : '';
+  }
+
+  private async persistSession(user: User): Promise<void> {
+    await this.preferenceStorage.setString(AppPreferenceKey.SESSION_USER_ID, user.id);
+  }
+
+  private async clearStoredSession(): Promise<void> {
+    await this.preferenceStorage.remove(AppPreferenceKey.SESSION_USER_ID);
+  }
+
+  private readSystemDarkMode(): boolean {
+    return AppStorage.get('systemDarkMode') === true;
   }
 }
 
 const APP_STATE: AppState = new AppState();
 
-/**
- * 获取应用单例状态。
- */
 export function useAppState(): AppState {
   return APP_STATE;
 }

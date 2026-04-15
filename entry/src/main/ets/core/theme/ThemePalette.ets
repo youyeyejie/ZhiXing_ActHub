@@ -35,7 +35,7 @@ export class ThemePalette {
   textTertiary: string = '#98A2B3';
   border: string = '#E5E7EB';
   mask: string = '#66000000';
-  logo: string = "app.media.foreground_white";
+  logo: string = "app.media.foreground";
 
   static light(): ThemePalette {
     const palette = new ThemePalette();
@@ -62,7 +62,7 @@ export class ThemePalette {
     palette.textTertiary = '#98A2B3';
     palette.border = '#E5E7EB';
     palette.mask = '#66000000';
-    palette.logo = "app.media.foreground_white";
+    palette.logo = "app.media.foreground";
     return palette;
   }
 
