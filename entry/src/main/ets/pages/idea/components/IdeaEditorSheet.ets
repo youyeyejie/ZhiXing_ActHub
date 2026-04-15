@@ -168,7 +168,7 @@ export struct IdeaEditorSheet {
           // 保存按钮
           Button(this.isSaving ? "保存中..." : "保存")
             .fontSize(14)
-            .fontColor("#FFFFFF")
+            .fontColor(this.app.theme.palette.surface)
             .backgroundColor(this.app.theme.palette.primary)
             .borderRadius(999)
             .height(40)
@@ -187,7 +187,7 @@ export struct IdeaEditorSheet {
           Blank()
           Button(this.isSaving ? "保存中..." : "保存")
             .fontSize(14)
-            .fontColor("#FFFFFF")
+            .fontColor(this.app.theme.palette.surface)
             .backgroundColor(this.app.theme.palette.primary)
             .borderRadius(999)
             .height(40)

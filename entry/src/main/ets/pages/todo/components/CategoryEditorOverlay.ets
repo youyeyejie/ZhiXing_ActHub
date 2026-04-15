@@ -124,11 +124,11 @@ export struct CategoryEditorOverlay {
       buttons: [
         {
           text: '取消',
-          color: '#FF5500'
+          color: this.app.theme.palette.textSecondary
         },
         {
           text: '确认',
-          color: '#ff2664eb'
+          color: this.app.theme.palette.primary
         }
       ]
     }).then((result: DialogResult) => {
@@ -313,7 +313,7 @@ export struct CategoryEditorOverlay {
             }
               .width(30)
               .height(30)
-              .backgroundColor('#EF4444')
+              .backgroundColor(this.app.theme.palette.danger)
               .onClick(() => {
                 this.requestRemoveCategory(this.resolveSelectedEditorCategory()!);
               });
@@ -434,7 +434,7 @@ export struct CategoryEditorOverlay {
         .height(this.resolveCardHeight())
         .padding({ left: 14, right: 14, top: 14, bottom: this.isEditorExpanded() ? 10 : 8 })
         .borderRadius(16)
-        .backgroundColor('#FFFFFF')
+        .backgroundColor(this.app.theme.palette.surface)
         .shadow({ radius: 20, color: this.app.theme.palette.mask, offsetX: 0, offsetY: 8 })
         .animation({ duration: 220, curve: Curve.EaseOut, playMode: PlayMode.Normal })
         .onClick(() => {

@@ -13,6 +13,20 @@
  */
 export class ThemePalette {
   primary: string = '#004c24';
+  info: string = '#3B82F6';
+  infoSurface: string = '#EFF6FF';
+  warning: string = '#F59E0B';
+  warningSurface: string = '#FFF8E8';
+  danger: string = '#EF4444';
+  dangerSurface: string = '#FFE9E8';
+  accentBlue: string = '#3B82F6';
+  accentViolet: string = '#7C3AED';
+  accentGreen: string = '#22C55E';
+  accentAmber: string = '#F59E0B';
+  accentRed: string = '#EF4444';
+  accentCyan: string = '#06B6D4';
+  accentPurple: string = '#A855F7';
+  accentEmerald: string = '#10B981';
   background: string = '#F7F8FA';
   surface: string = '#FFFFFF';
   surfaceSecondary: string = '#F3F4F6';
@@ -26,6 +40,20 @@ export class ThemePalette {
   static light(): ThemePalette {
     const palette = new ThemePalette();
     palette.primary = '#004c24';
+    palette.info = '#3B82F6';
+    palette.infoSurface = '#EFF6FF';
+    palette.warning = '#F59E0B';
+    palette.warningSurface = '#FFF8E8';
+    palette.danger = '#EF4444';
+    palette.dangerSurface = '#FFE9E8';
+    palette.accentBlue = '#3B82F6';
+    palette.accentViolet = '#7C3AED';
+    palette.accentGreen = '#22C55E';
+    palette.accentAmber = '#F59E0B';
+    palette.accentRed = '#EF4444';
+    palette.accentCyan = '#06B6D4';
+    palette.accentPurple = '#A855F7';
+    palette.accentEmerald = '#10B981';
     palette.background = '#F7F8FA';
     palette.surface = '#FFFFFF';
     palette.surfaceSecondary = '#F3F4F6';
@@ -41,6 +69,20 @@ export class ThemePalette {
   static dark(): ThemePalette {
     const palette = new ThemePalette();
     palette.primary = '#a8ceb3';
+    palette.info = '#60A5FA';
+    palette.infoSurface = '#1E3A5F';
+    palette.warning = '#FBBF24';
+    palette.warningSurface = '#3D2D00';
+    palette.danger = '#F87171';
+    palette.dangerSurface = '#4A1D1D';
+    palette.accentBlue = '#60A5FA';
+    palette.accentViolet = '#A78BFA';
+    palette.accentGreen = '#4ADE80';
+    palette.accentAmber = '#FBBF24';
+    palette.accentRed = '#F87171';
+    palette.accentCyan = '#22D3EE';
+    palette.accentPurple = '#C084FC';
+    palette.accentEmerald = '#34D399';
     palette.background = '#0B1220';
     palette.surface = '#111827';
     palette.surfaceSecondary = '#1F2937';

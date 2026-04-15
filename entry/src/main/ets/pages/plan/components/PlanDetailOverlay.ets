@@ -44,10 +44,66 @@ export struct PlanDetailOverlay {
     return date.getTime();
   }
 
-  private createTimePartDate(hour: number, minute: number): Date {
-    const date = new Date();
-    date.setHours(hour, minute, 0, 0);
-    return date;
+  private formatTwoDigits(value: number): string {
+    return `${value}`.padStart(2, '0');
+  }
+
+  private formatDateTimeLabel(datePart: Date, timePart: Date): string {
+    const dateTime = new Date(this.composeDateTime(datePart, timePart));
+    const year = `${dateTime.getFullYear()}`;
+    const month = this.formatTwoDigits(dateTime.getMonth() + 1);
+    const day = this.formatTwoDigits(dateTime.getDate());
+    const hour = this.formatTwoDigits(dateTime.getHours());
+    const minute = this.formatTwoDigits(dateTime.getMinutes());
+    return `${year}-${month}-${day} ${hour}:${minute}`;
+  }
+
+  private openDateTimeDialog(selected: Date, onAccept: (value: Date) => void): void {
+    try {
+      this.getUIContext().showDatePickerDialog({
+        start: new Date(PlanPickerStyle.DATE_RANGE_START),
+        end: new Date(PlanPickerStyle.DATE_RANGE_END),
+        selected,
+        showTime: true,
+        useMilitaryTime: true,
+        dateTimeOptions: { hour: '2-digit', minute: '2-digit' },
+        disappearTextStyle: {
+          color: this.app.theme.palette.textTertiary,
+          font: { size: PlanPickerStyle.DISAPPEAR_FONT_SIZE, weight: FontWeight.Regular }
+        },
+        textStyle: {
+          color: this.app.theme.palette.textSecondary,
+          font: { size: PlanPickerStyle.TEXT_FONT_SIZE, weight: FontWeight.Regular }
+        },
+        selectedTextStyle: {
+          color: this.app.theme.palette.primary,
+          font: { size: PlanPickerStyle.SELECTED_FONT_SIZE, weight: FontWeight.Medium }
+        },
+        onDateAccept: (value: Date) => {
+          onAccept(value);
+        }
+      });
+    } catch (_error) {}
+  }
+
+  private openStartDateTimeDialog(): void {
+    const selected = new Date(this.composeDateTime(this.startDateDraft, this.startTimeDraft));
+    this.openDateTimeDialog(selected, (value: Date) => {
+      const accepted = new Date(value.getTime());
+      this.startDateDraft = accepted;
+      this.startTimeDraft = accepted;
+      this.persistTimeDraftIfValid();
+    });
+  }
+
+  private openEndDateTimeDialog(): void {
+    const selected = new Date(this.composeDateTime(this.endDateDraft, this.endTimeDraft));
+    this.openDateTimeDialog(selected, (value: Date) => {
+      const accepted = new Date(value.getTime());
+      this.endDateDraft = accepted;
+      this.endTimeDraft = accepted;
+      this.persistTimeDraftIfValid();
+    });
   }
 
   private resolveEditingPlan(): Plan | null {
@@ -268,119 +324,45 @@ export struct PlanDetailOverlay {
           this.persistTitleDraft();
         });
 
-      Text('开始时间')
-        .fontSize(13)
-        .fontColor(this.app.theme.palette.textSecondary);
-
-      Row({ space: PlanPickerStyle.ROW_SPACE }) {
-        DatePicker({
-          start: new Date('2000-1-1'),
-          end: new Date('2100-12-31'),
-          selected: this.startDateDraft
-        })
-          .lunar(false)
-          .layoutWeight(1)
+      Row() {
+        Text('开始时间')
+          .fontSize(13)
+          .fontColor(this.app.theme.palette.textSecondary)
+          .layoutWeight(1);
+        Button(this.formatDateTimeLabel(this.startDateDraft, this.startTimeDraft))
+          .type(ButtonType.Normal)
           .height(PlanPickerStyle.PANEL_HEIGHT)
+          .width(PlanPickerStyle.TRIGGER_WIDTH)
           .backgroundColor(this.app.theme.palette.surfaceSecondary)
           .borderRadius(12)
-          .disappearTextStyle({
-            color: this.app.theme.palette.textTertiary,
-            font: { size: PlanPickerStyle.DISAPPEAR_FONT_SIZE, weight: FontWeight.Regular }
-          })
-          .textStyle({
-            color: this.app.theme.palette.textSecondary,
-            font: { size: PlanPickerStyle.TEXT_FONT_SIZE, weight: FontWeight.Regular }
-          })
-          .selectedTextStyle({
-            color: this.app.theme.palette.primary,
-            font: { size: PlanPickerStyle.SELECTED_FONT_SIZE, weight: FontWeight.Medium }
-          })
-          .onDateChange((value: Date) => {
-            this.startDateDraft = value;
-            this.persistTimeDraftIfValid();
-          });
-
-        TimePicker({ selected: this.startTimeDraft })
-          .useMilitaryTime(true)
-          .layoutWeight(1)
-          .height(PlanPickerStyle.PANEL_HEIGHT)
-          .backgroundColor(this.app.theme.palette.surfaceSecondary)
-          .borderRadius(12)
-          .disappearTextStyle({
-            color: this.app.theme.palette.textTertiary,
-            font: { size: PlanPickerStyle.DISAPPEAR_FONT_SIZE, weight: FontWeight.Regular }
-          })
-          .textStyle({
-            color: this.app.theme.palette.textSecondary,
-            font: { size: PlanPickerStyle.TEXT_FONT_SIZE, weight: FontWeight.Regular }
-          })
-          .selectedTextStyle({
-            color: this.app.theme.palette.primary,
-            font: { size: PlanPickerStyle.SELECTED_FONT_SIZE, weight: FontWeight.Medium }
-          })
-          .onChange((value) => {
-            this.startTimeDraft = this.createTimePartDate(value.hour, value.minute);
-            this.persistTimeDraftIfValid();
+          .fontSize(PlanPickerStyle.TEXT_FONT_SIZE)
+          .fontColor(this.app.theme.palette.textSecondary)
+          .onClick(() => {
+            this.openStartDateTimeDialog();
           });
       }
-      .width('100%');
+      .width('100%')
+      .alignItems(VerticalAlign.Center);
 
-      Text('结束时间')
-        .fontSize(13)
-        .fontColor(this.app.theme.palette.textSecondary);
-
-      Row({ space: PlanPickerStyle.ROW_SPACE }) {
-        DatePicker({
-          start: new Date('2000-1-1'),
-          end: new Date('2100-12-31'),
-          selected: this.endDateDraft
-        })
-          .lunar(false)
-          .layoutWeight(1)
+      Row() {
+        Text('结束时间')
+          .fontSize(13)
+          .fontColor(this.app.theme.palette.textSecondary)
+          .layoutWeight(1);
+        Button(this.formatDateTimeLabel(this.endDateDraft, this.endTimeDraft))
+          .type(ButtonType.Normal)
           .height(PlanPickerStyle.PANEL_HEIGHT)
+          .width(PlanPickerStyle.TRIGGER_WIDTH)
           .backgroundColor(this.app.theme.palette.surfaceSecondary)
           .borderRadius(12)
-          .disappearTextStyle({
-            color: this.app.theme.palette.textTertiary,
-            font: { size: PlanPickerStyle.DISAPPEAR_FONT_SIZE, weight: FontWeight.Regular }
-          })
-          .textStyle({
-            color: this.app.theme.palette.textSecondary,
-            font: { size: PlanPickerStyle.TEXT_FONT_SIZE, weight: FontWeight.Regular }
-          })
-          .selectedTextStyle({
-            color: this.app.theme.palette.primary,
-            font: { size: PlanPickerStyle.SELECTED_FONT_SIZE, weight: FontWeight.Medium }
-          })
-          .onDateChange((value: Date) => {
-            this.endDateDraft = value;
-            this.persistTimeDraftIfValid();
-          });
-
-        TimePicker({ selected: this.endTimeDraft })
-          .useMilitaryTime(true)
-          .layoutWeight(1)
-          .height(PlanPickerStyle.PANEL_HEIGHT)
-          .backgroundColor(this.app.theme.palette.surfaceSecondary)
-          .borderRadius(12)
-          .disappearTextStyle({
-            color: this.app.theme.palette.textTertiary,
-            font: { size: PlanPickerStyle.DISAPPEAR_FONT_SIZE, weight: FontWeight.Regular }
-          })
-          .textStyle({
-            color: this.app.theme.palette.textSecondary,
-            font: { size: PlanPickerStyle.TEXT_FONT_SIZE, weight: FontWeight.Regular }
-          })
-          .selectedTextStyle({
-            color: this.app.theme.palette.primary,
-            font: { size: PlanPickerStyle.SELECTED_FONT_SIZE, weight: FontWeight.Medium }
-          })
-          .onChange((value) => {
-            this.endTimeDraft = this.createTimePartDate(value.hour, value.minute);
-            this.persistTimeDraftIfValid();
+          .fontSize(PlanPickerStyle.TEXT_FONT_SIZE)
+          .fontColor(this.app.theme.palette.textSecondary)
+          .onClick(() => {
+            this.openEndDateTimeDialog();
           });
       }
-      .width('100%');
+      .width('100%')
+      .alignItems(VerticalAlign.Center);
 
       TextInput({ text: this.locationDraft, placeholder: '地点（选填）' })
         .width('100%')
