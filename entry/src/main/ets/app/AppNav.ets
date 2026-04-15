@@ -15,6 +15,8 @@ import { AppOverlayRoute, AppRoute, AppTab, FocusRouteParam, SearchRouteParam } 
  */
 @ObservedV2
 export class AppNav extends NavPathStack {
+  private static readonly DEFAULT_ACTION_SHEET_HEIGHT: string = '56%';
+  private static readonly DEFAULT_DETAIL_CARD_HEIGHT: string = '60%';
   @Trace public mainRouteName: string = AppRoute.PLAN;
   @Trace public hasOverlayRoute: boolean = false;
   @Trace public detailModuleName: string = '';
@@ -22,6 +24,8 @@ export class AppNav extends NavPathStack {
   public actionSheetContentBuilder: () => void = () => {};
   public detailCardContentBuilder: () => void = () => {};
   public detailCardTitle: string = '详情';
+  public actionSheetHeight: string = AppNav.DEFAULT_ACTION_SHEET_HEIGHT;
+  public detailCardHeight: string = AppNav.DEFAULT_DETAIL_CARD_HEIGHT;
 
   /**
    * 按标签切换主页面。
@@ -67,8 +71,9 @@ export class AppNav extends NavPathStack {
   /**
    * 打开 ActionSheet 覆盖页。
    */
-  openActionSheet(contentBuilder: () => void = () => {}): void {
+  openActionSheet(contentBuilder: () => void = () => {}, height: string = AppNav.DEFAULT_ACTION_SHEET_HEIGHT): void {
     this.actionSheetContentBuilder = contentBuilder;
+    this.actionSheetHeight = this.resolveOverlayHeight(height, AppNav.DEFAULT_ACTION_SHEET_HEIGHT);
     // 禁用路由级动画，仅保留 ActionSheet 组件内部动画，避免遮罩随路由整体滑动。
     this.pushOverlayRoute(AppOverlayRoute.ACTION_SHEET, undefined, false);
   }
@@ -76,9 +81,14 @@ export class AppNav extends NavPathStack {
   /**
    * 打开 DetailCard 覆盖页。
    */
-  openDetailCard(contentBuilder: () => void = () => {}, title: string = '详情'): void {
+  openDetailCard(
+    contentBuilder: () => void = () => {},
+    title: string = '详情',
+    height: string = AppNav.DEFAULT_DETAIL_CARD_HEIGHT
+  ): void {
     this.detailCardContentBuilder = contentBuilder;
     this.detailCardTitle = title;
+    this.detailCardHeight = this.resolveOverlayHeight(height, AppNav.DEFAULT_DETAIL_CARD_HEIGHT);
     this.pushOverlayRoute(AppOverlayRoute.DETAIL_CARD, undefined, true);
   }
 
@@ -161,12 +171,25 @@ export class AppNav extends NavPathStack {
   }
 
   /**
+   * 兜底覆盖页高度，空字符串时回退默认值。
+   */
+  private resolveOverlayHeight(height: string, fallback: string): string {
+    const normalized = `${height}`.trim();
+    if (normalized.length === 0) {
+      return fallback;
+    }
+    return normalized;
+  }
+
+  /**
    * 清理覆盖页内容 builder 与详情状态。
    */
   private clearDetailState(): void {
     this.detailModuleName = '';
     this.detailRecordId = '';
     this.detailCardTitle = '详情';
+    this.actionSheetHeight = AppNav.DEFAULT_ACTION_SHEET_HEIGHT;
+    this.detailCardHeight = AppNav.DEFAULT_DETAIL_CARD_HEIGHT;
     this.actionSheetContentBuilder = () => {};
     this.detailCardContentBuilder = () => {};
   }

@@ -281,7 +281,7 @@ export struct TodoCardLlist {
             return;
           }
           this.state.openTodoDetail(todo.id);
-          this.app.nav.openDetailCard(this.buildTodoDetailContent, '编辑待办');
+          this.app.nav.openDetailCard(this.buildTodoDetailContent, '编辑待办', "40%");
         })
       }
       .width("100%")
