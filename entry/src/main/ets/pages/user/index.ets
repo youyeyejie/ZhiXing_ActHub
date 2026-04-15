@@ -5,6 +5,7 @@ import { MainTabPageLayout } from '../../components/layout/MainTabPageLayout';
 import { AppState, useAppState } from '../../app/AppStates';
 import { PageScrollLayout } from '../../components/layout/PageScrollLayout';
 import { ThemeMode } from '../../core/theme/ThemeManager';
+import { AppOverlayRoute } from '../../app/AppConstants';
 
 @ComponentV2
 export struct UserPage {
@@ -130,6 +131,10 @@ export struct UserPage {
   build() {
     MainTabPageLayout({
       title: '我的',
+      actionIcon: $r('sys.symbol.textstyle'),
+      onActionTap: () => {
+        this.app.nav.pushOverlayByName(AppOverlayRoute.SHARED_TEST);
+      }
     }) {
       PageScrollLayout({ space: 12, paddingTop: 12 }) {
         Row() {
