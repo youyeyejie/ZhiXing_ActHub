@@ -141,7 +141,7 @@ export struct IdeaEditorSheet {
     }
 
     const savedIdea = await this.resolveSavedIdea();
-    this.state.applySavedIdea(savedIdea);
+    await this.state.applySavedIdea(savedIdea);
     try {
       this.app.nav.back(false);
     } catch (_error) {

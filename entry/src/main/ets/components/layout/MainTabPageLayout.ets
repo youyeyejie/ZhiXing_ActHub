@@ -105,7 +105,7 @@ export struct MainTabPageLayout {
       if (this.showFloatButton) {
         this.buildFloatingCreateButton();
       }
-    
+
       this.content()
     }
     .width("100%")

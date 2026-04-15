@@ -10,6 +10,7 @@ import { InteractableCard } from "../../../components/card/InteractableCard";
 export struct IdeaCard {
   @Local private app: AppState = useAppState();
   @Param idea: Idea = new Idea();
+  @Param refreshVersion: number = 0;
   @Event onDeleteRequest: (idea: Idea) => void = (_idea: Idea) => {};
   @Event onTap: (idea: Idea) => void = (_idea: Idea) => {};
 

@@ -15,31 +15,32 @@ import { BaseEntity } from './BaseEntity';
  * 副作用：
  * - 无副作用（数据承载类）。
  */
+@ObservedV2
 @Table({ name: DatabaseConfig.IDEA_TABLE })
 export class Idea extends BaseEntity {
   @PrimaryKey()
-  id: string = '';
+  @Trace id: string = '';
 
   @Column({ type: ColumnType.TEXT, defaultValue: '' })
-  title: string = '';
+  @Trace title: string = '';
 
   @Column({ type: ColumnType.TEXT, notNull: true })
   @NotNull()
-  content: string = '';
+  @Trace content: string = '';
 
   @Column({ type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
   @NotNull()
-  length: number = 0;
+  @Trace length: number = 0;
 
   @Column({ type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
   @NotNull()
-  timestamp: number = 0;
+  @Trace timestamp: number = 0;
 
   @Column({ name: 'created_at', type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
   @NotNull()
-  createdAt: number = 0;
+  @Trace createdAt: number = 0;
 
   @Column({ name: 'updated_at', type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
   @NotNull()
-  updatedAt: number = 0;
+  @Trace updatedAt: number = 0;
 }

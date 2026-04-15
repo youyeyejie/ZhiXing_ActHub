@@ -96,6 +96,7 @@ export class AppOverlayRoute {
   static readonly SHARED_TEST: string = 'sharedTest';
   static readonly ACTION_SHEET: string = 'actionSheet';
   static readonly DETAIL_CARD: string = 'detailCard';
+  static readonly AI_INSIGHT: string = 'aiInsight';
 }
 
 /**

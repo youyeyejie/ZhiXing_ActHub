@@ -24,6 +24,7 @@ export class IdeaPageState {
   @Trace public loading: boolean = false;
   @Trace public editingIdeaId: string = '';
   @Trace public undoTasks: Array<IdeaUndoTask> = [];
+  @Trace public refreshVersion: number = 0; // 用于通知子组件刷新
   private undoTaskSeq: number = 0;
   private refreshTask: Promise<void> | null = null;
 
@@ -76,24 +77,32 @@ export class IdeaPageState {
     return found ? found : null;
   }
 
-  applySavedIdea(savedIdea: Idea): void {
+  async applySavedIdea(savedIdea: Idea): Promise<void> {
     const normalizedId = this.normalizeId(savedIdea.id);
-    if (normalizedId.length === 0) {
-      this.ideas = [savedIdea, ...this.ideas];
-      this.ideas = this.sortIdeasByTime(this.ideas);
-      this.closeIdeaDetail();
-      return;
+
+    // 先从数据库重新加载以确保数据最新，并触发UI刷新
+    try {
+      const freshList = await this.repository.findAll();
+      this.ideas = this.sortIdeasByTime(freshList);
+    } catch (_error) {
+      // 如果加载失败，尝试就地更新
+      if (normalizedId.length === 0) {
+        // 新增：直接插入到列表开头
+        this.ideas = [savedIdea, ...this.ideas];
+        this.ideas = this.sortIdeasByTime(this.ideas);
+      } else {
+        const index = this.ideas.findIndex((item: Idea) => this.normalizeId(item.id) === normalizedId);
+        if (index >= 0) {
+          // 创建新数组以触发响应式更新
+          const newIdeas = [...this.ideas];
+          newIdeas[index] = savedIdea;
+          this.ideas = this.sortIdeasByTime(newIdeas);
+        }
+      }
     }
 
-    const index = this.ideas.findIndex((item: Idea) => this.normalizeId(item.id) === normalizedId);
-    if (index >= 0) {
-      this.ideas[index] = savedIdea;
-      this.ideas = this.ideas.slice();
-    } else {
-      this.ideas = [savedIdea, ...this.ideas];
-    }
-    this.ideas = this.sortIdeasByTime(this.ideas);
     this.closeIdeaDetail();
+    this.refreshVersion += 1;
   }
 
   requestDeleteIdea(idea: Idea): void {
@@ -144,6 +153,7 @@ export class IdeaPageState {
       const after = this.ideas.slice(insertIndex);
       this.ideas = [...before, task.idea, ...after];
       this.ideas = this.sortIdeasByTime(this.ideas);
+      this.refreshVersion += 1;
     }
   }
 
@@ -153,6 +163,7 @@ export class IdeaPageState {
       return;
     }
     await this.repository.removeById(task.idea.id);
+    this.refreshVersion += 1;
   }
 
   closeUndo(taskId: string): void {

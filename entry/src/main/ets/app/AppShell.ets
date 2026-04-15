@@ -8,6 +8,7 @@ import { FocusOverlayDestination } from "../components/overlays/FocusOverlayDest
 import { SearchOverlayDestination } from "../components/overlays/SearchOverlayDestination";
 import { ActionSheetOverlayDestination } from "../components/overlays/ActionSheetOverlayDestination";
 import { DetailCardOverlayDestination } from "../components/overlays/DetailCardOverlayDestination";
+import { AIInsightOverlayDestination } from "../components/overlays/AIInsightOverlayDestination";
 import { SearchRouteParam } from "./AppConstants";
 import { ThemeMode } from "../core/theme/ThemeManager";
 
@@ -113,6 +114,8 @@ export struct AppShell {
       DetailCardOverlayDestination({ content: this.app.nav.detailCardContentBuilder });
     } else if (name === AppOverlayRoute.SHARED_TEST) {
       SharedTestDestinationPage();
+    } else if (name === AppOverlayRoute.AI_INSIGHT) {
+      AIInsightOverlayDestination();
     } else {
       SearchOverlayDestination({
         routeParam: this.createFallbackSearchParam(this.app.nav.mainRouteName),

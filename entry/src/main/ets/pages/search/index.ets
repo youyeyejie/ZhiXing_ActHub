@@ -288,12 +288,13 @@ export struct SearchPage {
               });
             }
           }
-          .justifyContent(FlexAlign.Start)
+          .width("100%")
           .alignItems(HorizontalAlign.Start)
-          .padding({ left: 16, right: 16, bottom: 16 })
+          .padding({ left: 16, right: 16, bottom: 16, top: 8 })
         }
         .width("100%")
         .layoutWeight(1)
+        .align(Alignment.Top)
       }.width("100%")
     }
     .width("100%")

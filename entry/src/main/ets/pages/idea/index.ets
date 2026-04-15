@@ -3,6 +3,7 @@ import { IdeaCard } from "./components/IdeaCard";
 import { IdeaEditorSheet } from "./components/IdeaEditorSheet";
 import { HitokotoCard } from "./components/HitokotoCard";
 import { ActivityHeatmap } from "./components/ActivityHeatmap";
+import { AIInsightPanel } from "./components/AIInsightPanel";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
 import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
 import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
@@ -64,7 +65,7 @@ export struct IdeaPage {
       // 主页面内容
       MainTabPageLayout({
         title: "闪记",
-        actionIcon: $r("sys.media.ohos_ic_public_search_filled"),
+        actionIcon: $r("sys.symbol.magnifyingglass"),
         onActionTap: () => {
           this.app.nav.pushOverlayByName(
             AppOverlayRoute.SEARCH,
@@ -98,6 +99,7 @@ export struct IdeaPage {
             (idea: Idea) => {
               IdeaCard({
                 idea: idea,
+                refreshVersion: this.state.refreshVersion,
                 onDeleteRequest: (deleting: Idea) => {
                   this.state.requestDeleteIdea(deleting);
                 },
@@ -106,11 +108,18 @@ export struct IdeaPage {
                 },
               });
             },
-            (idea: Idea) => idea.id,
+            (idea: Idea) => idea.id + '_' + this.state.refreshVersion,
           )
 
-          // 热力图
-          ActivityHeatmap()
+          // 热力图与AI洞察
+          Row({ space: 12 }) {
+            ActivityHeatmap()
+              .layoutWeight(1)
+
+            AIInsightPanel()
+          }
+          .width("100%")
+          .alignItems(VerticalAlign.Top)
 
           // 底部留白（给 FAB 留空间）
           Column().height(100)

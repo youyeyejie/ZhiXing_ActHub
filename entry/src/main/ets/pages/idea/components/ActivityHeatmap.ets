@@ -1,5 +1,7 @@
 import { AppState, useAppState } from "../../../app/AppStates";
 import { IdeaRepository } from "../../../core/repositories/IdeaRepository";
+import { IdeaPageState, useIdeaPageState } from "../IdeaPageState";
+import { Idea } from "../../../core/models/Idea";
 
 /**
  * 热力图单日数据。
@@ -16,6 +18,7 @@ interface HeatmapDay {
 @ComponentV2
 export struct ActivityHeatmap {
   @Local private app: AppState = useAppState();
+  @Local private state: IdeaPageState = useIdeaPageState();
 
   private repository: IdeaRepository = new IdeaRepository();
   @Local private countMap: Record<string, number> = {};
@@ -24,16 +27,45 @@ export struct ActivityHeatmap {
   @Local private loading: boolean = false;
 
   // 热力图配置
-  private readonly CELL_SIZE: number = 12;
-  private readonly CELL_GAP: number = 3;
-  private readonly WEEKS: number = 8; // 显示 8 周数据
+  private readonly CELL_WIDTH: number = 11;   // 单元格宽度
+  private readonly CELL_HEIGHT: number = 11;  // 单元格高度
+  private readonly CELL_GAP: number = 2;      // 格子间距
+  private readonly WEEKS: number = 16;        // 显示 16 周数据
 
   aboutToAppear(): void {
+    // 初始加载时从数据库获取最新数据
     this.loadStats();
   }
 
   /**
-   * 加载统计数据。
+   * 从 state.ideas 计算每日统计（实时响应列表变化）。
+   */
+  private computeStatsFromIdeas(): void {
+    const today = new Date();
+    const startTime = today.getTime() - this.WEEKS * 7 * 24 * 60 * 60 * 1000;
+
+    const countMap: Record<string, number> = {};
+    let totalCount = 0;
+    let totalLength = 0;
+
+    this.state.ideas.forEach((idea: Idea) => {
+      totalCount += 1;
+      totalLength += idea.length || 0;
+
+      if (idea.timestamp >= startTime) {
+        const date = new Date(idea.timestamp);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+        countMap[key] = (countMap[key] || 0) + 1;
+      }
+    });
+
+    this.countMap = countMap;
+    this.totalCount = totalCount;
+    this.totalLength = totalLength;
+  }
+
+  /**
+   * 加载统计数据（从数据库）。
    */
   private async loadStats(): Promise<void> {
     this.loading = true;
@@ -71,6 +103,9 @@ export struct ActivityHeatmap {
    * 范围：从 (WEEKS-1) 周前的周日 到 本周六，覆盖包含今天在内的完整网格。
    */
   private generateHeatmapData(): HeatmapDay[][] {
+    // 每次生成数据前，从 state.ideas 实时计算统计
+    this.computeStatsFromIdeas();
+
     const weeks: HeatmapDay[][] = [];
     const today = new Date();
     // 起点：本周日再往前推 (WEEKS-1) 整周
@@ -138,8 +173,8 @@ export struct ActivityHeatmap {
                     week,
                     (day: HeatmapDay) => {
                       Column()
-                        .width(this.CELL_SIZE)
-                        .height(this.CELL_SIZE)
+                        .width(this.CELL_WIDTH)
+                        .height(this.CELL_HEIGHT)
                         .borderRadius(2)
                         .backgroundColor(this.getHeatColor(day.count));
                     },
@@ -163,23 +198,23 @@ export struct ActivityHeatmap {
           .fontColor(this.app.theme.palette.textTertiary)
         Row({ space: 3 }) {
           Column()
-            .width(this.CELL_SIZE)
-            .height(this.CELL_SIZE)
+            .width(this.CELL_WIDTH)
+            .height(this.CELL_HEIGHT)
             .borderRadius(2)
             .backgroundColor(this.app.theme.palette.surfaceSecondary)
           Column()
-            .width(this.CELL_SIZE)
-            .height(this.CELL_SIZE)
+            .width(this.CELL_WIDTH)
+            .height(this.CELL_HEIGHT)
             .borderRadius(2)
             .backgroundColor(this.app.theme.isDark ? "#1E4A2D" : "#C6E5C8")
           Column()
-            .width(this.CELL_SIZE)
-            .height(this.CELL_SIZE)
+            .width(this.CELL_WIDTH)
+            .height(this.CELL_HEIGHT)
             .borderRadius(2)
             .backgroundColor(this.app.theme.isDark ? "#2E6B4A" : "#7BC99A")
           Column()
-            .width(this.CELL_SIZE)
-            .height(this.CELL_SIZE)
+            .width(this.CELL_WIDTH)
+            .height(this.CELL_HEIGHT)
             .borderRadius(2)
             .backgroundColor("#4CAF7A")
         }
