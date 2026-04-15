@@ -22,6 +22,33 @@ class TodoUndoTask {
 }
 
 @ObservedV2
+export class TodoCardItem {
+  @Trace id: string = '';
+  @Trace title: string = '';
+  @Trace categoryId: string = '';
+  @Trace categoryName: string = '';
+  @Trace categoryColor: string = '';
+  @Trace isDone: number = 0;
+  @Trace inFocus: number = 0;
+  @Trace createdAt: number = 0;
+  @Trace timestamp: number = 0;
+  @Trace updatedAt: number = 0;
+
+  applyFrom(todo: Todo, title: string, categoryName: string, categoryColor: string): void {
+    this.id = todo.id;
+    this.title = title;
+    this.categoryId = todo.categoryId;
+    this.categoryName = categoryName;
+    this.categoryColor = categoryColor;
+    this.isDone = todo.isDone;
+    this.inFocus = todo.inFocus;
+    this.createdAt = todo.createdAt;
+    this.timestamp = todo.timestamp;
+    this.updatedAt = todo.updatedAt;
+  }
+}
+
+@ObservedV2
 export class TodoPageState {
   private app: AppState = useAppState();
   private todoRepository: TodoRepository = new TodoRepository();
@@ -44,6 +71,7 @@ export class TodoPageState {
   @Trace public selectedCategoryId: string = '';
   @Trace public todos: Array<Todo> = [];
   @Trace public visibleTodos: Array<Todo> = [];
+  @Trace public visibleTodoCards: Array<TodoCardItem> = [];
 
   @Trace public isCategoryEditorVisible: boolean = false;
   @Trace public isTodoEditorVisible: boolean = false;
@@ -58,6 +86,7 @@ export class TodoPageState {
 
   private refreshTask: Promise<void> | null = null;
   private ensureDefaultCategoryTask: Promise<void> | null = null;
+  private todoCardItemMap: Map<string, TodoCardItem> = new Map<string, TodoCardItem>();
 
   private safeTrim(value: string): string {
     const text = `${value}`.trim();
@@ -79,6 +108,47 @@ export class TodoPageState {
     todo.createdAt = source.createdAt;
     todo.updatedAt = source.updatedAt;
     return todo;
+  }
+
+  private resolveTodoCardTitle(todo: Todo): string {
+    const title = this.safeTrim(todo.content);
+    return title.length > 0 ? title : '未命名待办';
+  }
+
+  private syncVisibleTodoCards(): void {
+    const nextCardMap: Map<string, TodoCardItem> = new Map<string, TodoCardItem>();
+    for (let i = 0; i < this.todos.length; i++) {
+      const todo = this.todos[i];
+      const todoId = this.safeTrim(todo.id);
+      if (todoId.length === 0) {
+        continue;
+      }
+      let cardItem = this.todoCardItemMap.get(todoId);
+      if (cardItem === undefined) {
+        cardItem = new TodoCardItem();
+      }
+      cardItem.applyFrom(
+        todo,
+        this.resolveTodoCardTitle(todo),
+        this.resolveCategoryName(todo.categoryId),
+        this.resolveCategoryColor(todo.categoryId),
+      );
+      nextCardMap.set(todoId, cardItem);
+    }
+    this.todoCardItemMap = nextCardMap;
+
+    const nextVisibleCards: Array<TodoCardItem> = [];
+    for (let i = 0; i < this.visibleTodos.length; i++) {
+      const todoId = this.safeTrim(this.visibleTodos[i].id);
+      if (todoId.length === 0) {
+        continue;
+      }
+      const cardItem = this.todoCardItemMap.get(todoId);
+      if (cardItem !== undefined) {
+        nextVisibleCards.push(cardItem);
+      }
+    }
+    this.visibleTodoCards = nextVisibleCards;
   }
 
   private isDigits(value: string): boolean {
@@ -395,12 +465,14 @@ export class TodoPageState {
     if (categoryId.length === 0) {
       const filtered = this.todos.filter((item: Todo) => !this.hasUndoTaskForTodo(item.id));
       this.visibleTodos = this.sortVisibleTodoList(filtered);
+      this.syncVisibleTodoCards();
       return;
     }
     const filtered = this.todos.filter((item: Todo) => {
       return this.safeTrim(item.categoryId) === categoryId && !this.hasUndoTaskForTodo(item.id);
     });
     this.visibleTodos = this.sortVisibleTodoList(filtered);
+    this.syncVisibleTodoCards();
   }
 
   resolveCategoryName(categoryId: string): string {
@@ -466,6 +538,7 @@ export class TodoPageState {
     const nextTitle = this.safeTrim(title);
     const now = Date.now();
     let targetTodo: Todo | null = null;
+    const hasLocalTodo = this.todos.some((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
 
     const localIndex = this.todos.findIndex((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
     if (localIndex >= 0) {
@@ -491,7 +564,9 @@ export class TodoPageState {
       return;
     }
     await this.todoRepository.save(targetTodo);
-    await this.refreshTodos();
+    if (!hasLocalTodo) {
+      await this.refreshTodos();
+    }
   }
 
   async updateTodoDetail(todoId: string, detail: string): Promise<void> {
@@ -502,6 +577,7 @@ export class TodoPageState {
     const nextDetail = this.safeTrim(detail);
     const now = Date.now();
     let targetTodo: Todo | null = null;
+    const hasLocalTodo = this.todos.some((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
 
     const localIndex = this.todos.findIndex((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
     if (localIndex >= 0) {
@@ -527,7 +603,9 @@ export class TodoPageState {
       return;
     }
     await this.todoRepository.save(targetTodo);
-    await this.refreshTodos();
+    if (!hasLocalTodo) {
+      await this.refreshTodos();
+    }
   }
 
   async updateTodoCategory(todoId: string, categoryId: string): Promise<void> {
@@ -535,6 +613,7 @@ export class TodoPageState {
     if (normalizedTodoId.length === 0) {
       return;
     }
+    this.clearPendingRestoreMove(normalizedTodoId);
 
     const candidateId = this.safeTrim(categoryId);
     const valid = candidateId.length > 0 && this.categories.some((item: TodoCategory) => this.safeTrim(item.id) === candidateId);
@@ -556,6 +635,7 @@ export class TodoPageState {
     }
     const now = Date.now();
     let targetTodo: Todo | null = null;
+    const hasLocalTodo = this.todos.some((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
 
     const localIndex = this.todos.findIndex((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
     if (localIndex >= 0) {
@@ -581,7 +661,9 @@ export class TodoPageState {
       return;
     }
     await this.todoRepository.save(targetTodo);
-    await this.refreshTodos();
+    if (!hasLocalTodo) {
+      await this.refreshTodos();
+    }
   }
 
   async toggleDone(todoId: string, isDone: boolean): Promise<void> {
