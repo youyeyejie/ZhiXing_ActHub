@@ -30,7 +30,7 @@ export struct PlanCard {
 
   private resolveLocation(): string {
     const location = this.normalizeText(this.plan.location);
-    return location.length > 0 ? location : "未填写地点";
+    return location;
   }
 
   private formatHourMinute(timestamp: number): string {
@@ -138,15 +138,17 @@ export struct PlanCard {
           Text(this.resolveDurationText())
             .fontSize(12)
             .fontColor(this.app.theme.palette.textSecondary)
-          Text("·")
-            .fontSize(12)
-            .fontColor(this.app.theme.palette.textTertiary)
-          Text(this.resolveLocation())
-            .fontSize(12)
-            .fontColor(this.app.theme.palette.textSecondary)
-            .layoutWeight(1)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
+          if (this.resolveLocation().length > 0) {
+            Text("·")
+              .fontSize(12)
+              .fontColor(this.app.theme.palette.textTertiary)
+            Text(this.resolveLocation())
+              .fontSize(12)
+              .fontColor(this.app.theme.palette.textSecondary)
+              .layoutWeight(1)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
         }
         .width("100%")
         .alignItems(VerticalAlign.Center)

@@ -90,7 +90,7 @@ export struct SettingsPanel {
             .fontWeight(FontWeight.Medium)
             .fontColor(this.app.theme.palette.textPrimary);
 
-          Text('预留提醒总开关，后续接入系统通知后可以直接沿用。')
+          Text('开启后将在当日日程开始前 10 分钟发送系统提醒。')
             .fontSize(12)
             .lineHeight(18)
             .fontColor(this.app.theme.palette.textSecondary);

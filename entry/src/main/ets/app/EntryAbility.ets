@@ -3,6 +3,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { AppDatabase } from '../core/database/AppDatabase';
 import { StatusBarService } from '../core/services/StatusBarService';
+import { NotificationService } from '../core/services/NotificationService';
 import { ThemeMode } from '../core/theme/ThemeManager';
 import { useAppState } from './AppStates';
 import { AppPreferenceKey } from './AppConstants';
@@ -94,6 +95,8 @@ export default class EntryAbility extends UIAbility {
     AppDatabase.getInstance()
       .initialize(this.context)
       .then((): void => {
+        const notificationService = new NotificationService();
+        notificationService.registerPlanReminder();
         windowStage.loadContent('app/App', (err) => {
           if (err.code) {
             hilog.error(DOMAIN, 'EntryAbility', 'Failed to load content. %{public}s', JSON.stringify(err));

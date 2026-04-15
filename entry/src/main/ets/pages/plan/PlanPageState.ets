@@ -1,6 +1,7 @@
 import { Plan } from '../../core/models/Plan';
 import { PlanRepository } from '../../core/repositories/PlanRepository';
 import { UndoStackItem } from '../../components/feedback/UndoNotificationStack';
+import { NotificationService } from '../../core/services/NotificationService';
 
 class PlanUndoTask {
   taskId: string;
@@ -22,6 +23,7 @@ class PlanUndoTask {
 export class PlanPageState {
   private readonly dayMs: number = 24 * 60 * 60 * 1000;
   private planRepository: PlanRepository = new PlanRepository();
+  private notificationService: NotificationService = new NotificationService();
 
   @Trace public selectedDate: number = 0;
   @Trace public currentWeekBase: number = 0;
@@ -32,6 +34,7 @@ export class PlanPageState {
   @Trace public isDetailVisible: boolean = false;
   @Trace public editingPlanId: string = '';
   @Trace public creatingPlanId: string = '';
+  @Trace public returnTodayRequestVersion: number = 0;
   @Trace public undoTasks: Array<PlanUndoTask> = [];
   private undoTaskSeq: number = 0;
   private refreshTask: Promise<void> | null = null;
@@ -113,6 +116,11 @@ export class PlanPageState {
     const list: Array<Plan> = await this.planRepository.findAll();
     this.plans = this.sortPlansByStartTime(list);
     this.syncVisiblePlans();
+    this.syncPlanReminder();
+  }
+
+  private syncPlanReminder(): void {
+    this.notificationService.registerPlanReminder();
   }
 
   private syncVisiblePlans(): void {
@@ -146,6 +154,17 @@ export class PlanPageState {
 
   jumpToToday(): void {
     this.selectDate(Date.now());
+  }
+
+  isSelectedDateToday(): boolean {
+    return this.toDayStart(this.selectedDate) === this.toDayStart(Date.now());
+  }
+
+  requestReturnToTodayAnimated(): void {
+    if (this.isSelectedDateToday()) {
+      return;
+    }
+    this.returnTodayRequestVersion = this.returnTodayRequestVersion + 1;
   }
 
   openCreatePlan(): void {
@@ -295,7 +314,7 @@ export class PlanPageState {
     if (startTime <= 0 || endTime <= 0 || endTime <= startTime) {
       return false;
     }
-    return this.updatePlan(planId, (plan: Plan): boolean => {
+    const updated = await this.updatePlan(planId, (plan: Plan): boolean => {
       if (plan.startTime === startTime && plan.endTime === endTime) {
         return false;
       }
@@ -303,6 +322,10 @@ export class PlanPageState {
       plan.endTime = endTime;
       return true;
     });
+    if (updated) {
+      this.syncPlanReminder();
+    }
+    return updated;
   }
 
   async updatePlanLocation(planId: string, location: string): Promise<void> {
@@ -365,6 +388,7 @@ export class PlanPageState {
       this.closePlanDetail();
     }
     this.syncVisiblePlans();
+    this.syncPlanReminder();
   }
 
   undoDelete(taskId: string): void {
@@ -382,10 +406,12 @@ export class PlanPageState {
       this.plans = this.sortPlansByStartTime([...before, task.plan, ...after]);
       if (!this.isCurrentSelectedDateCovered(task.plan)) {
         this.syncVisiblePlans();
+        this.syncPlanReminder();
         return;
       }
     }
     this.syncVisiblePlans();
+    this.syncPlanReminder();
   }
 
   async commitDeletePlan(taskId: string): Promise<void> {
