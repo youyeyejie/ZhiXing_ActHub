@@ -26,8 +26,8 @@ export struct IdeaEditorSheet {
     this.initializeDraft();
   }
 
-  private normalizeId(value: string): string {
-    return `${value}`.trim();
+  private normalizeId(value: number): number {
+    return value > 0 ? value : 0;
   }
 
   private copyIdea(source: Idea): Idea {
@@ -51,7 +51,6 @@ export struct IdeaEditorSheet {
 
   private applyNewIdeaDraft(): void {
     this.currentIdea = new Idea();
-    this.currentIdea.id = this.generateId();
     this.title = "";
     this.content = "";
     this.isNew = true;
@@ -59,14 +58,14 @@ export struct IdeaEditorSheet {
 
   private initializeDraft(): void {
     const ideaId = this.normalizeId(this.state.editingIdeaId);
-    if (ideaId.length === 0) {
+    if (ideaId <= 0) {
       this.applyNewIdeaDraft();
       return;
     }
     this.loadIdeaById(ideaId);
   }
 
-  private async loadIdeaById(ideaId: string): Promise<void> {
+  private async loadIdeaById(ideaId: number): Promise<void> {
     const localIdea = this.state.findIdeaInMemory(ideaId);
     if (localIdea !== null) {
       this.applyExistingIdea(localIdea);
@@ -87,8 +86,8 @@ export struct IdeaEditorSheet {
   }
 
   private async resolveSavedIdea(): Promise<Idea> {
-    const savedId = this.normalizeId(this.currentIdea.id);
-    if (savedId.length === 0) {
+    const savedId = this.currentIdea.id;
+    if (savedId <= 0) {
       return this.copyIdea(this.currentIdea);
     }
     try {
@@ -99,13 +98,6 @@ export struct IdeaEditorSheet {
     } catch (_error) {
     }
     return this.copyIdea(this.currentIdea);
-  }
-
-  /**
-   * 生成唯一 ID。
-   */
-  private generateId(): string {
-    return `idea_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   }
 
   /**

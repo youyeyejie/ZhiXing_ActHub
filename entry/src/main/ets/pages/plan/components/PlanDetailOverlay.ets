@@ -12,7 +12,7 @@ export struct PlanDetailOverlay {
   @Local private app: AppState = useAppState();
   @Local private state: PlanPageState = usePlanPageState();
 
-  @Local private loadedPlanId: string = '';
+  @Local private loadedPlanId: number = 0;
   @Local private titleDraft: string = '';
   @Local private locationDraft: string = '';
   @Local private descriptionDraft: string = '';
@@ -34,8 +34,8 @@ export struct PlanDetailOverlay {
     return text;
   }
 
-  private normalizeId(value: string): string {
-    return `${value}`.trim();
+  private normalizeId(value: number): number {
+    return value > 0 ? value : 0;
   }
 
   private composeDateTime(datePart: Date, timePart: Date): number {
@@ -108,7 +108,7 @@ export struct PlanDetailOverlay {
 
   private resolveEditingPlan(): Plan | null {
     const planId = this.normalizeId(this.state.editingPlanId);
-    if (planId.length === 0) {
+    if (planId <= 0) {
       return null;
     }
     const found = this.state.plans.find((item: Plan) => this.normalizeId(item.id) === planId);
@@ -145,7 +145,7 @@ export struct PlanDetailOverlay {
   private loadDraftFromCurrentPlan(): void {
     const plan = this.resolveEditingPlan();
     if (plan === null) {
-      this.loadedPlanId = '';
+      this.loadedPlanId = 0;
       this.titleDraft = '';
       this.locationDraft = '';
       this.descriptionDraft = '';
@@ -274,7 +274,7 @@ export struct PlanDetailOverlay {
   private closeOverlay(): void {
     this.flushDraftSave();
     this.state.closePlanDetail();
-    this.loadedPlanId = '';
+    this.loadedPlanId = 0;
   }
 
   private deleteCurrentPlan(): void {
@@ -285,7 +285,7 @@ export struct PlanDetailOverlay {
     this.flushDraftSave();
     this.state.closePlanDetail();
     this.state.requestDeletePlan(this.normalizeId(plan.id));
-    this.loadedPlanId = '';
+    this.loadedPlanId = 0;
     this.app.nav.back(false);
   }
 
@@ -435,7 +435,7 @@ export struct PlanDetailOverlay {
         .scrollBar(BarState.Off)
         .onAppear(() => {
           const currentPlan = this.resolveEditingPlan();
-          const currentPlanId = currentPlan ? this.normalizeId(currentPlan.id) : '';
+          const currentPlanId = currentPlan ? this.normalizeId(currentPlan.id) : 0;
           if (this.loadedPlanId !== currentPlanId) {
             this.loadDraftFromCurrentPlan();
           }
@@ -450,6 +450,6 @@ export struct PlanDetailOverlay {
     this.flushDraftSave();
     this.clearAllTimers();
     this.state.closePlanDetail();
-    this.loadedPlanId = '';
+    this.loadedPlanId = 0;
   }
 }

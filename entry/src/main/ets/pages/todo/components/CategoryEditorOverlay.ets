@@ -16,16 +16,16 @@ export struct CategoryEditorOverlay {
   @Local private app: AppState = useAppState();
   @Local private state: TodoPageState = useTodoPageState();
   @Local private newCategoryName: string = '';
-  @Local private editorSelectedCategoryId: string = '';
+  @Local private editorSelectedCategoryId: number = 0;
   @Local private editorSelectionVersion: number = 0;
   @Local private editorMode: string = 'none'; // none | create | edit
   @Local private editingCategoryNameDraft: string = '';
-  @Local private loadedEditCategoryId: string = '';
+  @Local private loadedEditCategoryId: number = 0;
 
   private categoryNameSaveTimerId: number = -1;
 
-  private resolveNormalizedId(value: string): string {
-    return `${value}`.trim();
+  private resolveNormalizedId(value: number): number {
+    return value > 0 ? value : 0;
   }
 
   private safeToast(message: string): void {
@@ -46,16 +46,16 @@ export struct CategoryEditorOverlay {
     }
   }
 
-  private applyEditCategoryDraft(categoryId: string): void {
+  private applyEditCategoryDraft(categoryId: number): void {
     const normalizedId = this.resolveNormalizedId(categoryId);
-    if (normalizedId.length === 0) {
-      this.loadedEditCategoryId = '';
+    if (normalizedId <= 0) {
+      this.loadedEditCategoryId = 0;
       this.editingCategoryNameDraft = '';
       return;
     }
     const found = this.state.categories.find((item: TodoCategory) => this.resolveNormalizedId(item.id) === normalizedId);
     if (!found) {
-      this.loadedEditCategoryId = '';
+      this.loadedEditCategoryId = 0;
       this.editingCategoryNameDraft = '';
       return;
     }
@@ -87,9 +87,9 @@ export struct CategoryEditorOverlay {
   private closeOverlay(): void {
     this.persistEditCategoryName();
     this.newCategoryName = '';
-    this.applyEditorSelection('');
+    this.applyEditorSelection(0);
     this.editorMode = 'none';
-    this.applyEditCategoryDraft('');
+    this.applyEditCategoryDraft(0);
     this.state.closeCategoryEditor();
   }
 
@@ -101,7 +101,7 @@ export struct CategoryEditorOverlay {
         if (ok) {
           this.newCategoryName = '';
           this.editorMode = 'none';
-          this.applyEditCategoryDraft('');
+          this.applyEditCategoryDraft(0);
         }
       })
       .catch((_error: Error) => {
@@ -111,7 +111,7 @@ export struct CategoryEditorOverlay {
 
   private requestRemoveCategory(category: TodoCategory): void {
     const categoryId = this.resolveNormalizedId(category.id);
-    if (categoryId.length === 0) {
+    if (categoryId <= 0) {
       return;
     }
     if (category.category === '学习') {
@@ -138,9 +138,9 @@ export struct CategoryEditorOverlay {
       this.state.removeCategory(categoryId, true)
         .then((ok: boolean) => {
           if (ok && this.resolveNormalizedId(this.editorSelectedCategoryId) === categoryId) {
-            this.applyEditorSelection('');
+            this.applyEditorSelection(0);
             this.editorMode = 'none';
-            this.applyEditCategoryDraft('');
+            this.applyEditCategoryDraft(0);
           }
           this.safeToast(ok ? '分类及关联待办已删除' : '删除失败');
         })
@@ -152,16 +152,16 @@ export struct CategoryEditorOverlay {
     });
   }
 
-  private resolveEditorCurrentCategoryId(): string {
+  private resolveEditorCurrentCategoryId(): number {
     const selectedId = this.resolveNormalizedId(this.editorSelectedCategoryId);
-    if (selectedId.length > 0) {
+    if (selectedId > 0) {
       const exists = this.state.categories.some((item: TodoCategory) => this.resolveNormalizedId(item.id) === selectedId);
       if (exists) {
         return selectedId;
       }
     }
     const preferredId = this.resolveNormalizedId(this.state.selectedCategoryId);
-    if (preferredId.length > 0) {
+    if (preferredId > 0) {
       const exists = this.state.categories.some((item: TodoCategory) => this.resolveNormalizedId(item.id) === preferredId);
       if (exists) {
         return preferredId;
@@ -170,10 +170,10 @@ export struct CategoryEditorOverlay {
     if (this.state.categories.length > 0) {
       return this.resolveNormalizedId(this.state.categories[0].id);
     }
-    return '';
+    return 0;
   }
 
-  private applyEditorSelection(categoryId: string): void {
+  private applyEditorSelection(categoryId: number): void {
     const normalizedId = this.resolveNormalizedId(categoryId);
     if (this.editorSelectedCategoryId === normalizedId) {
       return;
@@ -182,16 +182,16 @@ export struct CategoryEditorOverlay {
     this.editorSelectionVersion = this.editorSelectionVersion + 1;
   }
 
-  private selectEditorCategory(categoryId: string): void {
+  private selectEditorCategory(categoryId: number): void {
     this.persistEditCategoryName();
     this.applyEditorSelection(this.resolveNormalizedId(categoryId));
     this.editorMode = 'edit';
     this.applyEditCategoryDraft(categoryId);
   }
 
-  private isEditorCategorySelected(categoryId: string): boolean {
+  private isEditorCategorySelected(categoryId: number): boolean {
     const normalizedId = this.resolveNormalizedId(categoryId);
-    if (normalizedId.length === 0) {
+    if (normalizedId <= 0) {
       return false;
     }
     return this.editorMode === 'edit' && this.resolveEditorCurrentCategoryId() === normalizedId;
@@ -202,18 +202,18 @@ export struct CategoryEditorOverlay {
     if (this.editorMode === 'create') {
       this.editorMode = 'none';
       this.newCategoryName = '';
-      this.applyEditorSelection('');
-      this.applyEditCategoryDraft('');
+      this.applyEditorSelection(0);
+      this.applyEditCategoryDraft(0);
       return;
     }
     this.editorMode = 'create';
-    this.applyEditorSelection('');
-    this.applyEditCategoryDraft('');
+    this.applyEditorSelection(0);
+    this.applyEditCategoryDraft(0);
   }
 
   private resolveSelectedEditorCategory(): TodoCategory | null {
     const selectedId = this.resolveEditorCurrentCategoryId();
-    if (selectedId.length === 0) {
+    if (selectedId <= 0) {
       return null;
     }
     const found = this.state.categories.find((item: TodoCategory) => this.resolveNormalizedId(item.id) === selectedId);

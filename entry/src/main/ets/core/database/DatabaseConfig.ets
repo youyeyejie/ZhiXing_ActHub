@@ -14,11 +14,14 @@
  */
 export class DatabaseConfig {
   static readonly DB_NAME: string = 'acthub.db';
-  static readonly VERSION: number = 1;
+  static readonly VERSION: number = 2;
   static readonly PLAN_TABLE: string = 'plans';
   static readonly TODO_TABLE: string = 'todos';
   static readonly TODO_CATEGORY_TABLE: string = 'todo_categories';
   static readonly FOCUS_TABLE: string = 'focus_records';
   static readonly IDEA_TABLE: string = 'ideas';
   static readonly USER_TABLE: string = 'users';
+  static readonly APP_SESSION_TABLE: string = 'app_sessions';
+  static readonly APP_SCHEMA_STATE_TABLE: string = 'app_schema_state';
+  static readonly APP_SETTING_TABLE: string = 'app_settings';
 }

@@ -22,14 +22,14 @@ export class IdeaPageState {
 
   @Trace public ideas: Idea[] = [];
   @Trace public loading: boolean = false;
-  @Trace public editingIdeaId: string = '';
+  @Trace public editingIdeaId: number = 0;
   @Trace public undoTasks: Array<IdeaUndoTask> = [];
   @Trace public refreshVersion: number = 0; // 用于通知子组件刷新
   private undoTaskSeq: number = 0;
   private refreshTask: Promise<void> | null = null;
 
-  private normalizeId(value: string): string {
-    return `${value}`.trim();
+  private normalizeId(value: number): number {
+    return value > 0 ? value : 0;
   }
 
   private sortIdeasByTime(list: Array<Idea>): Array<Idea> {
@@ -57,20 +57,20 @@ export class IdeaPageState {
   }
 
   openCreateIdea(): void {
-    this.editingIdeaId = '';
+    this.editingIdeaId = 0;
   }
 
-  openIdeaDetail(ideaId: string): void {
+  openIdeaDetail(ideaId: number): void {
     this.editingIdeaId = this.normalizeId(ideaId);
   }
 
   closeIdeaDetail(): void {
-    this.editingIdeaId = '';
+    this.editingIdeaId = 0;
   }
 
-  findIdeaInMemory(ideaId: string): Idea | null {
+  findIdeaInMemory(ideaId: number): Idea | null {
     const normalizedId = this.normalizeId(ideaId);
-    if (normalizedId.length === 0) {
+    if (normalizedId <= 0) {
       return null;
     }
     const found = this.ideas.find((item: Idea) => this.normalizeId(item.id) === normalizedId);
@@ -86,7 +86,7 @@ export class IdeaPageState {
       this.ideas = this.sortIdeasByTime(freshList);
     } catch (_error) {
       // 如果加载失败，尝试就地更新
-      if (normalizedId.length === 0) {
+      if (normalizedId <= 0) {
         // 新增：直接插入到列表开头
         this.ideas = [savedIdea, ...this.ideas];
         this.ideas = this.sortIdeasByTime(this.ideas);

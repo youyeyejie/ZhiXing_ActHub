@@ -30,8 +30,7 @@ export class PlanPageState {
 
   @Trace public isEditorVisible: boolean = false;
   @Trace public isDetailVisible: boolean = false;
-  @Trace public editingPlanId: string = '';
-  @Trace public creatingPlanId: string = '';
+  @Trace public editingPlanId: number = 0;
   @Trace public undoTasks: Array<PlanUndoTask> = [];
   private undoTaskSeq: number = 0;
   private refreshTask: Promise<void> | null = null;
@@ -42,12 +41,8 @@ export class PlanPageState {
     this.currentWeekBase = this.resolveWeekStart(today);
   }
 
-  private safeTrim(value: string): string {
-    const text = `${value}`.trim();
-    if (text === 'undefined' || text === 'null') {
-      return '';
-    }
-    return text;
+  private normalizeId(value: number): number {
+    return value > 0 ? value : 0;
   }
 
   private normalizeSwitchFlag(value: number): number {
@@ -119,7 +114,7 @@ export class PlanPageState {
     const dayStart = this.toDayStart(this.selectedDate);
     const dayEnd = dayStart + this.dayMs;
     const filtered = this.plans.filter((item: Plan) => {
-      const itemId = this.safeTrim(item.id);
+      const itemId = this.normalizeId(item.id);
       if (this.hasUndoTaskForPlan(itemId)) {
         return false;
       }
@@ -149,19 +144,17 @@ export class PlanPageState {
   }
 
   openCreatePlan(): void {
-    this.creatingPlanId = this.newId('plan');
-    this.editingPlanId = '';
+    this.editingPlanId = 0;
     this.isEditorVisible = true;
   }
 
   closePlanEditor(): void {
     this.isEditorVisible = false;
-    this.creatingPlanId = '';
   }
 
-  openPlanDetail(planId: string): void {
-    const normalizedId = this.safeTrim(planId);
-    if (normalizedId.length === 0) {
+  openPlanDetail(planId: number): void {
+    const normalizedId = this.normalizeId(planId);
+    if (normalizedId <= 0) {
       return;
     }
     this.editingPlanId = normalizedId;
@@ -170,15 +163,15 @@ export class PlanPageState {
 
   closePlanDetail(): void {
     this.isDetailVisible = false;
-    this.editingPlanId = '';
+    this.editingPlanId = 0;
   }
 
-  private resolvePlanById(planId: string): Plan | null {
-    const normalizedId = this.safeTrim(planId);
-    if (normalizedId.length === 0) {
+  private resolvePlanById(planId: number): Plan | null {
+    const normalizedId = this.normalizeId(planId);
+    if (normalizedId <= 0) {
       return null;
     }
-    const found = this.plans.find((item: Plan) => this.safeTrim(item.id) === normalizedId);
+    const found = this.plans.find((item: Plan) => this.normalizeId(item.id) === normalizedId);
     return found ? found : null;
   }
 
@@ -191,11 +184,11 @@ export class PlanPageState {
   }
 
   private applyLocalPlanUpdate(updated: Plan): void {
-    const updatedId = this.safeTrim(updated.id);
+    const updatedId = this.normalizeId(updated.id);
     const nextList: Array<Plan> = [];
     let replaced = false;
     for (let i = 0; i < this.plans.length; i++) {
-      const currentId = this.safeTrim(this.plans[i].id);
+      const currentId = this.normalizeId(this.plans[i].id);
       if (currentId === updatedId) {
         nextList.push(updated);
         replaced = true;
@@ -218,7 +211,7 @@ export class PlanPageState {
     isCourse: number,
     description: string
   ): Promise<boolean> {
-    const title = this.safeTrim(content);
+    const title = `${content}`.trim();
     if (title.length === 0) {
       return false;
     }
@@ -228,13 +221,12 @@ export class PlanPageState {
 
     const now = Date.now();
     const plan = new Plan();
-    plan.id = this.creatingPlanId.length > 0 ? this.creatingPlanId : this.newId('plan');
     plan.content = title;
     plan.startTime = startTime;
     plan.endTime = endTime;
-    plan.location = this.safeTrim(location);
+    plan.location = `${location}`.trim();
     plan.isCourse = this.normalizeSwitchFlag(isCourse);
-    plan.description = this.safeTrim(description);
+    plan.description = `${description}`.trim();
     plan.loopRule = '';
     plan.timestamp = now;
     plan.createdAt = now;
@@ -251,11 +243,11 @@ export class PlanPageState {
   }
 
   private async updatePlan(
-    planId: string,
+    planId: number,
     updater: (plan: Plan) => boolean
   ): Promise<boolean> {
-    const normalizedId = this.safeTrim(planId);
-    if (normalizedId.length === 0) {
+    const normalizedId = this.normalizeId(planId);
+    if (normalizedId <= 0) {
       return false;
     }
 
@@ -280,10 +272,10 @@ export class PlanPageState {
     return true;
   }
 
-  async updatePlanContent(planId: string, content: string): Promise<void> {
-    const nextTitle = this.safeTrim(content);
+  async updatePlanContent(planId: number, content: string): Promise<void> {
+    const nextTitle = `${content}`.trim();
     await this.updatePlan(planId, (plan: Plan): boolean => {
-      if (this.safeTrim(plan.content) === nextTitle) {
+      if (`${plan.content}`.trim() === nextTitle) {
         return false;
       }
       plan.content = nextTitle;
@@ -291,7 +283,7 @@ export class PlanPageState {
     });
   }
 
-  async updatePlanTime(planId: string, startTime: number, endTime: number): Promise<boolean> {
+  async updatePlanTime(planId: number, startTime: number, endTime: number): Promise<boolean> {
     if (startTime <= 0 || endTime <= 0 || endTime <= startTime) {
       return false;
     }
@@ -305,10 +297,10 @@ export class PlanPageState {
     });
   }
 
-  async updatePlanLocation(planId: string, location: string): Promise<void> {
-    const nextLocation = this.safeTrim(location);
+  async updatePlanLocation(planId: number, location: string): Promise<void> {
+    const nextLocation = `${location}`.trim();
     await this.updatePlan(planId, (plan: Plan): boolean => {
-      if (this.safeTrim(plan.location) === nextLocation) {
+      if (`${plan.location}`.trim() === nextLocation) {
         return false;
       }
       plan.location = nextLocation;
@@ -316,7 +308,7 @@ export class PlanPageState {
     });
   }
 
-  async updatePlanType(planId: string, isCourse: number): Promise<void> {
+  async updatePlanType(planId: number, isCourse: number): Promise<void> {
     const nextType = this.normalizeSwitchFlag(isCourse);
     await this.updatePlan(planId, (plan: Plan): boolean => {
       if (this.normalizeSwitchFlag(plan.isCourse) === nextType) {
@@ -327,10 +319,10 @@ export class PlanPageState {
     });
   }
 
-  async updatePlanDescription(planId: string, description: string): Promise<void> {
-    const nextDescription = this.safeTrim(description);
+  async updatePlanDescription(planId: number, description: string): Promise<void> {
+    const nextDescription = `${description}`.trim();
     await this.updatePlan(planId, (plan: Plan): boolean => {
-      if (this.safeTrim(plan.description) === nextDescription) {
+      if (`${plan.description}`.trim() === nextDescription) {
         return false;
       }
       plan.description = nextDescription;
@@ -338,9 +330,9 @@ export class PlanPageState {
     });
   }
 
-  requestDeletePlan(planId: string): void {
-    const normalizedId = this.safeTrim(planId);
-    if (normalizedId.length === 0) {
+  requestDeletePlan(planId: number): void {
+    const normalizedId = this.normalizeId(planId);
+    if (normalizedId <= 0) {
       return;
     }
     const target = this.resolvePlanById(normalizedId);
@@ -360,8 +352,8 @@ export class PlanPageState {
       await this.commitDeletePlan(taskId);
     }, 5000);
     this.undoTasks = [...this.undoTasks, new PlanUndoTask(taskId, snapshot, originalIndex, timerId, deadlineMs)];
-    this.plans = this.sortPlansByStartTime(this.plans.filter((item: Plan) => this.safeTrim(item.id) !== normalizedId));
-    if (this.safeTrim(this.editingPlanId) === normalizedId) {
+    this.plans = this.sortPlansByStartTime(this.plans.filter((item: Plan) => this.normalizeId(item.id) !== normalizedId));
+    if (this.normalizeId(this.editingPlanId) === normalizedId) {
       this.closePlanDetail();
     }
     this.syncVisiblePlans();
@@ -373,8 +365,8 @@ export class PlanPageState {
       return;
     }
     this.closeUndo(taskId);
-    const snapshotId = this.safeTrim(task.plan.id);
-    const exists = this.plans.some((item: Plan) => this.safeTrim(item.id) === snapshotId);
+    const snapshotId = this.normalizeId(task.plan.id);
+    const exists = this.plans.some((item: Plan) => this.normalizeId(item.id) === snapshotId);
     if (!exists) {
       const insertIndex = Math.max(0, Math.min(task.originalIndex, this.plans.length));
       const before = this.plans.slice(0, insertIndex);
@@ -393,9 +385,9 @@ export class PlanPageState {
     if (task === null) {
       return;
     }
-    const planId = this.safeTrim(task.plan.id);
+    const planId = this.normalizeId(task.plan.id);
     this.closeUndo(taskId);
-    if (planId.length === 0) {
+    if (planId <= 0) {
       return;
     }
     await this.planRepository.removeById(planId);
@@ -417,7 +409,7 @@ export class PlanPageState {
     const list: Array<UndoStackItem> = [];
     for (let i = 0; i < this.undoTasks.length; i++) {
       const task = this.undoTasks[i];
-      const title = this.safeTrim(task.plan.content);
+      const title = `${task.plan.content}`.trim();
       list.push(
         new UndoStackItem(
           task.taskId,
@@ -440,14 +432,14 @@ export class PlanPageState {
     return null;
   }
 
-  private hasUndoTaskForPlan(planId: string): boolean {
-    const normalizedId = this.safeTrim(planId);
-    return this.undoTasks.some((task: PlanUndoTask) => this.safeTrim(task.plan.id) === normalizedId);
+  private hasUndoTaskForPlan(planId: number): boolean {
+    const normalizedId = this.normalizeId(planId);
+    return this.undoTasks.some((task: PlanUndoTask) => this.normalizeId(task.plan.id) === normalizedId);
   }
 
-  private findPlanIndexById(planId: string): number {
+  private findPlanIndexById(planId: number): number {
     for (let i = 0; i < this.plans.length; i++) {
-      if (this.safeTrim(this.plans[i].id) === planId) {
+      if (this.normalizeId(this.plans[i].id) === planId) {
         return i;
       }
     }
@@ -462,11 +454,6 @@ export class PlanPageState {
     return startTime < dayEnd && endTime > dayStart;
   }
 
-  private newId(prefix: string): string {
-    const millis = Date.now();
-    const rand = Math.floor(Math.random() * 1_000_000);
-    return `${prefix}_${millis}_${rand}`;
-  }
 }
 
 const PLAN_PAGE_STATE: PlanPageState = new PlanPageState();

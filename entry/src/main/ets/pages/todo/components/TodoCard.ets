@@ -27,7 +27,7 @@ export struct TodoCard {
   @Local private app: AppState = useAppState();
   @Local private state: TodoPageState = useTodoPageState();
   @Local private suppressDetailOpenUntil: number = 0;
-  @Local private doneVisualOverrides: Map<string, number> = new Map<string, number>();
+  @Local private doneVisualOverrides: Map<number, number> = new Map<number, number>();
 
   aboutToAppear(): void {
     // 刷新由 TodoPage 统一触发，避免多子组件重复拉取导致状态被覆盖。
@@ -44,8 +44,8 @@ export struct TodoCard {
     return text === "undefined" || text === "null" ? "" : text;
   }
 
-  private resolveTodoId(todo: Todo): string {
-    return this.normalizeText(todo.id);
+  private resolveTodoId(todo: Todo): number {
+    return todo.id > 0 ? todo.id : 0;
   }
 
   private resolveTodoTitle(todo: Todo): string {
@@ -79,7 +79,7 @@ export struct TodoCard {
 
   private resolveDisplayedDone(todo: Todo): number {
     const todoId = this.resolveTodoId(todo);
-    if (todoId.length === 0) {
+    if (todoId <= 0) {
       return todo.isDone === 1 ? 1 : 0;
     }
     const override = this.doneVisualOverrides.get(todoId);
@@ -106,7 +106,7 @@ export struct TodoCard {
 
   private updateDoneVisualOverride(todo: Todo, isDone: boolean): void {
     const todoId = this.resolveTodoId(todo);
-    if (todoId.length === 0) {
+    if (todoId <= 0) {
       return;
     }
     this.doneVisualOverrides.set(todoId, isDone ? 1 : 0);
@@ -161,7 +161,7 @@ export struct TodoCard {
       },
       onSwipeRight: () => {
         this.markSwipeActionTriggered();
-        this.app.focusEngine.setRelatedTodo(this.normalizeText(todo.id), this.resolveTodoTitle(todo));
+        this.app.focusEngine.setRelatedTodo(todo.id, this.resolveTodoTitle(todo));
         this.app.nav.navigateByName(AppRoute.FOCUS);
       },
     }) {

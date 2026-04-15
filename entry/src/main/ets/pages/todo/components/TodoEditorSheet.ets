@@ -14,14 +14,14 @@ export struct TodoEditorSheet {
 
   @Local private draftTitle: string = "";
   @Local private draftDetail: string = "";
-  @Local private draftCategoryId: string = "";
+  @Local private draftCategoryId: number = 0;
 
   aboutToAppear(): void {
     this.prepareDraftForCreate();
   }
 
-  private normalizeId(value: string): string {
-    return `${value}`.trim();
+  private normalizeId(value: number): number {
+    return value > 0 ? value : 0;
   }
 
   private safeToast(message: string): void {
@@ -35,10 +35,10 @@ export struct TodoEditorSheet {
     this.draftTitle = "";
     this.draftDetail = "";
     this.draftCategoryId =
-      this.state.selectedCategoryId.length > 0
+      this.state.selectedCategoryId > 0
         ? this.normalizeId(this.state.selectedCategoryId)
         : this.normalizeId(this.state.getDefaultCategoryId());
-    if (this.draftCategoryId.length === 0 && this.state.categories.length > 0) {
+    if (this.draftCategoryId <= 0 && this.state.categories.length > 0) {
       this.draftCategoryId = this.normalizeId(this.state.categories[0].id);
     }
   }

@@ -45,8 +45,8 @@ export struct SearchPage {
   @Local private keyboardAvoidModeChanged: boolean = false;
   @Local private previousKeyboardAvoidMode: KeyboardAvoidMode = KeyboardAvoidMode.OFFSET;
 
-  private normalizeId(value: string): string {
-    return `${value}`.trim();
+  private normalizeId(value: number): number {
+    return value > 0 ? value : 0;
   }
 
   @Builder
@@ -173,7 +173,7 @@ export struct SearchPage {
 
   private openPlanDetailFromSearch(item: SearchResultItem): void {
     const recordId = this.normalizeId(item.id);
-    if (recordId.length === 0) {
+    if (recordId <= 0) {
       return;
     }
     this.app.nav.selectTab(AppTab.PLAN);
@@ -184,7 +184,7 @@ export struct SearchPage {
 
   private openTodoDetailFromSearch(item: SearchResultItem): void {
     const recordId = this.normalizeId(item.id);
-    if (recordId.length === 0) {
+    if (recordId <= 0) {
       return;
     }
     this.app.nav.selectTab(AppTab.TODO);
@@ -195,7 +195,7 @@ export struct SearchPage {
 
   private async openIdeaDetailFromSearch(item: SearchResultItem): Promise<void> {
     const recordId = this.normalizeId(item.id);
-    if (recordId.length === 0) {
+    if (recordId <= 0) {
       return;
     }
     const found = await this.ideaRepository.findById(recordId);

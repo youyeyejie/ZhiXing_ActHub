@@ -43,8 +43,8 @@ export struct UserPage {
     return `${date.getFullYear()}-${month}-${day}`;
   }
 
-  private setThemeBySwitch(isDarkMode: boolean): void {
-    this.app.setPreferredThemeMode(isDarkMode ? ThemeMode.DARK : ThemeMode.LIGHT);
+  private async setThemeBySwitch(isDarkMode: boolean): Promise<void> {
+    await this.app.setPreferredThemeMode(isDarkMode ? ThemeMode.DARK : ThemeMode.LIGHT);
   }
 
   private async handleLogout(): Promise<void> {
@@ -101,8 +101,8 @@ export struct UserPage {
             .fontColor(this.app.theme.palette.textSecondary);
 
           Toggle({ type: ToggleType.Switch, isOn: this.app.theme.isDark })
-            .onChange((value: boolean) => {
-              this.setThemeBySwitch(value);
+            .onChange(async (value: boolean) => {
+              await this.setThemeBySwitch(value);
             });
         }
         .alignItems(HorizontalAlign.End);

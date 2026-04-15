@@ -13,32 +13,32 @@ export struct CategoryFilter {
 
   aboutToAppear(): void {
     // 主分类栏默认选中“全部”。
-    if (this.resolveNormalizedId(this.state.selectedCategoryId).length === 0) {
-      this.state.selectCategory("");
+    if (this.resolveNormalizedId(this.state.selectedCategoryId) <= 0) {
+      this.state.selectCategory(0);
     }
   }
 
-  private resolveNormalizedId(value: string): string {
-    return `${value}`.trim();
+  private resolveNormalizedId(value: number): number {
+    return value > 0 ? value : 0;
   }
 
-  private selectMainCategory(categoryId: string): void {
+  private selectMainCategory(categoryId: number): void {
     const normalizedId = this.resolveNormalizedId(categoryId);
     this.state.selectCategory(normalizedId);
   }
 
-  private resolveCurrentMainSelectionId(): string {
+  private resolveCurrentMainSelectionId(): number {
     return this.resolveNormalizedId(this.state.selectedCategoryId);
   }
 
-  private isMainChipSelected(categoryId: string): boolean {
+  private isMainChipSelected(categoryId: number): boolean {
     const normalizedId = this.resolveNormalizedId(categoryId);
     return this.resolveCurrentMainSelectionId() === normalizedId;
   }
 
   private resolveAllChipRenderToken(): string {
     const selectedId = this.resolveCurrentMainSelectionId();
-    return selectedId.length === 0 ? "__all__selected" : `__all__${selectedId}`;
+    return selectedId <= 0 ? "__all__selected" : `__all__${selectedId}`;
   }
 
   private openCategoryEditorOverlay(): void {
@@ -94,8 +94,8 @@ export struct CategoryFilter {
           ForEach(
             [this.resolveAllChipRenderToken()],
             (_token: string) => {
-              this.buildCategoryChip("全部", this.isMainChipSelected(""), () => {
-                this.selectMainCategory("");
+              this.buildCategoryChip("全部", this.isMainChipSelected(0), () => {
+                this.selectMainCategory(0);
               });
             },
             (token: string) => token,

@@ -33,10 +33,8 @@ export class FocusTimerEngine {
   @Trace state: FocusState = FocusState.IDLE;
   @Trace remainingSeconds: number = 0;
   @Trace totalSeconds: number = 0;
-  @Trace todoId: string = '';
+  @Trace todoId: number = 0;
   @Trace todoTitle: string = '';
-  @Trace focusRecordId: string = '';
-  
   // 默认配置
   DefaultWorkDuration: number = 1500;
   DefaultRestDuration: number = 300;
@@ -54,7 +52,7 @@ export class FocusTimerEngine {
   private todoRepository: TodoRepository | null = null;
   
   /** 启动一次专注计时。 */
-  start(workDuration?: number, restDuration?: number, todoId?: string): void {
+  start(workDuration?: number, restDuration?: number, todoId?: number): void {
     if (this.state !== FocusState.IDLE && this.state !== FocusState.RESTING) {
       console.warn('[TimerEngine] 警告: 无法在非空闲/休息状态下启动专注');
       return;
@@ -63,9 +61,7 @@ export class FocusTimerEngine {
     this.currentWorkDuration = workDuration && workDuration > 0 ? workDuration : this.DefaultWorkDuration;
     this.currentRestDuration = restDuration && restDuration > 0 ? restDuration : this.DefaultRestDuration;
     
-    this.todoId = todoId || this.todoId;
-    this.focusRecordId = this.generateRecordId();
-    
+    this.todoId = todoId && todoId > 0 ? todoId : this.todoId;
     this.setupPhase(this.currentWorkDuration, FocusState.WORKING);
     this.segmentStartRemainingSeconds = this.totalSeconds; 
   }
@@ -235,13 +231,11 @@ export class FocusTimerEngine {
   private async saveFocusRecord(duration: number): Promise<void> {
     if (duration <= 0) return;
     try {
-      const recordId = this.focusRecordId || this.generateRecordId();
-      const todoId = String(this.todoId || '');
+      const todoId = this.todoId;
       const now = Date.now();
       
       const focus = new Focus();
-      focus.id = recordId;
-      focus.todoId = todoId;
+      focus.todoId = todoId > 0 ? todoId : 0;
       focus.duration = duration;
       focus.startTime = now - (duration * 1000); 
       focus.endTime = now; 
@@ -252,15 +246,11 @@ export class FocusTimerEngine {
       // 等待落库结果，如果失败抛出警告
       const success = await this.getFocusRepository().insertFocusRecord(focus);
       if (!success) {
-        console.warn(`[TimerEngine] 警告: 专注记录落库失败 (ID: ${recordId})`);
+        console.warn('[TimerEngine] 警告: 专注记录落库失败');
       }
     } catch (error) {
       console.error('[TimerEngine] 严重错误: saveFocusRecord 执行异常:', error);
     }
-  }
-  
-  private generateRecordId(): string {
-    return `focus_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
   
   /** 获取已过去的时间（秒）*/
@@ -286,9 +276,8 @@ export class FocusTimerEngine {
     this.state = FocusState.IDLE;
     this.remainingSeconds = this.currentWorkDuration;
     this.totalSeconds = this.currentWorkDuration;
-    this.todoId = '';
+    this.todoId = 0;
     this.todoTitle = '';
-    this.focusRecordId = '';
     this.startTimestamp = 0;
     this.expectedEndTime = 0;
     this.segmentStartRemainingSeconds = 0; 
@@ -321,7 +310,7 @@ export class FocusTimerEngine {
   /** 检查是否关联了待办 */
   hasTodo(): boolean {
     try {
-      return this.todoId != null && !/^\s*$/.test(String(this.todoId));
+      return this.todoId > 0;
     } catch (error) {
       console.error('[TimerEngine] 错误: hasTodo 方法执行异常:', error);
       return false;
@@ -349,8 +338,8 @@ export class FocusTimerEngine {
       if (this.todoTitle.trim().length > 0) {
         return this.todoTitle;
       }
-      const todoId = String(this.todoId);
-      const todo = await this.getTodoRepository().findById(todoId);
+      const todoId = this.todoId;
+      const todo = todoId <= 0 ? null : await this.getTodoRepository().findById(todoId);
       const name = todo?.content || '';
       this.todoTitle = name;
       return name;
@@ -364,7 +353,7 @@ export class FocusTimerEngine {
    * 设置关联的待办任务
    * @param newTodoId 新的待办ID
    */
-  setRelatedTodo(newTodoId: string, newTodoTitle: string = ''): void {
+  setRelatedTodo(newTodoId: number, newTodoTitle: string = ''): void {
     if (this.todoId === newTodoId) {
       if (`${newTodoTitle}`.trim().length > 0 && this.todoTitle !== newTodoTitle) {
         this.todoTitle = `${newTodoTitle}`.trim();
@@ -375,7 +364,6 @@ export class FocusTimerEngine {
     if (this.state === FocusState.WORKING) {
       console.info(`[TimerEngine] 任务切换，正在生成新切片...`);
       this.saveCurrentSegment(); 
-      this.focusRecordId = this.generateRecordId();
     }
 
     this.todoId = newTodoId;

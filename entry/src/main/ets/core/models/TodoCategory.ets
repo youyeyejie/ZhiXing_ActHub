@@ -18,7 +18,7 @@ import { BaseEntity } from './BaseEntity';
 @Table({ name: DatabaseConfig.TODO_CATEGORY_TABLE })
 export class TodoCategory extends BaseEntity {
   @PrimaryKey()
-  id: string = '';
+  id: number = 0;
 
   @Column({ type: ColumnType.TEXT, notNull: true })
   @NotNull()

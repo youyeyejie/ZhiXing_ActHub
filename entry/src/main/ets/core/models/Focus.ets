@@ -18,10 +18,10 @@ import { BaseEntity } from './BaseEntity';
 @Table({ name: DatabaseConfig.FOCUS_TABLE })
 export class Focus extends BaseEntity {
   @PrimaryKey()
-  id: string = '';
+  id: number = 0;
 
-  @Column({ name: 'todo_id', type: ColumnType.TEXT, defaultValue: '' })
-  todoId: string = '';
+  @Column({ name: 'todo_id', type: ColumnType.INTEGER, defaultValue: 0 })
+  todoId: number = 0;
 
   @Column({ type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
   @NotNull()

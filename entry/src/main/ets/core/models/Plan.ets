@@ -18,7 +18,7 @@ import { BaseEntity } from './BaseEntity';
 @Table({ name: DatabaseConfig.PLAN_TABLE })
 export class Plan extends BaseEntity {
   @PrimaryKey()
-  id: string = '';
+  id: number = 0;
 
   @Column({ type: ColumnType.TEXT, notNull: true })
   @NotNull()

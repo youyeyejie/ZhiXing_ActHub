@@ -19,7 +19,7 @@ import { BaseEntity } from './BaseEntity';
 @Table({ name: DatabaseConfig.IDEA_TABLE })
 export class Idea extends BaseEntity {
   @PrimaryKey()
-  @Trace id: string = '';
+  @Trace id: number = 0;
 
   @Column({ type: ColumnType.TEXT, defaultValue: '' })
   @Trace title: string = '';

@@ -174,21 +174,19 @@ export struct SharedInteractionTestPage {
     }
 
     const now: number = Date.now();
-    const todoId: string = `shared_test_todo_${now}`;
     const todo: Todo = new Todo();
-    todo.id = todoId;
     todo.content = `SharedTest Todo ${now}`;
     todo.timestamp = now;
     todo.createdAt = now;
     todo.updatedAt = now;
 
-    const startMessage: string = `开始执行 TodoRepository CRUD 测试: ${todoId}`;
+    const startMessage: string = `开始执行 TodoRepository CRUD 测试: ${todo.content}`;
     this.logs.push(startMessage);
     this.logToConsole(startMessage);
 
     try {
       await this.todoRepository.save(todo);
-      const persistedId: string = todo.id;
+      const persistedId: number = todo.id;
       const createMessage: string = `Create 成功: ${this.formatTodo(todo)}`;
       this.logs.push(createMessage);
       this.logToConsole(createMessage);

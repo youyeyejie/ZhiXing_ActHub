@@ -4,8 +4,12 @@ import { AppFlow, AppPreferenceKey } from './AppConstants';
 import { AuthService } from '../core/services/AuthService';
 import { FocusTimerEngine } from '../core/services/FocusTimerEngine';
 import { WhiteNoisePlayer } from '../core/services/WhiteNoisePlayer';
-import { PreferenceStorage } from '../core/storage/PreferenceStorage';
 import { User } from '../core/models/User';
+import { UserPreferenceRepository } from '../core/repositories/UserPreferenceRepository';
+import { hilog } from '@kit.PerformanceAnalysisKit';
+
+const DOMAIN = 0x0000;
+const TAG = 'AppState';
 
 
 
@@ -35,11 +39,11 @@ export class AppState {
   private focusTimerEngine: FocusTimerEngine = new FocusTimerEngine();
   private _whiteNoisePlayer: WhiteNoisePlayer = new WhiteNoisePlayer();
   private authService: AuthService = new AuthService();
-  private preferenceStorage: PreferenceStorage = PreferenceStorage.getInstance();
   private currentUserValue: User | null = null;
+  private userPreferenceRepository: UserPreferenceRepository = new UserPreferenceRepository();
 
   @Trace public flow: AppFlow = AppFlow.SPLASH;
-  @Trace public currentUserId: string = '';
+  @Trace public currentUserId: number = 0;
   @Trace public currentUserName: string = '';
   @Trace public currentUserAvatar: string = '';
 
@@ -69,17 +73,19 @@ export class AppState {
   }
 
   get isLoggedIn(): boolean {
-    return this.currentUserId.length > 0;
+    return this.currentUserValue !== null;
   }
   applyThemePreference(mode: ThemeMode, systemDarkMode: boolean): void {
     this.themeManager.set(mode);
     this.themeManager.setSystemDark(systemDarkMode);
   }
 
-  setPreferredThemeMode(mode: ThemeMode): void {
+  async setPreferredThemeMode(mode: ThemeMode): Promise<void> {
     AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, mode);
     this.applyThemePreference(mode, this.readSystemDarkMode());
-    this.preferenceStorage.setStringSync(AppPreferenceKey.PREFERRED_THEME_MODE, mode);
+    if (this.isLoggedIn) {
+      await this.userPreferenceRepository.setString(AppPreferenceKey.PREFERRED_THEME_MODE, mode);
+    }
   }
 
   toggleThemeMode(): void {
@@ -89,36 +95,51 @@ export class AppState {
 
   async bootstrap(): Promise<void> {
     this.enterSplash();
+    hilog.info(DOMAIN, TAG, 'bootstrap start');
     try {
-      const storedUserId: string = await this.preferenceStorage.getString(
-        AppPreferenceKey.SESSION_USER_ID,
-        '',
-      );
-      if (`${storedUserId}`.trim().length === 0) {
-        this.applyCurrentUser(null);
-        this.enterAuth();
-        return;
-      }
-
-      const restoredUser: User | null = await this.authService.restoreSession(storedUserId);
+      const restoredUser: User | null = await this.authService.restoreSession();
       if (restoredUser === null) {
-        await this.clearStoredSession();
+        hilog.info(DOMAIN, TAG, 'bootstrap no restored user -> AUTH');
         this.applyCurrentUser(null);
+        AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, ThemeMode.SYSTEM);
+        this.applyThemePreference(ThemeMode.SYSTEM, this.readSystemDarkMode());
         this.enterAuth();
         return;
       }
 
+      hilog.info(DOMAIN, TAG, 'bootstrap restored user id=%{public}s name=%{public}s',
+        restoredUser.id, restoredUser.name);
       this.applyCurrentUser(restoredUser);
+      try {
+        const storedThemeMode: string = await this.userPreferenceRepository.getString(
+          AppPreferenceKey.PREFERRED_THEME_MODE,
+          ThemeMode.SYSTEM,
+        );
+        const preferredThemeMode: ThemeMode = this.normalizeThemeMode(storedThemeMode);
+        AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, preferredThemeMode);
+        this.applyThemePreference(preferredThemeMode, this.readSystemDarkMode());
+        hilog.info(DOMAIN, TAG, 'bootstrap theme=%{public}s', preferredThemeMode);
+      } catch (_error) {
+        AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, ThemeMode.SYSTEM);
+        this.applyThemePreference(ThemeMode.SYSTEM, this.readSystemDarkMode());
+        hilog.info(DOMAIN, TAG, 'bootstrap theme restore failed -> SYSTEM');
+      }
       this.enterMain();
+      hilog.info(DOMAIN, TAG, 'bootstrap -> MAIN');
     } catch (_error) {
+      hilog.info(DOMAIN, TAG, 'bootstrap exception -> AUTH');
       this.applyCurrentUser(null);
+      AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, ThemeMode.SYSTEM);
+      this.applyThemePreference(ThemeMode.SYSTEM, this.readSystemDarkMode());
       this.enterAuth();
     }
   }
 
   async login(account: string, password: string): Promise<AuthActionResult> {
+    hilog.info(DOMAIN, TAG, 'login start account=%{public}s', account);
     const user: User | null = await this.authService.login(account, password);
     if (user === null) {
+      hilog.info(DOMAIN, TAG, 'login failed');
       return {
         success: false,
         message: '账号或密码错误',
@@ -126,8 +147,9 @@ export class AppState {
     }
 
     this.applyCurrentUser(user);
-    await this.persistSession(user);
+    await this.loadUserPreferences();
     this.enterMain();
+    hilog.info(DOMAIN, TAG, 'login success id=%{public}s name=%{public}s', user.id, user.name);
     return {
       success: true,
       message: '欢迎回来，' + user.name,
@@ -144,7 +166,7 @@ export class AppState {
     }
 
     this.applyCurrentUser(user);
-    await this.persistSession(user);
+    await this.loadUserPreferences();
     this.enterMain();
     return {
       success: true,
@@ -153,10 +175,13 @@ export class AppState {
   }
 
   async logout(): Promise<void> {
-    this.authService.logout();
+    hilog.info(DOMAIN, TAG, 'logout start');
+    await this.authService.logout();
     this.applyCurrentUser(null);
-    await this.clearStoredSession();
+    AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, ThemeMode.SYSTEM);
+    this.applyThemePreference(ThemeMode.SYSTEM, this.readSystemDarkMode());
     this.enterAuth();
+    hilog.info(DOMAIN, TAG, 'logout -> AUTH');
   }
 
   enterSplash(): void {
@@ -173,21 +198,36 @@ export class AppState {
 
   private applyCurrentUser(user: User | null): void {
     this.currentUserValue = user;
-    this.currentUserId = user !== null ? user.id : '';
+    this.currentUserId = user !== null ? user.id : 0;
     this.currentUserName = user !== null ? user.name : '';
     this.currentUserAvatar = user !== null ? user.avatar : '';
   }
 
-  private async persistSession(user: User): Promise<void> {
-    await this.preferenceStorage.setString(AppPreferenceKey.SESSION_USER_ID, user.id);
-  }
-
-  private async clearStoredSession(): Promise<void> {
-    await this.preferenceStorage.remove(AppPreferenceKey.SESSION_USER_ID);
-  }
-
   private readSystemDarkMode(): boolean {
-    return AppStorage.get('systemDarkMode') === true;
+    return AppStorage.get<boolean>('systemDarkMode') === true;
+  }
+
+  private normalizeThemeMode(value: string): ThemeMode {
+    if (value === ThemeMode.DARK) {
+      return ThemeMode.DARK;
+    }
+    if (value === ThemeMode.LIGHT) {
+      return ThemeMode.LIGHT;
+    }
+    return ThemeMode.SYSTEM;
+  }
+
+  private async loadUserPreferences(): Promise<void> {
+    if (!this.isLoggedIn) {
+      return;
+    }
+    const storedThemeMode: string = await this.userPreferenceRepository.getString(
+      AppPreferenceKey.PREFERRED_THEME_MODE,
+      ThemeMode.SYSTEM,
+    );
+    const preferredThemeMode: ThemeMode = this.normalizeThemeMode(storedThemeMode);
+    AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, preferredThemeMode);
+    this.applyThemePreference(preferredThemeMode, this.readSystemDarkMode());
   }
 }
 

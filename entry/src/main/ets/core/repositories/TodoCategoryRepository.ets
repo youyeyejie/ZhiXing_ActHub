@@ -1,5 +1,6 @@
 import { TodoCategory } from '../models/TodoCategory';
 import { BaseRepository } from './BaseRepository';
+import { RepositoryScope } from '../database/RepositoryScope';
 
 /**
  * 类功能简介：
@@ -17,6 +18,6 @@ import { BaseRepository } from './BaseRepository';
  */
 export class TodoCategoryRepository extends BaseRepository<TodoCategory> {
   constructor() {
-    super(TodoCategory);
+    super(TodoCategory, RepositoryScope.USER);
   }
 }

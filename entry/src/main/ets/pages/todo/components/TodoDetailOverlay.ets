@@ -13,15 +13,15 @@ export struct TodoDetailOverlay {
   @Local private state: TodoPageState = useTodoPageState();
   @Local private titleDraft: string = '';
   @Local private detailDraft: string = '';
-  @Local private loadedTodoId: string = '';
-  @Local private selectedCategoryIdDraft: string = '';
+  @Local private loadedTodoId: number = 0;
+  @Local private selectedCategoryIdDraft: number = 0;
   @Local private doneDraft: number = -1;
 
   private titleSaveTimerId: number = -1;
   private detailSaveTimerId: number = -1;
 
-  private normalizeId(value: string): string {
-    return `${value}`.trim();
+  private normalizeId(value: number): number {
+    return value > 0 ? value : 0;
   }
 
   private normalizeText(value: string): string {
@@ -34,7 +34,7 @@ export struct TodoDetailOverlay {
 
   private resolveEditingTodo(): Todo | null {
     const todoId = this.normalizeId(this.state.editingTodoId);
-    if (todoId.length === 0) {
+    if (todoId <= 0) {
       return null;
     }
     const found = this.state.todos.find((item: Todo) => this.normalizeId(item.id) === todoId);
@@ -44,10 +44,10 @@ export struct TodoDetailOverlay {
   private loadDraftFromCurrentTodo(): void {
     const todo = this.resolveEditingTodo();
     if (todo === null) {
-      this.loadedTodoId = '';
+      this.loadedTodoId = 0;
       this.titleDraft = '';
       this.detailDraft = '';
-      this.selectedCategoryIdDraft = '';
+      this.selectedCategoryIdDraft = 0;
       this.doneDraft = -1;
       return;
     }
@@ -93,7 +93,7 @@ export struct TodoDetailOverlay {
       return;
     }
     const todoId = this.normalizeId(todo.id);
-    if (todoId.length === 0) {
+    if (todoId <= 0) {
       return;
     }
     const nextTitle = this.normalizeText(this.titleDraft);
@@ -111,7 +111,7 @@ export struct TodoDetailOverlay {
       return;
     }
     const todoId = this.normalizeId(todo.id);
-    if (todoId.length === 0) {
+    if (todoId <= 0) {
       return;
     }
     const nextDetail = this.normalizeText(this.detailDraft);
@@ -130,19 +130,19 @@ export struct TodoDetailOverlay {
   private closeOverlay(): void {
     this.flushDraftSave();
     this.state.closeTodoDetail();
-    this.loadedTodoId = '';
-    this.selectedCategoryIdDraft = '';
+    this.loadedTodoId = 0;
+    this.selectedCategoryIdDraft = 0;
     this.doneDraft = -1;
   }
 
-  private resolveCurrentCategoryId(): string {
+  private resolveCurrentCategoryId(): number {
     const localCategoryId = this.normalizeId(this.selectedCategoryIdDraft);
-    if (localCategoryId.length > 0) {
+    if (localCategoryId > 0) {
       return localCategoryId;
     }
     const todo = this.resolveEditingTodo();
     if (todo === null) {
-      return '';
+      return 0;
     }
     return this.normalizeId(todo.categoryId);
   }
@@ -169,13 +169,13 @@ export struct TodoDetailOverlay {
     this.state.toggleDone(todo.id, nextDone === 1);
   }
 
-  private switchCategory(categoryId: string): void {
+  private switchCategory(categoryId: number): void {
     const todo = this.resolveEditingTodo();
     if (todo === null) {
       return;
     }
     const normalizedCategoryId = this.normalizeId(categoryId);
-    if (normalizedCategoryId.length === 0) {
+    if (normalizedCategoryId <= 0) {
       return;
     }
     this.selectedCategoryIdDraft = normalizedCategoryId;
@@ -190,8 +190,8 @@ export struct TodoDetailOverlay {
     this.flushDraftSave();
     this.state.closeTodoDetail();
     this.state.requestDeleteTodo(todo.id);
-    this.loadedTodoId = '';
-    this.selectedCategoryIdDraft = '';
+    this.loadedTodoId = 0;
+    this.selectedCategoryIdDraft = 0;
     this.doneDraft = -1;
     this.app.nav.back(false);
   }
@@ -324,7 +324,7 @@ export struct TodoDetailOverlay {
         .scrollBar(BarState.Off)
         .onAppear(() => {
           const currentTodo = this.resolveEditingTodo();
-          const currentTodoId = currentTodo ? this.normalizeId(currentTodo.id) : '';
+          const currentTodoId = currentTodo ? this.normalizeId(currentTodo.id) : 0;
           if (this.loadedTodoId !== currentTodoId) {
             this.loadDraftFromCurrentTodo();
           }
@@ -340,8 +340,8 @@ export struct TodoDetailOverlay {
     this.clearTitleSaveTimer();
     this.clearDetailSaveTimer();
     this.state.closeTodoDetail();
-    this.loadedTodoId = '';
-    this.selectedCategoryIdDraft = '';
+    this.loadedTodoId = 0;
+    this.selectedCategoryIdDraft = 0;
     this.doneDraft = -1;
   }
 }

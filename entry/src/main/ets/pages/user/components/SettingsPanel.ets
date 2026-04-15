@@ -1,8 +1,8 @@
 import promptAction from '@ohos.promptAction';
 import { AppState, useAppState } from '../../../app/AppStates';
 import { AppPreferenceKey } from '../../../app/AppConstants';
-import { PreferenceStorage } from '../../../core/storage/PreferenceStorage';
 import { NotificationService } from '../../../core/services/NotificationService';
+import { UserPreferenceRepository } from '../../../core/repositories/UserPreferenceRepository';
 
 @ComponentV2
 export struct SettingsPanel {
@@ -10,7 +10,7 @@ export struct SettingsPanel {
   @Local private reminderEnabled: boolean = false;
   @Event onLogoutTap: () => void = () => {};
 
-  private preferenceStorage: PreferenceStorage = PreferenceStorage.getInstance();
+  private userPreferenceRepository: UserPreferenceRepository = new UserPreferenceRepository();
   private notificationService: NotificationService = new NotificationService();
 
   aboutToAppear(): void {
@@ -18,7 +18,7 @@ export struct SettingsPanel {
   }
 
   private async loadSettings(): Promise<void> {
-    this.reminderEnabled = await this.preferenceStorage.getBoolean(
+    this.reminderEnabled = await this.userPreferenceRepository.getBoolean(
       AppPreferenceKey.PLAN_REMINDER_ENABLED,
       false,
     );
@@ -33,7 +33,7 @@ export struct SettingsPanel {
 
   private async handleReminderToggle(enabled: boolean): Promise<void> {
     this.reminderEnabled = enabled;
-    await this.preferenceStorage.setBoolean(AppPreferenceKey.PLAN_REMINDER_ENABLED, enabled);
+    await this.userPreferenceRepository.setBoolean(AppPreferenceKey.PLAN_REMINDER_ENABLED, enabled);
     if (enabled) {
       await this.notificationService.registerPlanReminder();
       this.safeToast('日程提醒已开启');

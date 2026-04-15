@@ -18,7 +18,7 @@ export class AppNav extends NavPathStack {
   @Trace public mainRouteName: string = AppRoute.PLAN;
   @Trace public hasOverlayRoute: boolean = false;
   @Trace public detailModuleName: string = '';
-  @Trace public detailRecordId: string = '';
+  @Trace public detailRecordId: number = 0;
   public actionSheetContentBuilder: () => void = () => {};
   public detailCardContentBuilder: () => void = () => {};
   public detailCardTitle: string = '详情';
@@ -165,7 +165,7 @@ export class AppNav extends NavPathStack {
    */
   private clearDetailState(): void {
     this.detailModuleName = '';
-    this.detailRecordId = '';
+    this.detailRecordId = 0;
     this.detailCardTitle = '详情';
     this.actionSheetContentBuilder = () => {};
     this.detailCardContentBuilder = () => {};

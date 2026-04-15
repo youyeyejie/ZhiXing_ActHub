@@ -1,9 +1,10 @@
 import { Focus } from '../models/Focus';
 import { BaseRepository } from './BaseRepository';
+import { RepositoryScope } from '../database/RepositoryScope';
 
 export class FocusRepository extends BaseRepository<Focus> {
   constructor() {
-    super(Focus);
+    super(Focus, RepositoryScope.USER);
   }
 
   async insertFocusRecord(focus: Focus): Promise<boolean> {

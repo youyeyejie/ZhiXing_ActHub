@@ -1,5 +1,8 @@
-import { QueryBuilder, getORM, Class, ORM } from "@ibestservices/ibest-orm";
+import { QueryBuilder, Class, ORM } from "@ibestservices/ibest-orm";
 import { BaseEntity } from "../models/BaseEntity";
+import { RepositoryScope } from "../database/RepositoryScope";
+import { AppDatabase } from "../database/AppDatabase";
+import { UserDatabase } from "../database/UserDatabase";
 
 /**
  * 类功能简介：
@@ -16,13 +19,18 @@ import { BaseEntity } from "../models/BaseEntity";
  */
 export abstract class BaseRepository<T extends BaseEntity> {
   protected entityClass: Class<T>;
+  protected scope: RepositoryScope;
 
-  constructor(entityClass: Class<T>) {
+  constructor(entityClass: Class<T>, scope: RepositoryScope = RepositoryScope.USER) {
     this.entityClass = entityClass;
+    this.scope = scope;
   }
 
   protected get orm(): ORM {
-    return getORM();
+    if (this.scope === RepositoryScope.APP) {
+      return AppDatabase.getInstance().getOrm();
+    }
+    return UserDatabase.getInstance().getOrm();
   }
 
   get query(): QueryBuilder<T> {
@@ -39,9 +47,9 @@ export abstract class BaseRepository<T extends BaseEntity> {
   }
 
   save(entity: T): Promise<void> {
-    const id: string = entity.id;
+    const id: number = entity.id;
 
-    if (id.length === 0) {
+    if (id <= 0) {
       this.orm.insert<T>(entity);
       return Promise.resolve();
     }
@@ -55,12 +63,12 @@ export abstract class BaseRepository<T extends BaseEntity> {
     return Promise.resolve();
   }
 
-  removeById(id: string): Promise<void> {
+  removeById(id: number): Promise<void> {
     this.query.where("id", id).delete();
     return Promise.resolve();
   }
 
-  findById(id: string): Promise<T | null> {
+  findById(id: number): Promise<T | null> {
     return Promise.resolve(this.query.where("id", id).first());
   }
 
