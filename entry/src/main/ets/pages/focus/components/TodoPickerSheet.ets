@@ -193,7 +193,7 @@ export struct TodoPickerSheet {
         }
         
         if (this.availableTodos.length > 0) {
-          Text(this.app.focusEngine.hasTodo() ? "其他可选待办" : "可选待办")
+          Text(this.app.focusEngine.hasTodo() ? "其他未完成待办" : "未完成待办")
             .fontSize(TodoPickerStyle.SUB_HEADER_FONT_SIZE)
             .fontWeight(FontWeight.Medium)
             .fontColor(this.app.theme.palette.textPrimary)
@@ -223,7 +223,7 @@ export struct TodoPickerSheet {
 
         Button("取消")
           .type(ButtonType.Capsule)
-          .height(40) // 按钮高度属于交互热区硬性规范，通常不放进排版Style中
+          .height(40)
           .backgroundColor(this.app.theme.palette.surfaceSecondary)
           .fontColor(this.app.theme.palette.textSecondary)
           .onClick(() => {
