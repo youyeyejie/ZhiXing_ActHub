@@ -27,14 +27,25 @@ export struct TodoCard {
   @Local private app: AppState = useAppState();
   @Local private state: TodoPageState = useTodoPageState();
   @Local private suppressDetailOpenUntil: number = 0;
+  @Local private doneVisualOverrides: Map<string, number> = new Map<string, number>();
 
   aboutToAppear(): void {
     // 刷新由 TodoPage 统一触发，避免多子组件重复拉取导致状态被覆盖。
+    this.reconcileDoneVisualOverrides();
+  }
+
+  @Monitor("state.visibleTodos")
+  onVisibleTodosChanged(): void {
+    this.reconcileDoneVisualOverrides();
   }
 
   private normalizeText(value: string): string {
     const text = `${value}`.trim();
     return text === "undefined" || text === "null" ? "" : text;
+  }
+
+  private resolveTodoId(todo: Todo): string {
+    return this.normalizeText(todo.id);
   }
 
   private resolveTodoTitle(todo: Todo): string {
@@ -64,6 +75,65 @@ export struct TodoCard {
 
   private canOpenDetailNow(): boolean {
     return Date.now() >= this.suppressDetailOpenUntil;
+  }
+
+  private resolveDisplayedDone(todo: Todo): number {
+    const todoId = this.resolveTodoId(todo);
+    if (todoId.length === 0) {
+      return todo.isDone === 1 ? 1 : 0;
+    }
+    const override = this.doneVisualOverrides.get(todoId);
+    if (override === 0 || override === 1) {
+      return override;
+    }
+    return todo.isDone === 1 ? 1 : 0;
+  }
+
+  private isDisplayedDone(todo: Todo): boolean {
+    return this.resolveDisplayedDone(todo) === 1;
+  }
+
+  private resolveDisplayedCardOpacity(todo: Todo): number {
+    return this.isDisplayedDone(todo) ? 0.62 : 1;
+  }
+
+  private resolveDisplayedTitleColor(todo: Todo): ResourceColor {
+    if (this.isDisplayedDone(todo)) {
+      return this.app.theme.palette.textSecondary;
+    }
+    return this.app.theme.palette.textPrimary;
+  }
+
+  private updateDoneVisualOverride(todo: Todo, isDone: boolean): void {
+    const todoId = this.resolveTodoId(todo);
+    if (todoId.length === 0) {
+      return;
+    }
+    this.doneVisualOverrides.set(todoId, isDone ? 1 : 0);
+    this.doneVisualOverrides = new Map(this.doneVisualOverrides);
+  }
+
+  private reconcileDoneVisualOverrides(): void {
+    const next = new Map(this.doneVisualOverrides);
+    for (const entry of next.entries()) {
+      const id = entry[0];
+      const doneValue = entry[1];
+      const todo = this.state.visibleTodos.find((item: Todo) => this.resolveTodoId(item) === id);
+      if (!todo) {
+        next.delete(id);
+        continue;
+      }
+      const actualDone = todo.isDone === 1 ? 1 : 0;
+      if (actualDone === doneValue) {
+        next.delete(id);
+      }
+    }
+    this.doneVisualOverrides = next;
+  }
+
+  private onTodoDoneChanged(todo: Todo, isDone: boolean): void {
+    this.updateDoneVisualOverride(todo, isDone);
+    this.state.toggleDone(todo.id, isDone);
   }
 
   @Builder
@@ -96,25 +166,22 @@ export struct TodoCard {
       },
     }) {
       Row({ space: 8 }) {
-        Toggle({ type: ToggleType.Checkbox, isOn: todo.isDone === 1 })
+        Toggle({ type: ToggleType.Checkbox, isOn: this.isDisplayedDone(todo) })
           .onChange((value: boolean) => {
             animateTo({ duration: 280, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
-              this.state.toggleDone(todo.id, value);
+              this.onTodoDoneChanged(todo, value);
             });
           })
         Column({ space: 6 }) {
           Text(this.resolveTodoTitle(todo))
             .fontSize(15)
             .fontWeight(FontWeight.Medium)
-            .fontColor(
-              todo.isDone === 1
-                ? this.app.theme.palette.textSecondary
-                : this.app.theme.palette.textPrimary,
-            )
+            .fontColor(this.resolveDisplayedTitleColor(todo))
             .decoration({
-              type: todo.isDone === 1 ? TextDecorationType.LineThrough : TextDecorationType.None,
+              type: this.isDisplayedDone(todo) ? TextDecorationType.LineThrough : TextDecorationType.None,
             })
             .width("100%")
+            .animation({ duration: 260, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
           Row({ space: 8 }) {
             Column()
               .width(8)
@@ -148,6 +215,7 @@ export struct TodoCard {
       .border({ width: 1, color: this.resolveCategoryBorderColor(todo) })
       .borderRadius(14)
       .backgroundColor(this.resolveCategoryBackgroundColor(todo))
+      .opacity(this.resolveDisplayedCardOpacity(todo))
       .animation({ duration: 220, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
     };
   }

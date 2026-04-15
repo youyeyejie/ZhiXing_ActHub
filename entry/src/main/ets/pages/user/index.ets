@@ -4,6 +4,8 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { MainTabPageLayout } from '../../components/layout/MainTabPageLayout';
 import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
+import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
+
 
 /**
  * 组件功能简介：
@@ -55,9 +57,11 @@ export struct UserPage {
       Text('TODO: 用户信息区与主题切换入口。')
         .fontSize(14)
         .fontColor(this.app.theme.palette.textSecondary);
-      FocusStatsChart();
-      ActivityHeatmap();
-      SettingsPanel();
+      PageScrollLayout({ space: 12, paddingTop: 12 }) {
+        FocusStatsChart();
+        ActivityHeatmap();
+        SettingsPanel();
+      }
     }
   }
 }

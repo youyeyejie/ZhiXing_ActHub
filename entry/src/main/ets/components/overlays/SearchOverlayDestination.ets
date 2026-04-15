@@ -26,7 +26,7 @@ export struct SearchOverlayDestination {
   @Local private closing: boolean = false;
   @Local private entered: boolean = false;
   private dismissDoneTimerId: number = -1;
-  private enterDuration: number = 300;
+  private enterDuration: number = 200;
   private exitDuration: number = 200;
 
   aboutToAppear(): void {
