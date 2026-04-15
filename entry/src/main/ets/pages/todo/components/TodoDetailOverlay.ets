@@ -288,8 +288,8 @@ export struct TodoDetailOverlay {
           .type(ButtonType.Capsule)
           .layoutWeight(1)
           .height(50)
-          .backgroundColor('#FFE9E8')
-          .fontColor('#D93025')
+          .backgroundColor(this.app.theme.palette.dangerSurface)
+          .fontColor(this.app.theme.palette.danger)
           .fontSize(16)
           .onClick(() => {
             this.deleteCurrentTodo();

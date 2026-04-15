@@ -64,16 +64,16 @@ export struct PlanCard {
 
   private resolveTypeColor(): string {
     if (this.plan.isCourse === 1) {
-      return "#F59E0B";
+      return this.app.theme.palette.warning;
     }
     return this.app.theme.palette.primary;
   }
 
   private resolveCardBackgroundColor(): string {
     if (this.plan.isCourse === 1) {
-      return "#FFF8E8";
+      return this.app.theme.palette.warningSurface;
     }
-    return "#EFF6FF";
+    return this.app.theme.palette.infoSurface;
   }
 
   private resolveTypeLabel(): string {
@@ -103,7 +103,7 @@ export struct PlanCard {
       shadowOffsetY: 3,
       enableSwipeLeft: true,
       enableSwipeRight: false,
-      swipeLeftColor: "#EF4444",
+      swipeLeftColor: this.app.theme.palette.danger,
       onSwipeLeft: () => {
         this.markSwipeActionTriggered();
         this.state.requestDeletePlan(this.plan.id);

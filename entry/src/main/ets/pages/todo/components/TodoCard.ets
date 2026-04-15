@@ -153,8 +153,8 @@ export struct TodoCard {
       shadowOffsetY: 3,
       enableSwipeLeft: true,
       enableSwipeRight: true,
-      swipeRightColor: "#3B82F6",
-      swipeLeftColor: "#EF4444",
+      swipeRightColor: this.app.theme.palette.info,
+      swipeLeftColor: this.app.theme.palette.danger,
       onSwipeLeft: () => {
         this.markSwipeActionTriggered();
         this.state.requestDeleteTodo(todo.id);
@@ -242,7 +242,7 @@ export struct TodoCard {
           (item: Todo) => {
             this.buildTodoRow(item);
           },
-          (item: Todo) => `${item.id}`,
+          (item: Todo) => `${item.id}_${item.updatedAt}`,
         );
       }
     }

@@ -26,14 +26,14 @@ export struct InteractableCard {
   @Param enableSwipeRight: boolean = false;
   @Param swipeThreshold: number = 72;
   @Param maxSwipeOffset: number = 96;
-  @Param surfaceColor: string = '';
+  @Param surfaceColor: string = this.app.theme.palette.surface;
   @Param cornerRadius: number = 20;
   @Param contentPadding: number = 16;
   @Param outerPaddingVertical: number = 3;
   @Param shadowRadius: number = 12;
   @Param shadowOffsetY: number = 4;
-  @Param swipeRightColor: string = '#3B82F6';
-  @Param swipeLeftColor: string = '#EF4444';
+  @Param swipeRightColor: string = this.app.theme.palette.info;
+  @Param swipeLeftColor: string = this.app.theme.palette.danger;
   @Event onSwipeLeft: () => void = () => {};
   @Event onSwipeRight: () => void = () => {};
   @Event onCardTap: () => void = () => {};

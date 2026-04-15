@@ -3,6 +3,7 @@ import { TodoCategory } from '../../core/models/TodoCategory';
 import { TodoRepository } from '../../core/repositories/TodoRepository';
 import { TodoCategoryRepository } from '../../core/repositories/TodoCategoryRepository';
 import { UndoStackItem } from '../../components/feedback/UndoNotificationStack';
+import { AppState, useAppState } from '../../app/AppStates';
 
 class TodoUndoTask {
   taskId: string;
@@ -22,19 +23,22 @@ class TodoUndoTask {
 
 @ObservedV2
 export class TodoPageState {
+  private app: AppState = useAppState();
   private todoRepository: TodoRepository = new TodoRepository();
   private categoryRepository: TodoCategoryRepository = new TodoCategoryRepository();
 
-  private readonly categoryColorPalette: Array<string> = [
-    '#3B82F6', // blue
-    '#7C3AED', // violet
-    '#22C55E', // green
-    '#F59E0B', // amber
-    '#EF4444', // red
-    '#06B6D4', // cyan
-    '#A855F7', // purple
-    '#10B981', // emerald
-  ];
+  private getCategoryColorPalette(): Array<string> {
+    return [
+      this.app.theme.palette.accentBlue,
+      this.app.theme.palette.accentViolet,
+      this.app.theme.palette.accentGreen,
+      this.app.theme.palette.accentAmber,
+      this.app.theme.palette.accentRed,
+      this.app.theme.palette.accentCyan,
+      this.app.theme.palette.accentPurple,
+      this.app.theme.palette.accentEmerald,
+    ];
+  }
 
   @Trace public categories: Array<TodoCategory> = [];
   @Trace public selectedCategoryId: string = '';
@@ -160,7 +164,8 @@ export class TodoPageState {
 
       const normalizedColor = this.safeTrim(deduped[i].color);
       if (normalizedColor.length === 0) {
-        deduped[i].color = this.categoryColorPalette[i % this.categoryColorPalette.length];
+        const colorPalette = this.getCategoryColorPalette();
+        deduped[i].color = colorPalette[i % colorPalette.length];
         deduped[i].updatedAt = Date.now();
         await this.categoryRepository.save(deduped[i]);
         continue;
@@ -265,7 +270,7 @@ export class TodoPageState {
     const cat = new TodoCategory();
     cat.id = this.newId('cat');
     cat.category = this.defaultCategoryName;
-    cat.color = this.categoryColorPalette[0];
+    cat.color = this.getCategoryColorPalette()[0];
     cat.createdAt = now;
     cat.updatedAt = now;
     await this.categoryRepository.insert(cat);
@@ -352,10 +357,10 @@ export class TodoPageState {
     const resolvedId = this.safeTrim(categoryId);
     if (resolvedId.length === 0) {
       const learning = this.categories.find((item: TodoCategory) => item.category === this.defaultCategoryName);
-      return learning ? learning.color : this.categoryColorPalette[0];
+      return learning ? learning.color : this.getCategoryColorPalette()[0];
     }
     const found = this.categories.find((item: TodoCategory) => this.safeTrim(item.id) === resolvedId);
-    return found ? found.color : this.categoryColorPalette[0];
+    return found ? found.color : this.getCategoryColorPalette()[0];
   }
 
   async createTodo(title: string, detail: string, categoryId: string): Promise<boolean> {
@@ -756,7 +761,8 @@ export class TodoPageState {
 
   private pickColorForNewCategory(): string {
     const index = this.categories.length;
-    return this.categoryColorPalette[index % this.categoryColorPalette.length];
+    const colorPalette = this.getCategoryColorPalette();
+    return colorPalette[index % colorPalette.length];
   }
 
   private newId(prefix: string): string {
