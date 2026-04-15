@@ -53,6 +53,14 @@ export class Plan extends BaseEntity {
   @Column({ name: 'loop_rule', type: ColumnType.TEXT, defaultValue: '' })
   loopRule: string = '';
 
+  @Column({ name: 'reminder_id', type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
+  @NotNull()
+  reminderId: number = 0;
+
+  @Column({ name: 'enable_remind', type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
+  @NotNull()
+  enableRemind: number = 0;
+
   @Column({ name: 'created_at', type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
   @NotNull()
   createdAt: number = 0;

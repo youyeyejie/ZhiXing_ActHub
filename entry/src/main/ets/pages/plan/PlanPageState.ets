@@ -1,5 +1,6 @@
 import { Plan } from '../../core/models/Plan';
 import { PlanRepository } from '../../core/repositories/PlanRepository';
+import { NotificationService } from '../../core/services/NotificationService';
 import { UndoStackItem } from '../../components/feedback/UndoNotificationStack';
 
 class PlanUndoTask {
@@ -85,6 +86,8 @@ export class PlanPageState {
     plan.isCourse = source.isCourse;
     plan.description = source.description;
     plan.loopRule = source.loopRule;
+    plan.reminderId = source.reminderId;
+    plan.enableRemind = source.enableRemind;
     plan.createdAt = source.createdAt;
     plan.updatedAt = source.updatedAt;
     return plan;
@@ -177,6 +180,10 @@ export class PlanPageState {
 
   private fillComputedFields(plan: Plan): void {
     plan.isCourse = this.normalizeSwitchFlag(plan.isCourse);
+    plan.enableRemind = this.normalizeSwitchFlag(plan.enableRemind);
+    if (plan.reminderId < 0) {
+      plan.reminderId = 0;
+    }
     plan.duration = plan.endTime > plan.startTime ? plan.endTime - plan.startTime : 0;
     if (plan.timestamp <= 0) {
       plan.timestamp = plan.startTime > 0 ? plan.startTime : Date.now();
@@ -228,6 +235,8 @@ export class PlanPageState {
     plan.isCourse = this.normalizeSwitchFlag(isCourse);
     plan.description = `${description}`.trim();
     plan.loopRule = '';
+    plan.reminderId = 0;
+    plan.enableRemind = 0;
     plan.timestamp = now;
     plan.createdAt = now;
     plan.updatedAt = now;
@@ -268,6 +277,10 @@ export class PlanPageState {
     working.updatedAt = Date.now();
     this.fillComputedFields(working);
     await this.planRepository.save(working);
+    const reminderChanged = await NotificationService.syncPlanReminderRecord(working);
+    if (reminderChanged) {
+      await this.planRepository.save(working);
+    }
     this.applyLocalPlanUpdate(working);
     return true;
   }
@@ -326,6 +339,17 @@ export class PlanPageState {
         return false;
       }
       plan.description = nextDescription;
+      return true;
+    });
+  }
+
+  async updatePlanReminderEnabled(planId: number, enabled: boolean): Promise<boolean> {
+    const nextValue = enabled ? 1 : 0;
+    return this.updatePlan(planId, (plan: Plan): boolean => {
+      if (this.normalizeSwitchFlag(plan.enableRemind) === nextValue) {
+        return false;
+      }
+      plan.enableRemind = nextValue;
       return true;
     });
   }
@@ -389,6 +413,11 @@ export class PlanPageState {
     this.closeUndo(taskId);
     if (planId <= 0) {
       return;
+    }
+    const deletingPlan = task.plan;
+    const reminderChanged = await NotificationService.clearPlanReminderRecord(deletingPlan);
+    if (reminderChanged) {
+      await this.planRepository.save(deletingPlan);
     }
     await this.planRepository.removeById(planId);
     await this.refreshAll();

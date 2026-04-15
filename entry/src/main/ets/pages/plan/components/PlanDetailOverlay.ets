@@ -17,6 +17,7 @@ export struct PlanDetailOverlay {
   @Local private locationDraft: string = '';
   @Local private descriptionDraft: string = '';
   @Local private isCourseDraft: number = 0;
+  @Local private enableRemindDraft: boolean = false;
   @Local private startDateDraft: Date = new Date();
   @Local private startTimeDraft: Date = new Date();
   @Local private endDateDraft: Date = new Date();
@@ -150,6 +151,7 @@ export struct PlanDetailOverlay {
       this.locationDraft = '';
       this.descriptionDraft = '';
       this.isCourseDraft = 0;
+      this.enableRemindDraft = false;
       return;
     }
 
@@ -161,6 +163,7 @@ export struct PlanDetailOverlay {
     this.locationDraft = this.normalizeText(plan.location);
     this.descriptionDraft = this.normalizeText(plan.description);
     this.isCourseDraft = plan.isCourse === 1 ? 1 : 0;
+    this.enableRemindDraft = plan.enableRemind === 1;
     this.startDateDraft = new Date(startMs);
     this.startTimeDraft = new Date(startMs);
     this.endDateDraft = new Date(endMs);
@@ -269,6 +272,23 @@ export struct PlanDetailOverlay {
     }
     this.isCourseDraft = nextType;
     this.state.updatePlanType(this.normalizeId(plan.id), nextType);
+  }
+
+  private switchReminder(enabled: boolean): void {
+    const plan = this.resolveEditingPlan();
+    if (plan === null) {
+      this.enableRemindDraft = false;
+      return;
+    }
+    if (this.enableRemindDraft === enabled) {
+      return;
+    }
+    this.enableRemindDraft = enabled;
+    this.state.updatePlanReminderEnabled(this.normalizeId(plan.id), enabled).then((changed: boolean) => {
+      if (!changed) {
+        this.enableRemindDraft = plan.enableRemind === 1;
+      }
+    });
   }
 
   private closeOverlay(): void {
@@ -403,6 +423,29 @@ export struct PlanDetailOverlay {
         }, (type: number) => this.resolveTypeRenderToken(type));
       }
       .width('100%');
+
+      Row({ space: 12 }) {
+        Column({ space: 4 }) {
+          Text('代理提醒')
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.app.theme.palette.textPrimary);
+          Text('开启后会在开始前 20 分钟注册后台代理提醒。')
+            .fontSize(12)
+            .lineHeight(18)
+            .fontColor(this.app.theme.palette.textSecondary);
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start);
+        Toggle({ type: ToggleType.Switch, isOn: this.enableRemindDraft })
+          .onChange((value: boolean) => {
+            this.switchReminder(value);
+          });
+      }
+      .width('100%')
+      .padding(12)
+      .borderRadius(12)
+      .backgroundColor(this.app.theme.palette.surfaceSecondary);
 
 
     }
