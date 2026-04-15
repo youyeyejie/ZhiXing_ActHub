@@ -28,15 +28,26 @@ export struct TodoCard {
   @Local private state: TodoPageState = useTodoPageState();
   @Local private suppressDetailOpenUntil: number = 0;
   @Local private doneVisualOverrides: Map<string, number> = new Map<string, number>();
+  @Local private restoreMoveScheduledIds: Set<string> = new Set<string>();
+  private restoreMoveDispatchTimers: Map<string, number> = new Map<string, number>();
 
   aboutToAppear(): void {
     // 刷新由 TodoPage 统一触发，避免多子组件重复拉取导致状态被覆盖。
     this.reconcileDoneVisualOverrides();
+    this.reconcileRestoreMoveScheduledIds();
+  }
+
+  aboutToDisappear(): void {
+    for (const timerId of this.restoreMoveDispatchTimers.values()) {
+      clearTimeout(timerId);
+    }
+    this.restoreMoveDispatchTimers.clear();
   }
 
   @Monitor("state.visibleTodos")
   onVisibleTodosChanged(): void {
     this.reconcileDoneVisualOverrides();
+    this.reconcileRestoreMoveScheduledIds();
   }
 
   private normalizeText(value: string): string {
@@ -131,9 +142,70 @@ export struct TodoCard {
     this.doneVisualOverrides = next;
   }
 
+  private reconcileRestoreMoveScheduledIds(): void {
+    const visibleIds: Set<string> = new Set<string>();
+    for (let i = 0; i < this.state.visibleTodos.length; i++) {
+      const id = this.resolveTodoId(this.state.visibleTodos[i]);
+      if (id.length > 0) {
+        visibleIds.add(id);
+      }
+    }
+
+    const next = new Set(this.restoreMoveScheduledIds);
+    for (const id of next.values()) {
+      if (visibleIds.has(id) && this.state.isTodoPendingRestoreMove(id)) {
+        continue;
+      }
+      const timerId = this.restoreMoveDispatchTimers.get(id);
+      if (timerId !== undefined) {
+        clearTimeout(timerId);
+        this.restoreMoveDispatchTimers.delete(id);
+      }
+      next.delete(id);
+    }
+    this.restoreMoveScheduledIds = next;
+  }
+
+  private scheduleRestoreMove(todo: Todo): void {
+    const todoId = this.resolveTodoId(todo);
+    if (todoId.length === 0) {
+      return;
+    }
+    if (!this.state.isTodoPendingRestoreMove(todoId)) {
+      return;
+    }
+    if (this.restoreMoveScheduledIds.has(todoId)) {
+      return;
+    }
+
+    const nextScheduled = new Set(this.restoreMoveScheduledIds);
+    nextScheduled.add(todoId);
+    this.restoreMoveScheduledIds = nextScheduled;
+
+    const timerId = setTimeout(() => {
+      this.restoreMoveDispatchTimers.delete(todoId);
+      this.state.settlePendingRestoreMove(todoId);
+    }, 16);
+    this.restoreMoveDispatchTimers.set(todoId, timerId);
+  }
+
   private onTodoDoneChanged(todo: Todo, isDone: boolean): void {
     this.updateDoneVisualOverride(todo, isDone);
     this.state.toggleDone(todo.id, isDone);
+  }
+
+  private onTodoDeleted(todo: Todo): void {
+    animateTo({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
+      this.state.requestDeleteTodo(todo.id);
+    });
+  }
+
+  private resolveTodoRenderKey(todo: Todo): string {
+    const normalizedId = this.resolveTodoId(todo);
+    if (normalizedId.length > 0) {
+      return normalizedId;
+    }
+    return `todo_fallback_${todo.createdAt}_${todo.timestamp}`;
   }
 
   @Builder
@@ -157,7 +229,7 @@ export struct TodoCard {
       swipeLeftColor: this.app.theme.palette.danger,
       onSwipeLeft: () => {
         this.markSwipeActionTriggered();
-        this.state.requestDeleteTodo(todo.id);
+        this.onTodoDeleted(todo);
       },
       onSwipeRight: () => {
         this.markSwipeActionTriggered();
@@ -168,7 +240,7 @@ export struct TodoCard {
       Row({ space: 8 }) {
         Toggle({ type: ToggleType.Checkbox, isOn: this.isDisplayedDone(todo) })
           .onChange((value: boolean) => {
-            animateTo({ duration: 280, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
+            animateTo({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
               this.onTodoDoneChanged(todo, value);
             });
           })
@@ -181,7 +253,7 @@ export struct TodoCard {
               type: this.isDisplayedDone(todo) ? TextDecorationType.LineThrough : TextDecorationType.None,
             })
             .width("100%")
-            .animation({ duration: 260, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
+            .animation({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
           Row({ space: 8 }) {
             Column()
               .width(8)
@@ -210,13 +282,16 @@ export struct TodoCard {
         })
       }
       .width("100%")
+      .onAppear(() => {
+        this.scheduleRestoreMove(todo);
+      })
       .padding({ left: 12, right: 12, top: 6, bottom: 6 })
       .alignItems(VerticalAlign.Center)
       .border({ width: 1, color: this.resolveCategoryBorderColor(todo) })
       .borderRadius(14)
       .backgroundColor(this.resolveCategoryBackgroundColor(todo))
       .opacity(this.resolveDisplayedCardOpacity(todo))
-      .animation({ duration: 220, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
+      .animation({ duration: 160, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
     };
   }
 
@@ -242,11 +317,11 @@ export struct TodoCard {
           (item: Todo) => {
             this.buildTodoRow(item);
           },
-          (item: Todo) => `${item.id}_${item.updatedAt}`,
+          (item: Todo) => this.resolveTodoRenderKey(item),
         );
       }
     }
     .width("100%")
-    .animation({ duration: 220, curve: Curve.EaseInOut, playMode: PlayMode.Normal });
+    .animation({ duration: 160, curve: Curve.EaseInOut, playMode: PlayMode.Normal });
   }
 }

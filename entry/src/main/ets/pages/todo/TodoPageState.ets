@@ -52,6 +52,7 @@ export class TodoPageState {
   @Trace public editingTodoId: string = '';
   @Trace public creatingTodoId: string = '';
   @Trace public undoTasks: Array<TodoUndoTask> = [];
+  @Trace public pendingRestoreMoveTodoIds: Array<string> = [];
   private undoTaskSeq: number = 0;
   private readonly defaultCategoryName: string = '学习';
 
@@ -78,6 +79,51 @@ export class TodoPageState {
     todo.createdAt = source.createdAt;
     todo.updatedAt = source.updatedAt;
     return todo;
+  }
+
+  private isDigits(value: string): boolean {
+    if (value.length === 0) {
+      return false;
+    }
+    for (let i = 0; i < value.length; i++) {
+      const code = value.charCodeAt(i);
+      if (code < 48 || code > 57) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private parseTodoIdNumber(todoId: string): number {
+    const normalizedId = this.safeTrim(todoId);
+    if (normalizedId.length === 0) {
+      return -1;
+    }
+    if (this.isDigits(normalizedId)) {
+      return Number(normalizedId);
+    }
+    const parts = normalizedId.split('_');
+    for (let i = 0; i < parts.length; i++) {
+      const part = this.safeTrim(parts[i]);
+      if (this.isDigits(part)) {
+        return Number(part);
+      }
+    }
+    return -1;
+  }
+
+  private compareTodoById(a: Todo, b: Todo): number {
+    const aId = this.safeTrim(a.id);
+    const bId = this.safeTrim(b.id);
+    const aNumber = this.parseTodoIdNumber(aId);
+    const bNumber = this.parseTodoIdNumber(bId);
+    if (aNumber >= 0 && bNumber >= 0 && aNumber !== bNumber) {
+      return aNumber - bNumber;
+    }
+    if (aId === bId) {
+      return 0;
+    }
+    return aId.localeCompare(bId);
   }
 
   async refreshAll(): Promise<void> {
@@ -239,7 +285,7 @@ export class TodoPageState {
       }
     }
     const sorted: Array<Todo> = list.slice();
-    sorted.sort((a: Todo, b: Todo) => b.timestamp - a.timestamp);
+    sorted.sort((a: Todo, b: Todo) => this.compareTodoById(a, b));
     this.todos = sorted;
     this.syncVisibleTodos();
   }
@@ -323,12 +369,25 @@ export class TodoPageState {
       if (aDone !== bDone) {
         return aDone - bDone;
       }
-      if (a.timestamp === b.timestamp) {
-        return b.updatedAt - a.updatedAt;
-      }
-      return b.timestamp - a.timestamp;
+      return this.compareTodoById(a, b);
     });
-    return sorted;
+
+    if (this.pendingRestoreMoveTodoIds.length === 0) {
+      return sorted;
+    }
+
+    const pendingSet: Set<string> = new Set<string>(this.pendingRestoreMoveTodoIds.map((id: string) => this.safeTrim(id)));
+    const normal: Array<Todo> = [];
+    const pending: Array<Todo> = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const todoId = this.safeTrim(sorted[i].id);
+      if (todoId.length > 0 && pendingSet.has(todoId)) {
+        pending.push(sorted[i]);
+      } else {
+        normal.push(sorted[i]);
+      }
+    }
+    return [...normal, ...pending];
   }
 
   private syncVisibleTodos(): void {
@@ -339,7 +398,7 @@ export class TodoPageState {
       return;
     }
     const filtered = this.todos.filter((item: Todo) => {
-      return item.categoryId === categoryId && !this.hasUndoTaskForTodo(item.id);
+      return this.safeTrim(item.categoryId) === categoryId && !this.hasUndoTaskForTodo(item.id);
     });
     this.visibleTodos = this.sortVisibleTodoList(filtered);
   }
@@ -472,19 +531,29 @@ export class TodoPageState {
   }
 
   async updateTodoCategory(todoId: string, categoryId: string): Promise<void> {
-    await this.ensureDefaultCategories();
-    if (this.categories.length === 0) {
-      await this.refreshCategories();
-    }
     const normalizedTodoId = this.safeTrim(todoId);
     if (normalizedTodoId.length === 0) {
       return;
     }
+
     const candidateId = this.safeTrim(categoryId);
     const valid = candidateId.length > 0 && this.categories.some((item: TodoCategory) => this.safeTrim(item.id) === candidateId);
     const fallbackCategoryId = this.getDefaultCategoryId().length > 0 ? this.getDefaultCategoryId() :
       (this.categories.length > 0 ? this.safeTrim(this.categories[0].id) : '');
-    const resolvedCategoryId = valid ? candidateId : fallbackCategoryId;
+    let resolvedCategoryId = valid ? candidateId : fallbackCategoryId;
+    if (resolvedCategoryId.length === 0) {
+      await this.ensureDefaultCategories();
+      if (this.categories.length === 0) {
+        await this.refreshCategories();
+      }
+      const refreshedValid = candidateId.length > 0 && this.categories.some((item: TodoCategory) => this.safeTrim(item.id) === candidateId);
+      const refreshedFallbackCategoryId = this.getDefaultCategoryId().length > 0 ? this.getDefaultCategoryId() :
+        (this.categories.length > 0 ? this.safeTrim(this.categories[0].id) : '');
+      resolvedCategoryId = refreshedValid ? candidateId : refreshedFallbackCategoryId;
+      if (resolvedCategoryId.length === 0) {
+        return;
+      }
+    }
     const now = Date.now();
     let targetTodo: Todo | null = null;
 
@@ -652,6 +721,7 @@ export class TodoPageState {
     if (normalizedId.length === 0) {
       return;
     }
+    this.clearPendingRestoreMove(normalizedId);
     const target = this.todos.find((item: Todo) => this.safeTrim(item.id) === normalizedId);
     if (!target) {
       return;
@@ -689,6 +759,7 @@ export class TodoPageState {
       const before = this.todos.slice(0, insertIndex);
       const after = this.todos.slice(insertIndex);
       this.todos = [...before, task.todo, ...after];
+      this.markTodoPendingRestoreMove(snapshotId);
     }
     this.syncVisibleTodos();
   }
@@ -748,6 +819,52 @@ export class TodoPageState {
   private hasUndoTaskForTodo(todoId: string): boolean {
     const normalizedId = this.safeTrim(todoId);
     return this.undoTasks.some((task: TodoUndoTask) => this.safeTrim(task.todo.id) === normalizedId);
+  }
+
+  isTodoPendingRestoreMove(todoId: string): boolean {
+    const normalizedId = this.safeTrim(todoId);
+    if (normalizedId.length === 0) {
+      return false;
+    }
+    return this.pendingRestoreMoveTodoIds.some((id: string) => this.safeTrim(id) === normalizedId);
+  }
+
+  settlePendingRestoreMove(todoId: string): void {
+    const normalizedId = this.safeTrim(todoId);
+    if (normalizedId.length === 0) {
+      return;
+    }
+    if (!this.isTodoPendingRestoreMove(normalizedId)) {
+      return;
+    }
+    animateTo({ duration: 280, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
+      this.clearPendingRestoreMove(normalizedId);
+      this.syncVisibleTodos();
+    });
+  }
+
+  private markTodoPendingRestoreMove(todoId: string): void {
+    const normalizedId = this.safeTrim(todoId);
+    if (normalizedId.length === 0) {
+      return;
+    }
+
+    const exists = this.pendingRestoreMoveTodoIds.some((id: string) => this.safeTrim(id) === normalizedId);
+    if (!exists) {
+      this.pendingRestoreMoveTodoIds = [...this.pendingRestoreMoveTodoIds, normalizedId];
+    }
+  }
+
+  private clearPendingRestoreMove(todoId: string): void {
+    const normalizedId = this.safeTrim(todoId);
+    if (normalizedId.length === 0) {
+      return;
+    }
+
+    const next = this.pendingRestoreMoveTodoIds.filter((id: string) => this.safeTrim(id) !== normalizedId);
+    if (next.length !== this.pendingRestoreMoveTodoIds.length) {
+      this.pendingRestoreMoveTodoIds = next;
+    }
   }
 
   private findTodoIndexById(todoId: string): number {
