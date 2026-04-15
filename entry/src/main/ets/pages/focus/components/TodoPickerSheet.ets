@@ -31,7 +31,7 @@ export struct TodoPickerSheet {
   @Local private currentTodo: Todo | undefined = undefined;
 
   private get availableTodos(): Todo[] {
-    return this.todos.filter(t => String(t.id) !== String(this.app.focusEngine.todoId));
+    return this.todos.filter(t => t.id !== this.app.focusEngine.todoId);
   }
 
   aboutToAppear(): void {
@@ -47,8 +47,8 @@ export struct TodoPickerSheet {
       this.todos = await repository.getUnfinishedTodos();
       
       if (this.app.focusEngine.hasTodo()) {
-        const currentId = String(this.app.focusEngine.todoId);
-        let matchedTodo: Todo | undefined = this.todos.find(t => String(t.id) === currentId);
+        const currentId = this.app.focusEngine.todoId;
+        let matchedTodo: Todo | undefined = this.todos.find(t => t.id === currentId);
         
         if (!matchedTodo) {
           const dbResult = await repository.findById(currentId);
@@ -63,8 +63,8 @@ export struct TodoPickerSheet {
     }
   }
 
-  private onTodoItemClick(todoId: string): void {
-    if (!todoId) return;
+  private onTodoItemClick(todoId: number): void {
+    if (todoId <= 0) return;
     this.app.focusEngine.setRelatedTodo(todoId);
     this.app.nav.back(false);
   }
@@ -172,7 +172,7 @@ export struct TodoPickerSheet {
     .backgroundColor(this.resolveCategoryBackgroundColor(todo))
     .onClick(() => {
       if (!isCurrent) {
-        this.onTodoItemClick(String(todo.id));
+        this.onTodoItemClick(todo.id);
       }
     })
   }
@@ -201,7 +201,7 @@ export struct TodoPickerSheet {
 
           ForEach(this.availableTodos, (todo: Todo) => {
             this.buildTodoCard(todo, false);
-          }, (todo: Todo) => todo.id);
+          }, (todo: Todo) => `${todo.id}`);
         }
       }
       .width('100%')

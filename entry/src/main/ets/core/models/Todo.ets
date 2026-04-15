@@ -9,7 +9,7 @@ import { BaseEntity } from "./BaseEntity";
 @Table({ name: DatabaseConfig.TODO_TABLE })
 export class Todo extends BaseEntity {
   @PrimaryKey()
-  id: string = "";
+  id: number = 0;
 
   @Column({ type: ColumnType.TEXT, notNull: true })
   @NotNull()
@@ -23,8 +23,8 @@ export class Todo extends BaseEntity {
   @NotNull()
   timestamp: number = 0;
 
-  @Column({ name: "category_id", type: ColumnType.TEXT, defaultValue: "" })
-  categoryId: string = "";
+  @Column({ name: "category_id", type: ColumnType.INTEGER, defaultValue: 0 })
+  categoryId: number = 0;
 
   @Column({ name: "is_done", type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
   @NotNull()

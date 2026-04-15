@@ -26,8 +26,8 @@ export struct IdeaEditorContent {
     this.initializeDraft();
   }
 
-  private normalizeId(value: string): string {
-    return `${value}`.trim();
+  private normalizeId(value: number): number {
+    return value > 0 ? value : 0;
   }
 
   private normalizeText(value: string): string {
@@ -60,7 +60,6 @@ export struct IdeaEditorContent {
 
   private applyNewIdeaDraft(): void {
     this.currentIdea = new Idea();
-    this.currentIdea.id = this.generateId();
     this.title = "";
     this.content = "";
     this.isNew = true;
@@ -69,14 +68,14 @@ export struct IdeaEditorContent {
 
   private initializeDraft(): void {
     const ideaId = this.normalizeId(this.state.editingIdeaId);
-    if (ideaId.length === 0) {
+    if (ideaId <= 0) {
       this.applyNewIdeaDraft();
       return;
     }
     this.loadIdeaById(ideaId);
   }
 
-  private async loadIdeaById(ideaId: string): Promise<void> {
+  private async loadIdeaById(ideaId: number): Promise<void> {
     const localIdea = this.state.findIdeaInMemory(ideaId);
     if (localIdea !== null) {
       this.applyExistingIdea(localIdea);
@@ -95,8 +94,8 @@ export struct IdeaEditorContent {
   }
 
   private async resolveSavedIdea(): Promise<Idea> {
-    const savedId = this.normalizeId(this.currentIdea.id);
-    if (savedId.length === 0) {
+    const savedId = this.currentIdea.id;
+    if (savedId <= 0) {
       return this.copyIdea(this.currentIdea);
     }
     try {
@@ -107,13 +106,6 @@ export struct IdeaEditorContent {
     } catch (_error) {
     }
     return this.copyIdea(this.currentIdea);
-  }
-
-  /**
-   * 生成唯一 ID。
-   */
-  private generateId(): string {
-    return `idea_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   }
 
   /**
@@ -175,7 +167,7 @@ export struct IdeaEditorContent {
     if (this.isSaving || !this.hideInnerHeader || this.isNew) {
       return false;
     }
-    return this.normalizeId(this.currentIdea.id).length > 0;
+    return this.normalizeId(this.currentIdea.id) > 0;
   }
 
   private deleteCurrentIdea(): void {

@@ -26,9 +26,9 @@ export struct TodoCardLlist {
   @Local private app: AppState = useAppState();
   @Local private state: TodoPageState = useTodoPageState();
   @Local private suppressDetailOpenUntil: number = 0;
-  @Local private doneVisualOverrides: Map<string, number> = new Map<string, number>();
-  @Local private restoreMoveScheduledIds: Set<string> = new Set<string>();
-  private restoreMoveDispatchTimers: Map<string, number> = new Map<string, number>();
+  @Local private doneVisualOverrides: Map<number, number> = new Map<number, number>();
+  @Local private restoreMoveScheduledIds: Set<number> = new Set<number>();
+  private restoreMoveDispatchTimers: Map<number, number> = new Map<number, number>();
 
   aboutToAppear(): void {
     // 刷新由 TodoPage 统一触发，避免多子组件重复拉取导致状态被覆盖。
@@ -54,8 +54,8 @@ export struct TodoCardLlist {
     return text === "undefined" || text === "null" ? "" : text;
   }
 
-  private resolveTodoId(todo: TodoCardItem): string {
-    return this.normalizeText(todo.id);
+  private resolveTodoId(todo: TodoCardItem): number {
+    return todo.id > 0 ? todo.id : 0;
   }
 
   private resolveTodoTitle(todo: TodoCardItem): string {
@@ -93,7 +93,7 @@ export struct TodoCardLlist {
 
   private resolveDisplayedDone(todo: TodoCardItem): number {
     const todoId = this.resolveTodoId(todo);
-    if (todoId.length === 0) {
+    if (todoId <= 0) {
       return todo.isDone === 1 ? 1 : 0;
     }
     const override = this.doneVisualOverrides.get(todoId);
@@ -120,7 +120,7 @@ export struct TodoCardLlist {
 
   private updateDoneVisualOverride(todo: TodoCardItem, isDone: boolean): void {
     const todoId = this.resolveTodoId(todo);
-    if (todoId.length === 0) {
+    if (todoId <= 0) {
       return;
     }
     this.doneVisualOverrides.set(todoId, isDone ? 1 : 0);
@@ -132,7 +132,9 @@ export struct TodoCardLlist {
     for (const entry of next.entries()) {
       const id = entry[0];
       const doneValue = entry[1];
-      const todo = this.state.visibleTodoCards.find((item: TodoCardItem) => this.resolveTodoId(item) === id);
+      const todo = this.state.visibleTodoCards.find(
+        (item: TodoCardItem) => this.resolveTodoId(item) === id,
+      );
       if (!todo) {
         next.delete(id);
         continue;
@@ -146,10 +148,10 @@ export struct TodoCardLlist {
   }
 
   private reconcileRestoreMoveScheduledIds(): void {
-    const visibleIds: Set<string> = new Set<string>();
+    const visibleIds: Set<number> = new Set<number>();
     for (let i = 0; i < this.state.visibleTodoCards.length; i++) {
       const id = this.resolveTodoId(this.state.visibleTodoCards[i]);
-      if (id.length > 0) {
+      if (id > 0) {
         visibleIds.add(id);
       }
     }
@@ -171,7 +173,7 @@ export struct TodoCardLlist {
 
   private scheduleRestoreMove(todo: TodoCardItem): void {
     const todoId = this.resolveTodoId(todo);
-    if (todoId.length === 0) {
+    if (todoId <= 0) {
       return;
     }
     if (!this.state.isTodoPendingRestoreMove(todoId)) {
@@ -205,8 +207,8 @@ export struct TodoCardLlist {
 
   private resolveTodoRenderKey(todo: TodoCardItem): string {
     const normalizedId = this.resolveTodoId(todo);
-    if (normalizedId.length > 0) {
-      return normalizedId;
+    if (normalizedId > 0) {
+      return `${normalizedId}`;
     }
     return `todo_fallback_${todo.createdAt}_${todo.timestamp}`;
   }
@@ -236,7 +238,7 @@ export struct TodoCardLlist {
       },
       onSwipeRight: () => {
         this.markSwipeActionTriggered();
-        this.app.focusEngine.setRelatedTodo(this.normalizeText(todo.id), this.resolveTodoTitle(todo));
+        this.app.focusEngine.setRelatedTodo(todo.id, this.resolveTodoTitle(todo));
         this.app.nav.navigateByName(AppRoute.FOCUS);
       },
     }) {
@@ -253,7 +255,9 @@ export struct TodoCardLlist {
             .fontWeight(FontWeight.Medium)
             .fontColor(this.resolveDisplayedTitleColor(todo))
             .decoration({
-              type: this.isDisplayedDone(todo) ? TextDecorationType.LineThrough : TextDecorationType.None,
+              type: this.isDisplayedDone(todo)
+                ? TextDecorationType.LineThrough
+                : TextDecorationType.None,
             })
             .width("100%")
             .animation({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
@@ -263,7 +267,11 @@ export struct TodoCardLlist {
               .height(8)
               .borderRadius(4)
               .backgroundColor(this.resolveCategoryBorderColor(todo))
-            Text(this.normalizeText(todo.categoryName).length > 0 ? todo.categoryName : this.state.resolveCategoryName(todo.categoryId))
+            Text(
+              this.normalizeText(todo.categoryName).length > 0
+                ? todo.categoryName
+                : this.state.resolveCategoryName(todo.categoryId),
+            )
               .fontSize(12)
               .fontColor(this.app.theme.palette.textSecondary)
             Blank()

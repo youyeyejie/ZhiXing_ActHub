@@ -17,11 +17,10 @@ export class TodoTestDataHelper {
       const seq = i + 1;
       const isDone = seq % 4 === 0 ? 1 : 0;
       const createdAt = now - seq * oneDayMs;
-      todo.id = `focus_test_todo_${now}_${seq}`;
       todo.content = `专注测试待办 #${seq}`;
       todo.detail = isDone === 1 ? '已完成样本（用于过滤验证）' : '未完成样本（应出现在任务选择器）';
       todo.timestamp = createdAt;
-      todo.categoryId = '';
+      todo.categoryId = 0;
       todo.isDone = isDone;
       todo.inFocus = 0;
       todo.createdAt = createdAt;

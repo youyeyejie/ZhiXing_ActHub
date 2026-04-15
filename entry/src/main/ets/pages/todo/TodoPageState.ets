@@ -1,9 +1,9 @@
-import { Todo } from '../../core/models/Todo';
-import { TodoCategory } from '../../core/models/TodoCategory';
-import { TodoRepository } from '../../core/repositories/TodoRepository';
-import { TodoCategoryRepository } from '../../core/repositories/TodoCategoryRepository';
-import { UndoStackItem } from '../../components/feedback/UndoNotificationStack';
-import { AppState, useAppState } from '../../app/AppStates';
+import { Todo } from "../../core/models/Todo";
+import { TodoCategory } from "../../core/models/TodoCategory";
+import { TodoRepository } from "../../core/repositories/TodoRepository";
+import { TodoCategoryRepository } from "../../core/repositories/TodoCategoryRepository";
+import { UndoStackItem } from "../../components/feedback/UndoNotificationStack";
+import { AppState, useAppState } from "../../app/AppStates";
 
 class TodoUndoTask {
   taskId: string;
@@ -12,7 +12,13 @@ class TodoUndoTask {
   timerId: number;
   deadlineMs: number;
 
-  constructor(taskId: string, todo: Todo, originalIndex: number, timerId: number, deadlineMs: number) {
+  constructor(
+    taskId: string,
+    todo: Todo,
+    originalIndex: number,
+    timerId: number,
+    deadlineMs: number,
+  ) {
     this.taskId = taskId;
     this.todo = todo;
     this.originalIndex = originalIndex;
@@ -23,11 +29,11 @@ class TodoUndoTask {
 
 @ObservedV2
 export class TodoCardItem {
-  @Trace id: string = '';
-  @Trace title: string = '';
-  @Trace categoryId: string = '';
-  @Trace categoryName: string = '';
-  @Trace categoryColor: string = '';
+  @Trace id: number = 0;
+  @Trace title: string = "";
+  @Trace categoryId: number = 0;
+  @Trace categoryName: string = "";
+  @Trace categoryColor: string = "";
   @Trace isDone: number = 0;
   @Trace inFocus: number = 0;
   @Trace createdAt: number = 0;
@@ -68,7 +74,7 @@ export class TodoPageState {
   }
 
   @Trace public categories: Array<TodoCategory> = [];
-  @Trace public selectedCategoryId: string = '';
+  @Trace public selectedCategoryId: number = 0;
   @Trace public todos: Array<Todo> = [];
   @Trace public visibleTodos: Array<Todo> = [];
   @Trace public visibleTodoCards: Array<TodoCardItem> = [];
@@ -77,23 +83,26 @@ export class TodoPageState {
   @Trace public isTodoEditorVisible: boolean = false;
   @Trace public isTodoDetailVisible: boolean = false;
 
-  @Trace public editingTodoId: string = '';
-  @Trace public creatingTodoId: string = '';
+  @Trace public editingTodoId: number = 0;
   @Trace public undoTasks: Array<TodoUndoTask> = [];
-  @Trace public pendingRestoreMoveTodoIds: Array<string> = [];
+  @Trace public pendingRestoreMoveTodoIds: Array<number> = [];
   private undoTaskSeq: number = 0;
-  private readonly defaultCategoryName: string = '学习';
+  private readonly defaultCategoryName: string = "学习";
 
   private refreshTask: Promise<void> | null = null;
   private ensureDefaultCategoryTask: Promise<void> | null = null;
-  private todoCardItemMap: Map<string, TodoCardItem> = new Map<string, TodoCardItem>();
+  private todoCardItemMap: Map<number, TodoCardItem> = new Map<number, TodoCardItem>();
 
   private safeTrim(value: string): string {
     const text = `${value}`.trim();
-    if (text === 'undefined' || text === 'null') {
-      return '';
+    if (text === "undefined" || text === "null") {
+      return "";
     }
     return text;
+  }
+
+  private normalizeId(value: number): number {
+    return value > 0 ? value : 0;
   }
 
   private copyTodo(source: Todo): Todo {
@@ -112,15 +121,15 @@ export class TodoPageState {
 
   private resolveTodoCardTitle(todo: Todo): string {
     const title = this.safeTrim(todo.content);
-    return title.length > 0 ? title : '未命名待办';
+    return title.length > 0 ? title : "未命名待办";
   }
 
   private syncVisibleTodoCards(): void {
-    const nextCardMap: Map<string, TodoCardItem> = new Map<string, TodoCardItem>();
+    const nextCardMap: Map<number, TodoCardItem> = new Map<number, TodoCardItem>();
     for (let i = 0; i < this.todos.length; i++) {
       const todo = this.todos[i];
-      const todoId = this.safeTrim(todo.id);
-      if (todoId.length === 0) {
+      const todoId = this.normalizeId(todo.id);
+      if (todoId <= 0) {
         continue;
       }
       let cardItem = this.todoCardItemMap.get(todoId);
@@ -139,8 +148,8 @@ export class TodoPageState {
 
     const nextVisibleCards: Array<TodoCardItem> = [];
     for (let i = 0; i < this.visibleTodos.length; i++) {
-      const todoId = this.safeTrim(this.visibleTodos[i].id);
-      if (todoId.length === 0) {
+      const todoId = this.normalizeId(this.visibleTodos[i].id);
+      if (todoId <= 0) {
         continue;
       }
       const cardItem = this.todoCardItemMap.get(todoId);
@@ -151,49 +160,13 @@ export class TodoPageState {
     this.visibleTodoCards = nextVisibleCards;
   }
 
-  private isDigits(value: string): boolean {
-    if (value.length === 0) {
-      return false;
+  private compareTodoByCreatedAtDesc(a: Todo, b: Todo): number {
+    const aCreatedAt = a.createdAt > 0 ? a.createdAt : 0;
+    const bCreatedAt = b.createdAt > 0 ? b.createdAt : 0;
+    if (aCreatedAt !== bCreatedAt) {
+      return bCreatedAt - aCreatedAt;
     }
-    for (let i = 0; i < value.length; i++) {
-      const code = value.charCodeAt(i);
-      if (code < 48 || code > 57) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private parseTodoIdNumber(todoId: string): number {
-    const normalizedId = this.safeTrim(todoId);
-    if (normalizedId.length === 0) {
-      return -1;
-    }
-    if (this.isDigits(normalizedId)) {
-      return Number(normalizedId);
-    }
-    const parts = normalizedId.split('_');
-    for (let i = 0; i < parts.length; i++) {
-      const part = this.safeTrim(parts[i]);
-      if (this.isDigits(part)) {
-        return Number(part);
-      }
-    }
-    return -1;
-  }
-
-  private compareTodoById(a: Todo, b: Todo): number {
-    const aId = this.safeTrim(a.id);
-    const bId = this.safeTrim(b.id);
-    const aNumber = this.parseTodoIdNumber(aId);
-    const bNumber = this.parseTodoIdNumber(bId);
-    if (aNumber >= 0 && bNumber >= 0 && aNumber !== bNumber) {
-      return aNumber - bNumber;
-    }
-    if (aId === bId) {
-      return 0;
-    }
-    return aId.localeCompare(bId);
+    return this.normalizeId(b.id) - this.normalizeId(a.id);
   }
 
   async refreshAll(): Promise<void> {
@@ -217,18 +190,22 @@ export class TodoPageState {
   }
 
   async refreshCategories(): Promise<void> {
-    const previousSelectedId = this.safeTrim(this.selectedCategoryId);
-    let previousSelectedName = '';
-    if (previousSelectedId.length > 0) {
-      const localSelected = this.categories.find((item: TodoCategory) => this.safeTrim(item.id) === previousSelectedId);
+    const previousSelectedId = this.normalizeId(this.selectedCategoryId);
+    let previousSelectedName = "";
+    if (previousSelectedId > 0) {
+      const localSelected = this.categories.find(
+        (item: TodoCategory) => this.normalizeId(item.id) === previousSelectedId,
+      );
       if (localSelected) {
         previousSelectedName = this.safeTrim(localSelected.category);
       }
     }
 
     const list: Array<TodoCategory> = await this.categoryRepository.findAll();
-    if (previousSelectedId.length > 0 && previousSelectedName.length === 0) {
-      const fromList = list.find((item: TodoCategory) => this.safeTrim(item.id) === previousSelectedId);
+    if (previousSelectedId > 0 && previousSelectedName.length === 0) {
+      const fromList = list.find(
+        (item: TodoCategory) => this.normalizeId(item.id) === previousSelectedId,
+      );
       if (fromList) {
         previousSelectedName = this.safeTrim(fromList.category);
       }
@@ -262,17 +239,6 @@ export class TodoPageState {
 
     // 给缺失颜色的旧数据补齐（颜色不在 UI 暴露，仅用于渲染）。
     for (let i = 0; i < deduped.length; i++) {
-      const normalizedId = this.safeTrim(deduped[i].id);
-      if (normalizedId.length === 0) {
-        deduped[i].id = this.newId('cat');
-        deduped[i].updatedAt = Date.now();
-        await this.categoryRepository.save(deduped[i]);
-      } else if (deduped[i].id !== normalizedId) {
-        deduped[i].id = normalizedId;
-        deduped[i].updatedAt = Date.now();
-        await this.categoryRepository.save(deduped[i]);
-      }
-
       const normalizedName = this.safeTrim(deduped[i].category);
       if (normalizedName.length > 0) {
         deduped[i].category = normalizedName;
@@ -294,16 +260,20 @@ export class TodoPageState {
     }
 
     this.categories = deduped;
-    const currentSelectedId = this.safeTrim(this.selectedCategoryId);
-    if (currentSelectedId.length > 0) {
-      const exists = this.categories.some((item: TodoCategory) => this.safeTrim(item.id) === currentSelectedId);
+    const currentSelectedId = this.normalizeId(this.selectedCategoryId);
+    if (currentSelectedId > 0) {
+      const exists = this.categories.some(
+        (item: TodoCategory) => this.normalizeId(item.id) === currentSelectedId,
+      );
       if (!exists) {
-        let remappedId = '';
-        const fallbackName = previousSelectedName.length > 0 ? previousSelectedName : '';
+        let remappedId = 0;
+        const fallbackName = previousSelectedName.length > 0 ? previousSelectedName : "";
         if (fallbackName.length > 0) {
-          const remapped = this.categories.find((item: TodoCategory) => this.safeTrim(item.category) === fallbackName);
+          const remapped = this.categories.find(
+            (item: TodoCategory) => this.safeTrim(item.category) === fallbackName,
+          );
           if (remapped) {
-            remappedId = this.safeTrim(remapped.id);
+            remappedId = this.normalizeId(remapped.id);
           }
         }
         this.selectedCategoryId = remappedId;
@@ -319,11 +289,17 @@ export class TodoPageState {
       await this.ensureDefaultCategories();
       await this.refreshCategories();
     }
-    const validCategoryIds = new Set<string>(this.categories.map((item: TodoCategory) => this.safeTrim(item.id)));
+    const validCategoryIds = new Set<number>(
+      this.categories.map((item: TodoCategory) => this.normalizeId(item.id)),
+    );
     const defaultCategoryId = this.getDefaultCategoryId();
-    const fallbackCategoryId = defaultCategoryId.length > 0 ? defaultCategoryId :
-      (this.categories.length > 0 ? this.safeTrim(this.categories[0].id) : '');
-    if (fallbackCategoryId.length > 0) {
+    const fallbackCategoryId =
+      defaultCategoryId > 0
+        ? defaultCategoryId
+        : this.categories.length > 0
+          ? this.normalizeId(this.categories[0].id)
+          : 0;
+    if (fallbackCategoryId > 0) {
       for (let i = 0; i < list.length; i++) {
         const normalizedTitle = this.safeTrim(list[i].content);
         if (list[i].content !== normalizedTitle) {
@@ -339,8 +315,8 @@ export class TodoPageState {
           await this.todoRepository.save(list[i]);
         }
 
-        const normalizedCategoryId = this.safeTrim(list[i].categoryId);
-        const invalid = normalizedCategoryId.length === 0 || !validCategoryIds.has(normalizedCategoryId);
+        const normalizedCategoryId = this.normalizeId(list[i].categoryId);
+        const invalid = normalizedCategoryId <= 0 || !validCategoryIds.has(normalizedCategoryId);
         if (invalid) {
           list[i].categoryId = fallbackCategoryId;
           list[i].updatedAt = Date.now();
@@ -355,7 +331,7 @@ export class TodoPageState {
       }
     }
     const sorted: Array<Todo> = list.slice();
-    sorted.sort((a: Todo, b: Todo) => this.compareTodoById(a, b));
+    sorted.sort((a: Todo, b: Todo) => this.compareTodoByCreatedAtDesc(a, b));
     this.todos = sorted;
     this.syncVisibleTodos();
   }
@@ -377,14 +353,15 @@ export class TodoPageState {
   private async ensureDefaultCategoriesInternal(): Promise<void> {
     // 这里避免使用 where/exists 链式查询，规避潜在 QueryBuilder 条件残留导致的“列表消失”。
     const existing: Array<TodoCategory> = await this.categoryRepository.findAll();
-    const hasLearning = existing.some((item: TodoCategory) => this.safeTrim(item.category) === this.defaultCategoryName);
+    const hasLearning = existing.some(
+      (item: TodoCategory) => this.safeTrim(item.category) === this.defaultCategoryName,
+    );
     if (hasLearning) {
       return;
     }
 
     const now = Date.now();
     const cat = new TodoCategory();
-    cat.id = this.newId('cat');
     cat.category = this.defaultCategoryName;
     cat.color = this.getCategoryColorPalette()[0];
     cat.createdAt = now;
@@ -392,9 +369,11 @@ export class TodoPageState {
     await this.categoryRepository.insert(cat);
   }
 
-  getDefaultCategoryId(): string {
-    const found = this.categories.find((item: TodoCategory) => this.safeTrim(item.category) === this.defaultCategoryName);
-    return found ? this.safeTrim(found.id) : '';
+  getDefaultCategoryId(): number {
+    const found = this.categories.find(
+      (item: TodoCategory) => this.safeTrim(item.category) === this.defaultCategoryName,
+    );
+    return found ? this.normalizeId(found.id) : 0;
   }
 
   openCategoryEditor(): void {
@@ -405,30 +384,28 @@ export class TodoPageState {
     this.isCategoryEditorVisible = false;
   }
 
-  selectCategory(categoryId: string): void {
-    this.selectedCategoryId = this.safeTrim(categoryId);
+  selectCategory(categoryId: number): void {
+    this.selectedCategoryId = this.normalizeId(categoryId);
     this.syncVisibleTodos();
   }
 
   openCreateTodo(): void {
-    this.creatingTodoId = this.newId('todo');
-    this.editingTodoId = '';
+    this.editingTodoId = 0;
     this.isTodoEditorVisible = true;
   }
 
   closeTodoEditor(): void {
     this.isTodoEditorVisible = false;
-    this.creatingTodoId = '';
   }
 
-  openTodoDetail(todoId: string): void {
-    this.editingTodoId = todoId;
+  openTodoDetail(todoId: number): void {
+    this.editingTodoId = this.normalizeId(todoId);
     this.isTodoDetailVisible = true;
   }
 
   closeTodoDetail(): void {
     this.isTodoDetailVisible = false;
-    this.editingTodoId = '';
+    this.editingTodoId = 0;
   }
 
   private sortVisibleTodoList(list: Array<Todo>): Array<Todo> {
@@ -439,19 +416,21 @@ export class TodoPageState {
       if (aDone !== bDone) {
         return aDone - bDone;
       }
-      return this.compareTodoById(a, b);
+      return this.compareTodoByCreatedAtDesc(a, b);
     });
 
     if (this.pendingRestoreMoveTodoIds.length === 0) {
       return sorted;
     }
 
-    const pendingSet: Set<string> = new Set<string>(this.pendingRestoreMoveTodoIds.map((id: string) => this.safeTrim(id)));
+    const pendingSet: Set<number> = new Set<number>(
+      this.pendingRestoreMoveTodoIds.map((id: number) => this.normalizeId(id)),
+    );
     const normal: Array<Todo> = [];
     const pending: Array<Todo> = [];
     for (let i = 0; i < sorted.length; i++) {
-      const todoId = this.safeTrim(sorted[i].id);
-      if (todoId.length > 0 && pendingSet.has(todoId)) {
+      const todoId = this.normalizeId(sorted[i].id);
+      if (todoId > 0 && pendingSet.has(todoId)) {
         pending.push(sorted[i]);
       } else {
         normal.push(sorted[i]);
@@ -461,40 +440,46 @@ export class TodoPageState {
   }
 
   private syncVisibleTodos(): void {
-    const categoryId = this.safeTrim(this.selectedCategoryId);
-    if (categoryId.length === 0) {
+    const categoryId = this.normalizeId(this.selectedCategoryId);
+    if (categoryId <= 0) {
       const filtered = this.todos.filter((item: Todo) => !this.hasUndoTaskForTodo(item.id));
       this.visibleTodos = this.sortVisibleTodoList(filtered);
       this.syncVisibleTodoCards();
       return;
     }
     const filtered = this.todos.filter((item: Todo) => {
-      return this.safeTrim(item.categoryId) === categoryId && !this.hasUndoTaskForTodo(item.id);
+      return this.normalizeId(item.categoryId) === categoryId && !this.hasUndoTaskForTodo(item.id);
     });
     this.visibleTodos = this.sortVisibleTodoList(filtered);
     this.syncVisibleTodoCards();
   }
 
-  resolveCategoryName(categoryId: string): string {
-    const resolvedId = this.safeTrim(categoryId);
-    if (resolvedId.length === 0) {
+  resolveCategoryName(categoryId: number): string {
+    const resolvedId = this.normalizeId(categoryId);
+    if (resolvedId <= 0) {
       return this.defaultCategoryName;
     }
-    const found = this.categories.find((item: TodoCategory) => this.safeTrim(item.id) === resolvedId);
+    const found = this.categories.find(
+      (item: TodoCategory) => this.normalizeId(item.id) === resolvedId,
+    );
     return found ? found.category : this.defaultCategoryName;
   }
 
-  resolveCategoryColor(categoryId: string): string {
-    const resolvedId = this.safeTrim(categoryId);
-    if (resolvedId.length === 0) {
-      const learning = this.categories.find((item: TodoCategory) => item.category === this.defaultCategoryName);
+  resolveCategoryColor(categoryId: number): string {
+    const resolvedId = this.normalizeId(categoryId);
+    if (resolvedId <= 0) {
+      const learning = this.categories.find(
+        (item: TodoCategory) => item.category === this.defaultCategoryName,
+      );
       return learning ? learning.color : this.getCategoryColorPalette()[0];
     }
-    const found = this.categories.find((item: TodoCategory) => this.safeTrim(item.id) === resolvedId);
+    const found = this.categories.find(
+      (item: TodoCategory) => this.normalizeId(item.id) === resolvedId,
+    );
     return found ? found.color : this.getCategoryColorPalette()[0];
   }
 
-  async createTodo(title: string, detail: string, categoryId: string): Promise<boolean> {
+  async createTodo(title: string, detail: string, categoryId: number): Promise<boolean> {
     await this.ensureDefaultCategories();
     if (this.categories.length === 0) {
       await this.refreshCategories();
@@ -505,15 +490,21 @@ export class TodoPageState {
     }
     const trimmedDetail = this.safeTrim(detail);
     const todo = new Todo();
-    todo.id = this.creatingTodoId.length > 0 ? this.creatingTodoId : this.newId('todo');
     todo.content = trimmedTitle;
     todo.detail = trimmedDetail;
     const defaultCategoryId = this.getDefaultCategoryId();
-    const candidateId = this.safeTrim(categoryId);
-    const hasCandidate = candidateId.length > 0 && this.categories.some((item: TodoCategory) => this.safeTrim(item.id) === candidateId);
-    const resolvedCategoryId = hasCandidate ? candidateId :
-      (defaultCategoryId.length > 0 ? defaultCategoryId : (this.categories.length > 0 ? this.safeTrim(this.categories[0].id) : ''));
-    if (resolvedCategoryId.length === 0) {
+    const candidateId = this.normalizeId(categoryId);
+    const hasCandidate =
+      candidateId > 0 &&
+      this.categories.some((item: TodoCategory) => this.normalizeId(item.id) === candidateId);
+    const resolvedCategoryId = hasCandidate
+      ? candidateId
+      : defaultCategoryId > 0
+        ? defaultCategoryId
+        : this.categories.length > 0
+          ? this.normalizeId(this.categories[0].id)
+          : 0;
+    if (resolvedCategoryId <= 0) {
       return false;
     }
     todo.categoryId = resolvedCategoryId;
@@ -530,17 +521,21 @@ export class TodoPageState {
     return true;
   }
 
-  async updateTodoTitle(todoId: string, title: string): Promise<void> {
-    const normalizedTodoId = this.safeTrim(todoId);
-    if (normalizedTodoId.length === 0) {
+  async updateTodoTitle(todoId: number, title: string): Promise<void> {
+    const normalizedTodoId = this.normalizeId(todoId);
+    if (normalizedTodoId <= 0) {
       return;
     }
     const nextTitle = this.safeTrim(title);
     const now = Date.now();
     let targetTodo: Todo | null = null;
-    const hasLocalTodo = this.todos.some((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
+    const hasLocalTodo = this.todos.some(
+      (item: Todo) => this.normalizeId(item.id) === normalizedTodoId,
+    );
 
-    const localIndex = this.todos.findIndex((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
+    const localIndex = this.todos.findIndex(
+      (item: Todo) => this.normalizeId(item.id) === normalizedTodoId,
+    );
     if (localIndex >= 0) {
       targetTodo = this.todos[localIndex];
       targetTodo.content = nextTitle;
@@ -569,17 +564,21 @@ export class TodoPageState {
     }
   }
 
-  async updateTodoDetail(todoId: string, detail: string): Promise<void> {
-    const normalizedTodoId = this.safeTrim(todoId);
-    if (normalizedTodoId.length === 0) {
+  async updateTodoDetail(todoId: number, detail: string): Promise<void> {
+    const normalizedTodoId = this.normalizeId(todoId);
+    if (normalizedTodoId <= 0) {
       return;
     }
     const nextDetail = this.safeTrim(detail);
     const now = Date.now();
     let targetTodo: Todo | null = null;
-    const hasLocalTodo = this.todos.some((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
+    const hasLocalTodo = this.todos.some(
+      (item: Todo) => this.normalizeId(item.id) === normalizedTodoId,
+    );
 
-    const localIndex = this.todos.findIndex((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
+    const localIndex = this.todos.findIndex(
+      (item: Todo) => this.normalizeId(item.id) === normalizedTodoId,
+    );
     if (localIndex >= 0) {
       targetTodo = this.todos[localIndex];
       targetTodo.detail = nextDetail;
@@ -608,36 +607,41 @@ export class TodoPageState {
     }
   }
 
-  async updateTodoCategory(todoId: string, categoryId: string): Promise<void> {
-    const normalizedTodoId = this.safeTrim(todoId);
-    if (normalizedTodoId.length === 0) {
+  async updateTodoCategory(todoId: number, categoryId: number): Promise<void> {
+    await this.ensureDefaultCategories();
+    if (this.categories.length === 0) {
+      await this.refreshCategories();
+    }
+    const normalizedTodoId = this.normalizeId(todoId);
+    if (normalizedTodoId <= 0) {
       return;
     }
     this.clearPendingRestoreMove(normalizedTodoId);
 
-    const candidateId = this.safeTrim(categoryId);
-    const valid = candidateId.length > 0 && this.categories.some((item: TodoCategory) => this.safeTrim(item.id) === candidateId);
-    const fallbackCategoryId = this.getDefaultCategoryId().length > 0 ? this.getDefaultCategoryId() :
-      (this.categories.length > 0 ? this.safeTrim(this.categories[0].id) : '');
-    let resolvedCategoryId = valid ? candidateId : fallbackCategoryId;
-    if (resolvedCategoryId.length === 0) {
-      await this.ensureDefaultCategories();
-      if (this.categories.length === 0) {
-        await this.refreshCategories();
-      }
-      const refreshedValid = candidateId.length > 0 && this.categories.some((item: TodoCategory) => this.safeTrim(item.id) === candidateId);
-      const refreshedFallbackCategoryId = this.getDefaultCategoryId().length > 0 ? this.getDefaultCategoryId() :
-        (this.categories.length > 0 ? this.safeTrim(this.categories[0].id) : '');
-      resolvedCategoryId = refreshedValid ? candidateId : refreshedFallbackCategoryId;
-      if (resolvedCategoryId.length === 0) {
-        return;
-      }
+    const candidateId = this.normalizeId(categoryId);
+    const valid =
+      candidateId > 0 &&
+      this.categories.some((item: TodoCategory) => this.normalizeId(item.id) === candidateId);
+    const fallbackCategoryId =
+      this.getDefaultCategoryId() > 0
+        ? this.getDefaultCategoryId()
+        : this.categories.length > 0
+          ? this.normalizeId(this.categories[0].id)
+          : 0;
+    const resolvedCategoryId = valid ? candidateId : fallbackCategoryId;
+    if (resolvedCategoryId <= 0) {
+      return;
     }
+
     const now = Date.now();
     let targetTodo: Todo | null = null;
-    const hasLocalTodo = this.todos.some((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
+    const hasLocalTodo = this.todos.some(
+      (item: Todo) => this.normalizeId(item.id) === normalizedTodoId,
+    );
 
-    const localIndex = this.todos.findIndex((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
+    const localIndex = this.todos.findIndex(
+      (item: Todo) => this.normalizeId(item.id) === normalizedTodoId,
+    );
     if (localIndex >= 0) {
       targetTodo = this.todos[localIndex];
       targetTodo.categoryId = resolvedCategoryId;
@@ -666,17 +670,21 @@ export class TodoPageState {
     }
   }
 
-  async toggleDone(todoId: string, isDone: boolean): Promise<void> {
-    const normalizedTodoId = this.safeTrim(todoId);
-    if (normalizedTodoId.length === 0) {
+  async toggleDone(todoId: number, isDone: boolean): Promise<void> {
+    const normalizedTodoId = this.normalizeId(todoId);
+    if (normalizedTodoId <= 0) {
       return;
     }
     const nextDone = isDone ? 1 : 0;
     const now = Date.now();
     let targetTodo: Todo | null = null;
-    const hasLocalTodo = this.todos.some((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
+    const hasLocalTodo = this.todos.some(
+      (item: Todo) => this.normalizeId(item.id) === normalizedTodoId,
+    );
 
-    const localIndex = this.todos.findIndex((item: Todo) => this.safeTrim(item.id) === normalizedTodoId);
+    const localIndex = this.todos.findIndex(
+      (item: Todo) => this.normalizeId(item.id) === normalizedTodoId,
+    );
     if (localIndex >= 0) {
       targetTodo = this.todos[localIndex];
       targetTodo.isDone = nextDone;
@@ -716,7 +724,6 @@ export class TodoPageState {
       return false;
     }
     const cat = new TodoCategory();
-    cat.id = this.newId('cat');
     cat.category = trimmed;
     cat.color = this.pickColorForNewCategory();
     cat.createdAt = Date.now();
@@ -729,10 +736,10 @@ export class TodoPageState {
     return true;
   }
 
-  async updateCategoryName(categoryId: string, name: string): Promise<void> {
-    const normalizedId = this.safeTrim(categoryId);
+  async updateCategoryName(categoryId: number, name: string): Promise<void> {
+    const normalizedId = this.normalizeId(categoryId);
     const trimmed = this.safeTrim(name);
-    if (normalizedId.length === 0 || trimmed.length === 0) {
+    if (normalizedId <= 0 || trimmed.length === 0) {
       return;
     }
     const category = await this.categoryRepository.findById(normalizedId);
@@ -749,9 +756,9 @@ export class TodoPageState {
     await this.refreshCategories();
   }
 
-  async removeCategory(categoryId: string, cascadeDeleteTodos: boolean = false): Promise<boolean> {
-    const normalizedId = this.safeTrim(categoryId);
-    if (normalizedId.length === 0) {
+  async removeCategory(categoryId: number, cascadeDeleteTodos: boolean = false): Promise<boolean> {
+    const normalizedId = this.normalizeId(categoryId);
+    if (normalizedId <= 0) {
       return false;
     }
     await this.ensureDefaultCategories();
@@ -759,7 +766,9 @@ export class TodoPageState {
       await this.refreshCategories();
     }
 
-    const removing = this.categories.find((item: TodoCategory) => this.safeTrim(item.id) === normalizedId);
+    const removing = this.categories.find(
+      (item: TodoCategory) => this.normalizeId(item.id) === normalizedId,
+    );
     if (!removing) {
       return false;
     }
@@ -771,17 +780,21 @@ export class TodoPageState {
     if (cascadeDeleteTodos) {
       const todos = await this.todoRepository.findAll();
       for (let i = 0; i < todos.length; i++) {
-        if (this.safeTrim(todos[i].categoryId) === normalizedId) {
-          await this.todoRepository.removeById(this.safeTrim(todos[i].id));
+        if (this.normalizeId(todos[i].categoryId) === normalizedId) {
+          await this.todoRepository.removeById(todos[i].id);
         }
       }
     } else {
-      const fallbackCategoryId = this.getDefaultCategoryId().length > 0 ? this.getDefaultCategoryId() :
-        (this.categories.length > 0 ? this.categories[0].id : '');
-      if (fallbackCategoryId.length > 0) {
+      const fallbackCategoryId =
+        this.getDefaultCategoryId() > 0
+          ? this.getDefaultCategoryId()
+          : this.categories.length > 0
+            ? this.categories[0].id
+            : 0;
+      if (fallbackCategoryId > 0) {
         const todos = await this.todoRepository.findAll();
         for (let i = 0; i < todos.length; i++) {
-          if (this.safeTrim(todos[i].categoryId) === normalizedId) {
+          if (this.normalizeId(todos[i].categoryId) === normalizedId) {
             todos[i].categoryId = fallbackCategoryId;
             todos[i].updatedAt = Date.now();
             await this.todoRepository.save(todos[i]);
@@ -791,20 +804,21 @@ export class TodoPageState {
     }
     await this.categoryRepository.removeById(normalizedId);
     if (this.selectedCategoryId === normalizedId) {
-      this.selectedCategoryId = '';
+      this.selectedCategoryId = 0;
     }
     await this.refreshCategories();
     await this.refreshTodos();
     return true;
   }
 
-  requestDeleteTodo(todoId: string): void {
-    const normalizedId = this.safeTrim(todoId);
-    if (normalizedId.length === 0) {
+  requestDeleteTodo(todoId: number): void {
+    const normalizedId = this.normalizeId(todoId);
+    if (normalizedId <= 0) {
       return;
     }
     this.clearPendingRestoreMove(normalizedId);
-    const target = this.todos.find((item: Todo) => this.safeTrim(item.id) === normalizedId);
+    const target = this.todos.find((item: Todo) => this.normalizeId(item.id) === normalizedId);
+
     if (!target) {
       return;
     }
@@ -820,9 +834,12 @@ export class TodoPageState {
     const timerId = setTimeout(async () => {
       await this.commitDeleteTodo(taskId);
     }, 5000);
-    this.undoTasks = [...this.undoTasks, new TodoUndoTask(taskId, snapshot, originalIndex, timerId, deadlineMs)];
-    this.todos = this.todos.filter((item: Todo) => this.safeTrim(item.id) !== normalizedId);
-    if (this.safeTrim(this.editingTodoId) === normalizedId) {
+    this.undoTasks = [
+      ...this.undoTasks,
+      new TodoUndoTask(taskId, snapshot, originalIndex, timerId, deadlineMs),
+    ];
+    this.todos = this.todos.filter((item: Todo) => this.normalizeId(item.id) !== normalizedId);
+    if (this.normalizeId(this.editingTodoId) === normalizedId) {
       this.closeTodoDetail();
     }
     this.syncVisibleTodos();
@@ -834,8 +851,8 @@ export class TodoPageState {
       return;
     }
     this.closeUndo(taskId);
-    const snapshotId = this.safeTrim(task.todo.id);
-    const exists = this.todos.some((item: Todo) => this.safeTrim(item.id) === snapshotId);
+    const snapshotId = this.normalizeId(task.todo.id);
+    const exists = this.todos.some((item: Todo) => this.normalizeId(item.id) === snapshotId);
     if (!exists) {
       const insertIndex = Math.max(0, Math.min(task.originalIndex, this.todos.length));
       const before = this.todos.slice(0, insertIndex);
@@ -851,9 +868,9 @@ export class TodoPageState {
     if (task === null) {
       return;
     }
-    const todoId = this.safeTrim(task.todo.id);
+    const todoId = this.normalizeId(task.todo.id);
     this.closeUndo(taskId);
-    if (todoId.length === 0) {
+    if (todoId <= 0) {
       return;
     }
     await this.todoRepository.removeById(todoId);
@@ -879,11 +896,11 @@ export class TodoPageState {
       list.push(
         new UndoStackItem(
           task.taskId,
-          `${title.length > 0 ? title : '待办'} 已删除`,
-          '撤销',
+          `${title.length > 0 ? title : "待办"} 已删除`,
+          "撤销",
           5000,
           task.deadlineMs,
-        )
+        ),
       );
     }
     return list;
@@ -898,22 +915,24 @@ export class TodoPageState {
     return null;
   }
 
-  private hasUndoTaskForTodo(todoId: string): boolean {
-    const normalizedId = this.safeTrim(todoId);
-    return this.undoTasks.some((task: TodoUndoTask) => this.safeTrim(task.todo.id) === normalizedId);
+  private hasUndoTaskForTodo(todoId: number): boolean {
+    const normalizedId = this.normalizeId(todoId);
+    return this.undoTasks.some(
+      (task: TodoUndoTask) => this.normalizeId(task.todo.id) === normalizedId,
+    );
   }
 
-  isTodoPendingRestoreMove(todoId: string): boolean {
-    const normalizedId = this.safeTrim(todoId);
-    if (normalizedId.length === 0) {
+  isTodoPendingRestoreMove(todoId: number): boolean {
+    const normalizedId = this.normalizeId(todoId);
+    if (normalizedId <= 0) {
       return false;
     }
-    return this.pendingRestoreMoveTodoIds.some((id: string) => this.safeTrim(id) === normalizedId);
+    return this.pendingRestoreMoveTodoIds.some((id: number) => this.normalizeId(id) === normalizedId);
   }
 
-  settlePendingRestoreMove(todoId: string): void {
-    const normalizedId = this.safeTrim(todoId);
-    if (normalizedId.length === 0) {
+  settlePendingRestoreMove(todoId: number): void {
+    const normalizedId = this.normalizeId(todoId);
+    if (normalizedId <= 0) {
       return;
     }
     if (!this.isTodoPendingRestoreMove(normalizedId)) {
@@ -925,33 +944,37 @@ export class TodoPageState {
     });
   }
 
-  private markTodoPendingRestoreMove(todoId: string): void {
-    const normalizedId = this.safeTrim(todoId);
-    if (normalizedId.length === 0) {
+  private markTodoPendingRestoreMove(todoId: number): void {
+    const normalizedId = this.normalizeId(todoId);
+    if (normalizedId <= 0) {
       return;
     }
 
-    const exists = this.pendingRestoreMoveTodoIds.some((id: string) => this.safeTrim(id) === normalizedId);
+    const exists = this.pendingRestoreMoveTodoIds.some(
+      (id: number) => this.normalizeId(id) === normalizedId,
+    );
     if (!exists) {
       this.pendingRestoreMoveTodoIds = [...this.pendingRestoreMoveTodoIds, normalizedId];
     }
   }
 
-  private clearPendingRestoreMove(todoId: string): void {
-    const normalizedId = this.safeTrim(todoId);
-    if (normalizedId.length === 0) {
+  private clearPendingRestoreMove(todoId: number): void {
+    const normalizedId = this.normalizeId(todoId);
+    if (normalizedId <= 0) {
       return;
     }
 
-    const next = this.pendingRestoreMoveTodoIds.filter((id: string) => this.safeTrim(id) !== normalizedId);
+    const next = this.pendingRestoreMoveTodoIds.filter(
+      (id: number) => this.normalizeId(id) !== normalizedId,
+    );
     if (next.length !== this.pendingRestoreMoveTodoIds.length) {
       this.pendingRestoreMoveTodoIds = next;
     }
   }
 
-  private findTodoIndexById(todoId: string): number {
+  private findTodoIndexById(todoId: number): number {
     for (let i = 0; i < this.todos.length; i++) {
-      if (this.safeTrim(this.todos[i].id) === todoId) {
+      if (this.normalizeId(this.todos[i].id) === todoId) {
         return i;
       }
     }
@@ -962,12 +985,6 @@ export class TodoPageState {
     const index = this.categories.length;
     const colorPalette = this.getCategoryColorPalette();
     return colorPalette[index % colorPalette.length];
-  }
-
-  private newId(prefix: string): string {
-    const millis = Date.now();
-    const rand = Math.floor(Math.random() * 1_000_000);
-    return `${prefix}_${millis}_${rand}`;
   }
 }
 

@@ -1,5 +1,6 @@
 import { Plan } from '../models/Plan';
 import { BaseRepository } from './BaseRepository';
+import { RepositoryScope } from '../database/RepositoryScope';
 
 /**
  * 类功能简介：
@@ -17,6 +18,6 @@ import { BaseRepository } from './BaseRepository';
  */
 export class PlanRepository extends BaseRepository<Plan> {
   constructor() {
-    super(Plan);
+    super(Plan, RepositoryScope.USER);
   }
 }

@@ -12,5 +12,5 @@
  * - 无副作用。
  */
 export abstract class BaseEntity {
-  id: string = '';
+  id: number = 0;
 }

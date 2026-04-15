@@ -15,9 +15,13 @@
  * 无运行时副作用；仅影响模块依赖关系与导入路径组织。
  */
 export { BaseEntity } from './BaseEntity';
+export { AppSetting } from './AppSetting';
+export { AppSession } from './AppSession';
+export { AppSchemaState } from './AppSchemaState';
 export { Focus } from './Focus';
 export { Idea } from './Idea';
 export { Plan } from './Plan';
 export { Todo } from './Todo';
 export { TodoCategory } from './TodoCategory';
 export { User } from './User';
+export { UserPreference } from './UserPreference';

@@ -20,7 +20,7 @@ export class AppNav extends NavPathStack {
   @Trace public mainRouteName: string = AppRoute.PLAN;
   @Trace public hasOverlayRoute: boolean = false;
   @Trace public detailModuleName: string = '';
-  @Trace public detailRecordId: string = '';
+  @Trace public detailRecordId: number = 0;
   public actionSheetContentBuilder: () => void = () => {};
   public detailCardContentBuilder: () => void = () => {};
   public actionSheetHeight: string = AppNav.DEFAULT_ACTION_SHEET_HEIGHT;
@@ -180,7 +180,7 @@ export class AppNav extends NavPathStack {
    */
   private clearDetailState(): void {
     this.detailModuleName = '';
-    this.detailRecordId = '';
+    this.detailRecordId = 0;
     this.actionSheetHeight = AppNav.DEFAULT_ACTION_SHEET_HEIGHT;
     this.detailCardHeight = AppNav.DEFAULT_DETAIL_CARD_HEIGHT;
     this.actionSheetContentBuilder = () => {};

@@ -31,7 +31,7 @@ export enum SearchScope {
  * - 无副作用（数据承载类）。
  */
 export class SearchResultItem {
-  id: string = '';
+  id: number = 0;
   title: string = '';
   subtitle: string = '';
   scope: SearchScope = SearchScope.Plan;
@@ -147,7 +147,7 @@ export class SearchService {
     return results;
   }
 
-  private createItem(id: string, title: string, subtitle: string, scope: SearchScope): SearchResultItem {
+  private createItem(id: number, title: string, subtitle: string, scope: SearchScope): SearchResultItem {
     const item: SearchResultItem = new SearchResultItem();
     item.id = id;
     item.title = title;

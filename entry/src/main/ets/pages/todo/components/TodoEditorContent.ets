@@ -19,9 +19,9 @@ export struct TodoEditorContent {
   @Local private detailDraft: string = '';
   @Local private initialTitle: string = '';
   @Local private initialDetail: string = '';
-  @Local private loadedTodoId: string = '';
-  @Local private selectedCategoryIdDraft: string = '';
-  @Local private initialCategoryId: string = '';
+  @Local private loadedTodoId: number = 0;
+  @Local private selectedCategoryIdDraft: number = 0;
+  @Local private initialCategoryId: number = 0;
   @Local private doneDraft: number = -1;
   @Local private initialDone: number = 0;
 
@@ -33,8 +33,8 @@ export struct TodoEditorContent {
     this.loadDraftFromCurrentTodo();
   }
 
-  private normalizeId(value: string): string {
-    return `${value}`.trim();
+  private normalizeId(value: number): number {
+    return value > 0 ? value : 0;
   }
 
   private normalizeText(value: string): string {
@@ -47,7 +47,7 @@ export struct TodoEditorContent {
 
   private resolveEditingTodo(): Todo | null {
     const todoId = this.normalizeId(this.state.editingTodoId);
-    if (todoId.length === 0) {
+    if (todoId <= 0) {
       return null;
     }
     const found = this.state.todos.find((item: Todo) => this.normalizeId(item.id) === todoId);
@@ -56,16 +56,16 @@ export struct TodoEditorContent {
 
   private async prepareDraftForCreate(): Promise<void> {
     await this.state.refreshAll();
-    this.loadedTodoId = '';
+    this.loadedTodoId = 0;
     this.titleDraft = '';
     this.detailDraft = '';
     this.initialTitle = '';
     this.initialDetail = '';
     this.selectedCategoryIdDraft =
-      this.state.selectedCategoryId.length > 0
+      this.state.selectedCategoryId > 0
         ? this.normalizeId(this.state.selectedCategoryId)
         : this.normalizeId(this.state.getDefaultCategoryId());
-    if (this.selectedCategoryIdDraft.length === 0 && this.state.categories.length > 0) {
+    if (this.selectedCategoryIdDraft <= 0 && this.state.categories.length > 0) {
       this.selectedCategoryIdDraft = this.normalizeId(this.state.categories[0].id);
     }
     this.initialCategoryId = this.selectedCategoryIdDraft;
@@ -77,13 +77,13 @@ export struct TodoEditorContent {
   private loadDraftFromCurrentTodo(): void {
     const todo = this.resolveEditingTodo();
     if (todo === null) {
-      this.loadedTodoId = '';
+      this.loadedTodoId = 0;
       this.titleDraft = '';
       this.detailDraft = '';
       this.initialTitle = '';
       this.initialDetail = '';
-      this.selectedCategoryIdDraft = '';
-      this.initialCategoryId = '';
+      this.selectedCategoryIdDraft = 0;
+      this.initialCategoryId = 0;
       this.doneDraft = -1;
       this.initialDone = 0;
       this.recalculateSaveEnabled();
@@ -166,7 +166,7 @@ export struct TodoEditorContent {
       return;
     }
     const todoId = this.normalizeId(todo.id);
-    if (todoId.length === 0) {
+    if (todoId <= 0) {
       return;
     }
     this.saving = true;
@@ -188,14 +188,14 @@ export struct TodoEditorContent {
     }
   }
 
-  private resolveCurrentCategoryId(): string {
+  private resolveCurrentCategoryId(): number {
     const localCategoryId = this.normalizeId(this.selectedCategoryIdDraft);
-    if (localCategoryId.length > 0) {
+    if (localCategoryId > 0) {
       return localCategoryId;
     }
     const todo = this.resolveEditingTodo();
     if (todo === null) {
-      return '';
+      return 0;
     }
     return this.normalizeId(todo.categoryId);
   }
@@ -217,9 +217,9 @@ export struct TodoEditorContent {
     this.recalculateSaveEnabled();
   }
 
-  private switchCategory(categoryId: string): void {
+  private switchCategory(categoryId: number): void {
     const normalizedCategoryId = this.normalizeId(categoryId);
-    if (normalizedCategoryId.length === 0) {
+    if (normalizedCategoryId <= 0) {
       return;
     }
     this.selectedCategoryIdDraft = normalizedCategoryId;
@@ -240,8 +240,8 @@ export struct TodoEditorContent {
     }
     this.state.closeTodoDetail();
     this.state.requestDeleteTodo(todo.id);
-    this.loadedTodoId = '';
-    this.selectedCategoryIdDraft = '';
+    this.loadedTodoId = 0;
+    this.selectedCategoryIdDraft = 0;
     this.doneDraft = -1;
     this.app.nav.back(false);
   }
@@ -412,7 +412,7 @@ export struct TodoEditorContent {
             return;
           }
           const currentTodo = this.resolveEditingTodo();
-          const currentTodoId = currentTodo ? this.normalizeId(currentTodo.id) : '';
+          const currentTodoId = currentTodo ? this.normalizeId(currentTodo.id) : 0;
           if (this.loadedTodoId !== currentTodoId) {
             this.loadDraftFromCurrentTodo();
           }
@@ -428,10 +428,10 @@ export struct TodoEditorContent {
     this.saveEnabled = false;
     this.initialTitle = '';
     this.initialDetail = '';
-    this.initialCategoryId = '';
+    this.initialCategoryId = 0;
     this.initialDone = 0;
-    this.loadedTodoId = '';
-    this.selectedCategoryIdDraft = '';
+    this.loadedTodoId = 0;
+    this.selectedCategoryIdDraft = 0;
     this.doneDraft = -1;
 
     if (this.hideInnerHeader) {

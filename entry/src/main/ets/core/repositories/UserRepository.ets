@@ -1,5 +1,6 @@
 import { User } from "../models/User";
 import { BaseRepository } from "./BaseRepository";
+import { RepositoryScope } from "../database/RepositoryScope";
 
 /**
  * 类功能简介：
@@ -16,7 +17,7 @@ import { BaseRepository } from "./BaseRepository";
  */
 export class UserRepository extends BaseRepository<User> {
   constructor() {
-    super(User);
+    super(User, RepositoryScope.APP);
   }
 
   findByAccount(account: string): Promise<User | null> {
@@ -40,7 +41,6 @@ export class UserRepository extends BaseRepository<User> {
 
     const now: number = Date.now();
     const user: User = new User();
-    user.id = this.createUserId(normalizedAccount, now);
     user.name = normalizedAccount;
     user.avatar = avatar;
     user.password = normalizedPassword;
@@ -73,9 +73,5 @@ export class UserRepository extends BaseRepository<User> {
   updateProfile(user: User): Promise<void> {
     user.updatedAt = Date.now();
     return this.save(user);
-  }
-
-  private createUserId(account: string, timestamp: number): string {
-    return `${account}_${timestamp}`;
   }
 }

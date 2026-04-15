@@ -16,7 +16,7 @@ export struct PlanEditorContent {
   @Local private saving: boolean = false;
   @Local private saveEnabled: boolean = false;
 
-  @Local private loadedPlanId: string = '';
+  @Local private loadedPlanId: number = 0;
   @Local private titleDraft: string = '';
   @Local private initialTitle: string = '';
   @Local private locationDraft: string = '';
@@ -48,8 +48,8 @@ export struct PlanEditorContent {
     return text;
   }
 
-  private normalizeId(value: string): string {
-    return `${value}`.trim();
+  private normalizeId(value: number): number {
+    return value > 0 ? value : 0;
   }
 
   private buildDateWithTime(dayMs: number, hour: number, minute: number): Date {
@@ -141,7 +141,7 @@ export struct PlanEditorContent {
 
   private resolveEditingPlan(): Plan | null {
     const planId = this.normalizeId(this.state.editingPlanId);
-    if (planId.length === 0) {
+    if (planId <= 0) {
       return null;
     }
     const found = this.state.plans.find((item: Plan) => this.normalizeId(item.id) === planId);
@@ -154,7 +154,7 @@ export struct PlanEditorContent {
     selectedDayStart.setHours(0, 0, 0, 0);
     const dayMs = selectedDayStart.getTime();
 
-    this.loadedPlanId = '';
+    this.loadedPlanId = 0;
     this.titleDraft = '';
     this.initialTitle = '';
     this.locationDraft = '';
@@ -175,7 +175,7 @@ export struct PlanEditorContent {
   private loadDraftFromCurrentPlan(): void {
     const plan = this.resolveEditingPlan();
     if (plan === null) {
-      this.loadedPlanId = '';
+      this.loadedPlanId = 0;
       this.titleDraft = '';
       this.initialTitle = '';
       this.locationDraft = '';
@@ -291,7 +291,7 @@ export struct PlanEditorContent {
       return;
     }
     const planId = this.normalizeId(plan.id);
-    if (planId.length === 0) {
+    if (planId <= 0) {
       return;
     }
     const startMs = this.composeDateTime(this.startDateDraft, this.startTimeDraft);
@@ -353,7 +353,7 @@ export struct PlanEditorContent {
     }
     this.state.closePlanDetail();
     this.state.requestDeletePlan(this.normalizeId(plan.id));
-    this.loadedPlanId = '';
+    this.loadedPlanId = 0;
     this.app.nav.back(false);
   }
 
@@ -544,7 +544,7 @@ export struct PlanEditorContent {
             return;
           }
           const currentPlan = this.resolveEditingPlan();
-          const currentPlanId = currentPlan ? this.normalizeId(currentPlan.id) : '';
+          const currentPlanId = currentPlan ? this.normalizeId(currentPlan.id) : 0;
           if (this.loadedPlanId !== currentPlanId) {
             this.loadDraftFromCurrentPlan();
           }
@@ -564,7 +564,7 @@ export struct PlanEditorContent {
     this.initialIsCourse = 0;
     this.initialStartMs = 0;
     this.initialEndMs = 0;
-    this.loadedPlanId = '';
+    this.loadedPlanId = 0;
 
     if (this.hideInnerHeader) {
       this.state.closePlanEditor();

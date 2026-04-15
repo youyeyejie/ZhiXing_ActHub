@@ -18,7 +18,7 @@ import { BaseEntity } from './BaseEntity';
 @Table({ name: DatabaseConfig.PLAN_TABLE })
 export class Plan extends BaseEntity {
   @PrimaryKey()
-  id: string = '';
+  id: number = 0;
 
   @Column({ type: ColumnType.TEXT, notNull: true })
   @NotNull()
@@ -52,6 +52,14 @@ export class Plan extends BaseEntity {
 
   @Column({ name: 'loop_rule', type: ColumnType.TEXT, defaultValue: '' })
   loopRule: string = '';
+
+  @Column({ name: 'reminder_id', type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
+  @NotNull()
+  reminderId: number = 0;
+
+  @Column({ name: 'enable_remind', type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
+  @NotNull()
+  enableRemind: number = 0;
 
   @Column({ name: 'created_at', type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
   @NotNull()

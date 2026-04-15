@@ -1,5 +1,6 @@
 import { Idea } from "../models/Idea";
 import { BaseRepository } from "./BaseRepository";
+import { RepositoryScope } from "../database/RepositoryScope";
 
 /**
  * 闪记仓储。
@@ -7,7 +8,7 @@ import { BaseRepository } from "./BaseRepository";
  */
 export class IdeaRepository extends BaseRepository<Idea> {
   constructor() {
-    super(Idea);
+    super(Idea, RepositoryScope.USER);
   }
 
   async getDailyCountMap(days: number): Promise<Record<string, number>> {
