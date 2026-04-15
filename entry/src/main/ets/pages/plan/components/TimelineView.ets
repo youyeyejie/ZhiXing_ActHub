@@ -1,7 +1,7 @@
 import { AppState, useAppState } from "../../../app/AppStates";
 import { Plan } from "../../../core/models/Plan";
 import { PlanPageState, usePlanPageState } from "../PlanPageState";
-import { PlanCard } from "./PlanCard";
+import { PlanCardLlist } from "./PlanCardLlist";
 
 /**
  * 时间轴容器。
@@ -44,7 +44,7 @@ export struct TimelineView {
   private buildPlanRow(plan: Plan) {
     Row({ space: 10 }) {
       this.buildAxis(this.formatHourMinute(plan.startTime))
-      PlanCard({ plan: plan }).layoutWeight(1)
+      PlanCardLlist({ plan: plan }).layoutWeight(1)
     }
     .width("100%")
     .alignItems(VerticalAlign.Top)

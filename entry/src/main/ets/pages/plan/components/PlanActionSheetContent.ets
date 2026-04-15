@@ -8,7 +8,7 @@ import promptAction from "@ohos.promptAction";
  * 使用 ActionSheet 承载字段编辑，时间为必填项。
  */
 @ComponentV2
-export struct PlanEditorSheet {
+export struct PlanActionSheetContent {
   @Local private app: AppState = useAppState();
   @Local private state: PlanPageState = usePlanPageState();
 

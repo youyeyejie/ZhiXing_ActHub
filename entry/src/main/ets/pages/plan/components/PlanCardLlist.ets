@@ -2,14 +2,14 @@ import { AppState, useAppState } from "../../../app/AppStates";
 import { Plan } from "../../../core/models/Plan";
 import { InteractableCard } from "../../../components/card/InteractableCard";
 import { PlanPageState, usePlanPageState } from "../PlanPageState";
-import { PlanDetailOverlay } from "./PlanDetailOverlay";
+import { PlanDetailCardContent } from "./PlanDetailCardContent";
 
 /**
  * 日程交互卡片。
  * 支持类型配色、详情展开与左滑删除。
  */
 @ComponentV2
-export struct PlanCard {
+export struct PlanCardLlist {
   @Local private app: AppState = useAppState();
   @Local private state: PlanPageState = usePlanPageState();
   @Param plan: Plan = new Plan();
@@ -90,7 +90,7 @@ export struct PlanCard {
 
   @Builder
   private buildPlanDetailContent() {
-    PlanDetailOverlay();
+    PlanDetailCardContent();
   }
 
   build() {

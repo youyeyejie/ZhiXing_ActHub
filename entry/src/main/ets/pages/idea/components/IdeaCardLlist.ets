@@ -7,7 +7,7 @@ import { InteractableCard } from "../../../components/card/InteractableCard";
  * 支持显示标题、内容摘要、创建时间，提供左滑删除交互。
  */
 @ComponentV2
-export struct IdeaCard {
+export struct IdeaCardLlist {
   @Local private app: AppState = useAppState();
   @Param idea: Idea = new Idea();
   @Param refreshVersion: number = 0;

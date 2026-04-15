@@ -2,7 +2,7 @@ import { AppState, useAppState } from "../../../app/AppStates";
 import { InteractableCard } from "../../../components/card/InteractableCard";
 import { AppRoute } from "../../../app/AppConstants";
 import { useTodoPageState, TodoCardItem, TodoPageState } from "../TodoPageState";
-import { TodoDetailOverlay } from "./TodoDetailOverlay";
+import { TodoDetailCardContent } from "./TodoDetailCardContent";
 
 /**
  * 组件功能简介：
@@ -22,7 +22,7 @@ import { TodoDetailOverlay } from "./TodoDetailOverlay";
  * - 手势与点击会触发外部事件回调。
  */
 @ComponentV2
-export struct TodoCard {
+export struct TodoCardLlist {
   @Local private app: AppState = useAppState();
   @Local private state: TodoPageState = useTodoPageState();
   @Local private suppressDetailOpenUntil: number = 0;
@@ -213,7 +213,7 @@ export struct TodoCard {
 
   @Builder
   private buildTodoDetailContent() {
-    TodoDetailOverlay();
+    TodoDetailCardContent();
   }
 
   @Builder

@@ -4,11 +4,11 @@ import { TodoCategory } from '../../../core/models/TodoCategory';
 import { useTodoPageState, TodoPageState } from '../TodoPageState';
 
 /**
- * 待办详情编辑全屏遮罩层。
- * 目标：覆盖整屏并置于最上层，不推动页面与底栏布局。
+ * 待办详情卡片内容。
+ * 作为内容区传入 DetailCardOverlayDestination，不在此重复实现卡片容器。
  */
 @ComponentV2
-export struct TodoDetailOverlay {
+export struct TodoDetailCardContent {
   @Local private app: AppState = useAppState();
   @Local private state: TodoPageState = useTodoPageState();
   @Local private titleDraft: string = '';
@@ -125,14 +125,6 @@ export struct TodoDetailOverlay {
   private flushDraftSave(): void {
     this.persistTitleDraft();
     this.persistDetailDraft();
-  }
-
-  private closeOverlay(): void {
-    this.flushDraftSave();
-    this.state.closeTodoDetail();
-    this.loadedTodoId = '';
-    this.selectedCategoryIdDraft = '';
-    this.doneDraft = -1;
   }
 
   private resolveCurrentCategoryId(): string {
