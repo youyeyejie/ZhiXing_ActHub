@@ -2,11 +2,13 @@ import { Focus } from '../models/Focus';
 import { Idea } from '../models/Idea';
 import { Plan } from '../models/Plan';
 import { Todo } from '../models/Todo';
+import { TodoCategory } from '../models/TodoCategory';
 import { User } from '../models/User';
 import { FocusRepository } from '../repositories/FocusRepository';
 import { IdeaRepository } from '../repositories/IdeaRepository';
 import { PlanRepository } from '../repositories/PlanRepository';
 import { TodoRepository } from '../repositories/TodoRepository';
+import { TodoCategoryRepository } from '../repositories/TodoCategoryRepository';
 import { UserRepository } from '../repositories/UserRepository';
 
 export enum SearchScope {
@@ -34,6 +36,11 @@ export class SearchResultItem {
   id: number = 0;
   title: string = '';
   subtitle: string = '';
+  timeText: string = '';
+  locationText: string = '';
+  categoryText: string = '';
+  statusText: string = '';
+  descriptionText: string = '';
   scope: SearchScope = SearchScope.Plan;
 }
 
@@ -53,6 +60,7 @@ export class SearchResultItem {
 export class SearchService {
   private planRepository: PlanRepository = new PlanRepository();
   private todoRepository: TodoRepository = new TodoRepository();
+  private todoCategoryRepository: TodoCategoryRepository = new TodoCategoryRepository();
   private ideaRepository: IdeaRepository = new IdeaRepository();
   private focusRepository: FocusRepository = new FocusRepository();
   private userRepository: UserRepository = new UserRepository();
@@ -83,9 +91,17 @@ export class SearchService {
     const plans: Array<Plan> = await this.planRepository.findAll();
     const results: Array<SearchResultItem> = [];
     plans.forEach((item: Plan) => {
-      const haystack = `${item.content} ${item.location} ${item.description}`.toLowerCase();
+      const title = this.normalizeText(item.content);
+      const timeText = this.resolvePlanTimeText(item);
+      const location = this.normalizeText(item.location);
+      const description = this.normalizeText(item.description);
+      const haystack = `${title} ${timeText} ${location} ${description}`.toLowerCase();
       if (haystack.indexOf(keyword) >= 0) {
-        results.push(this.createItem(item.id, item.content, item.location, SearchScope.Plan));
+        const result = this.createItem(item.id, title, this.joinDisplayParts(timeText, location), SearchScope.Plan);
+        result.timeText = timeText;
+        result.locationText = location;
+        result.descriptionText = description;
+        results.push(result);
       }
     });
     return results;
@@ -93,17 +109,20 @@ export class SearchService {
 
   private async searchTodos(keyword: string): Promise<Array<SearchResultItem>> {
     const todos: Array<Todo> = await this.todoRepository.findAll();
+    const categories: Array<TodoCategory> = await this.todoCategoryRepository.findAll();
     const results: Array<SearchResultItem> = [];
     todos.forEach((item: Todo) => {
-      const titleText = `${item.content}`.trim();
-      const title = titleText === 'undefined' || titleText === 'null' ? '' : titleText;
-      const detailText = `${item.detail}`.trim();
-      const detail = detailText === 'undefined' || detailText === 'null' ? '' : detailText;
-      const haystack = `${title} ${detail} ${item.categoryId}`.toLowerCase();
+      const title = this.normalizeText(item.content);
+      const detail = this.normalizeText(item.detail);
+      const categoryName = this.resolveTodoCategoryName(categories, item.categoryId);
+      const state = item.isDone === 1 ? '已完成' : '进行中';
+      const haystack = `${title} ${detail} ${categoryName} ${state}`.toLowerCase();
       if (haystack.indexOf(keyword) >= 0) {
-        const state = item.isDone === 1 ? '已完成' : '进行中';
-        const subtitle = detail.length > 0 ? detail : state;
-        results.push(this.createItem(item.id, title.length > 0 ? title : '未命名待办', subtitle, SearchScope.Todo));
+        const result = this.createItem(item.id, title, this.joinDisplayParts(categoryName, state), SearchScope.Todo);
+        result.categoryText = categoryName;
+        result.statusText = state;
+        result.descriptionText = detail;
+        results.push(result);
       }
     });
     return results;
@@ -113,9 +132,14 @@ export class SearchService {
     const ideas: Array<Idea> = await this.ideaRepository.findAll();
     const results: Array<SearchResultItem> = [];
     ideas.forEach((item: Idea) => {
-      const haystack = `${item.title} ${item.content}`.toLowerCase();
+      const title = this.normalizeText(item.title);
+      const resolvedTitle = title.length > 0 ? title : '未命名闪记';
+      const content = this.normalizeText(item.content);
+      const haystack = `${resolvedTitle} ${content}`.toLowerCase();
       if (haystack.indexOf(keyword) >= 0) {
-        results.push(this.createItem(item.id, item.title.length > 0 ? item.title : '未命名闪记', item.content, SearchScope.Idea));
+        const result = this.createItem(item.id, resolvedTitle, content, SearchScope.Idea);
+        result.descriptionText = content;
+        results.push(result);
       }
     });
     return results;
@@ -145,6 +169,76 @@ export class SearchService {
       }
     });
     return results;
+  }
+
+  private normalizeText(value: string): string {
+    const text = `${value}`.trim();
+    if (text === 'undefined' || text === 'null') {
+      return '';
+    }
+    return text;
+  }
+
+  private formatHourMinute(timestamp: number): string {
+    const date = new Date(timestamp);
+    const hour = date.getHours();
+    const minute = date.getMinutes();
+    const hourText = hour < 10 ? `0${hour}` : `${hour}`;
+    const minuteText = minute < 10 ? `0${minute}` : `${minute}`;
+    return `${hourText}:${minuteText}`;
+  }
+
+  private formatMonthDay(timestamp: number): string {
+    const date = new Date(timestamp);
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  }
+
+  private isSameDay(startTime: number, endTime: number): boolean {
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+    return startDate.getFullYear() === endDate.getFullYear() &&
+      startDate.getMonth() === endDate.getMonth() &&
+      startDate.getDate() === endDate.getDate();
+  }
+
+  private resolvePlanTimeText(plan: Plan): string {
+    const startTime = plan.startTime > 0 ? plan.startTime : plan.timestamp;
+    const endTime = plan.endTime > 0 ? plan.endTime : startTime;
+    if (startTime <= 0) {
+      return '';
+    }
+    if (endTime <= startTime) {
+      return `${this.formatMonthDay(startTime)} ${this.formatHourMinute(startTime)}`;
+    }
+    if (!this.isSameDay(startTime, endTime)) {
+      return `${this.formatMonthDay(startTime)} ${this.formatHourMinute(startTime)} - ${this.formatMonthDay(endTime)} ${this.formatHourMinute(endTime)}`;
+    }
+    return `${this.formatHourMinute(startTime)} - ${this.formatHourMinute(endTime)}`;
+  }
+
+  private joinDisplayParts(first: string, second: string): string {
+    const parts: Array<string> = [];
+    const firstPart = this.normalizeText(first);
+    const secondPart = this.normalizeText(second);
+    if (firstPart.length > 0) {
+      parts.push(firstPart);
+    }
+    if (secondPart.length > 0) {
+      parts.push(secondPart);
+    }
+    return parts.join(' · ');
+  }
+
+  private resolveTodoCategoryName(categories: Array<TodoCategory>, categoryId: number): string {
+    const resolvedId = categoryId > 0 ? categoryId : 0;
+    if (resolvedId <= 0) {
+      return '';
+    }
+    const found = categories.find((item: TodoCategory) => item.id === resolvedId);
+    if (!found) {
+      return '';
+    }
+    return this.normalizeText(found.category);
   }
 
   private createItem(id: number, title: string, subtitle: string, scope: SearchScope): SearchResultItem {

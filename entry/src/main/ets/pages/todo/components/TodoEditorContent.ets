@@ -2,16 +2,19 @@ import { AppState, useAppState } from '../../../app/AppStates';
 import { Todo } from '../../../core/models/Todo';
 import { TodoCategory } from '../../../core/models/TodoCategory';
 import { useTodoPageState, TodoPageState } from '../TodoPageState';
+import { CategoryCreateContent } from './CategoryCreateContent';
+import { FormTypography } from '../../../components/form/FormTypography';
+import promptAction from '@ohos.promptAction';
 
 /**
  * 待办编辑器内容。
- * hideInnerHeader=true 用于新建 ActionSheet，false 用于详情 DetailCard。
+ * isForCreate=true 用于新建 ActionSheet，false 用于详情 DetailCard。
  */
 @ComponentV2
 export struct TodoEditorContent {
   @Local private app: AppState = useAppState();
   @Local private state: TodoPageState = useTodoPageState();
-  @Param hideInnerHeader: boolean = false;
+  @Param isForCreate: boolean = false;
 
   @Local private saving: boolean = false;
   @Local private saveEnabled: boolean = false;
@@ -20,13 +23,13 @@ export struct TodoEditorContent {
   @Local private initialTitle: string = '';
   @Local private initialDetail: string = '';
   @Local private loadedTodoId: number = 0;
-  @Local private selectedCategoryIdDraft: number = 0;
+  @Local private selectedCategoryIdDraft: number = -1;
   @Local private initialCategoryId: number = 0;
   @Local private doneDraft: number = -1;
   @Local private initialDone: number = 0;
 
   aboutToAppear(): void {
-    if (this.hideInnerHeader) {
+    if (this.isForCreate) {
       this.prepareDraftForCreate();
       return;
     }
@@ -61,13 +64,10 @@ export struct TodoEditorContent {
     this.detailDraft = '';
     this.initialTitle = '';
     this.initialDetail = '';
-    this.selectedCategoryIdDraft =
-      this.state.selectedCategoryId > 0
-        ? this.normalizeId(this.state.selectedCategoryId)
-        : this.normalizeId(this.state.getDefaultCategoryId());
-    if (this.selectedCategoryIdDraft <= 0 && this.state.categories.length > 0) {
-      this.selectedCategoryIdDraft = this.normalizeId(this.state.categories[0].id);
-    }
+    const selectedCategoryId = this.normalizeId(this.state.selectedCategoryId);
+    const selectedCategoryExists = selectedCategoryId > 0
+      && this.state.categories.some((item: TodoCategory) => this.normalizeId(item.id) === selectedCategoryId);
+    this.selectedCategoryIdDraft = selectedCategoryExists ? selectedCategoryId : 0;
     this.initialCategoryId = this.selectedCategoryIdDraft;
     this.doneDraft = 0;
     this.initialDone = 0;
@@ -82,7 +82,7 @@ export struct TodoEditorContent {
       this.detailDraft = '';
       this.initialTitle = '';
       this.initialDetail = '';
-      this.selectedCategoryIdDraft = 0;
+      this.selectedCategoryIdDraft = -1;
       this.initialCategoryId = 0;
       this.doneDraft = -1;
       this.initialDone = 0;
@@ -115,7 +115,7 @@ export struct TodoEditorContent {
     if (this.normalizeText(this.titleDraft).length === 0) {
       return false;
     }
-    if (this.hideInnerHeader) {
+    if (this.isForCreate) {
       return true;
     }
     return this.resolveEditingTodo() !== null;
@@ -130,7 +130,7 @@ export struct TodoEditorContent {
       this.recalculateSaveEnabled();
       return;
     }
-    if (this.hideInnerHeader) {
+    if (this.isForCreate) {
       await this.submitCreate();
       return;
     }
@@ -189,9 +189,8 @@ export struct TodoEditorContent {
   }
 
   private resolveCurrentCategoryId(): number {
-    const localCategoryId = this.normalizeId(this.selectedCategoryIdDraft);
-    if (localCategoryId > 0) {
-      return localCategoryId;
+    if (this.selectedCategoryIdDraft >= 0) {
+      return this.normalizeId(this.selectedCategoryIdDraft);
     }
     const todo = this.resolveEditingTodo();
     if (todo === null) {
@@ -211,26 +210,84 @@ export struct TodoEditorContent {
     return todo.isDone === 1 ? 1 : 0;
   }
 
-  private toggleDoneDraft(): void {
+  private async toggleDoneAndPersist(): Promise<void> {
+    if (!this.canToggleDone()) {
+      return;
+    }
+    const todo = this.resolveEditingTodo();
+    if (todo === null) {
+      return;
+    }
+    const todoId = this.normalizeId(todo.id);
+    if (todoId <= 0) {
+      return;
+    }
+
     const nextDone = this.resolveCurrentDone() === 1 ? 0 : 1;
     this.doneDraft = nextDone;
+    this.saving = true;
     this.recalculateSaveEnabled();
+    try {
+      await this.state.toggleDone(todoId, nextDone === 1);
+      this.initialDone = nextDone;
+    } finally {
+      this.saving = false;
+      this.recalculateSaveEnabled();
+    }
   }
 
   private switchCategory(categoryId: number): void {
     const normalizedCategoryId = this.normalizeId(categoryId);
-    if (normalizedCategoryId <= 0) {
-      return;
+    const currentCategoryId = this.resolveCurrentCategoryId();
+    if (currentCategoryId === normalizedCategoryId) {
+      this.selectedCategoryIdDraft = 0;
+    } else {
+      this.selectedCategoryIdDraft = normalizedCategoryId;
     }
-    this.selectedCategoryIdDraft = normalizedCategoryId;
     this.recalculateSaveEnabled();
   }
 
+  private resolveCategoryChipColor(color: string): string {
+    const normalized = this.normalizeText(color);
+    if (normalized.length > 0) {
+      return normalized;
+    }
+    return this.app.theme.palette.surfaceSecondary;
+  }
+
+  private safeToast(message: string): void {
+    try {
+      promptAction.showToast({ message, duration: 1500 });
+    } catch (_error) {
+    }
+  }
+
+  private openCreateCategoryActionSheet(): void {
+    if (this.state.isCategoryColorCapacityReached()) {
+      this.safeToast(`分类数量已达上限（最多 ${this.state.getCategoryColorCapacity()} 个）`);
+      return;
+    }
+    this.app.nav.openActionSheet(this.buildCreateCategorySheetContent, '18%');
+  }
+
   private canDelete(): boolean {
-    if (this.hideInnerHeader || this.saving) {
+    if (this.isForCreate || this.saving) {
       return false;
     }
     return this.resolveEditingTodo() !== null;
+  }
+
+  private canToggleDone(): boolean {
+    if (this.isForCreate || this.saving) {
+      return false;
+    }
+    return this.resolveEditingTodo() !== null;
+  }
+
+  private runTodoListMutationAnimation(action: () => void): void {
+    animateTo({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
+      action();
+    });
   }
 
   private deleteCurrentTodo(): void {
@@ -239,7 +296,9 @@ export struct TodoEditorContent {
       return;
     }
     this.state.closeTodoDetail();
-    this.state.requestDeleteTodo(todo.id);
+    this.runTodoListMutationAnimation(() => {
+      this.state.requestDeleteTodo(todo.id);
+    });
     this.loadedTodoId = 0;
     this.selectedCategoryIdDraft = 0;
     this.doneDraft = -1;
@@ -267,11 +326,11 @@ export struct TodoEditorContent {
     Button({ type: ButtonType.Circle }) {
       SymbolGlyph($r('sys.symbol.trash'))
         .fontSize(18)
-        .fontColor([this.app.theme.palette.danger]);
+        .fontColor([this.app.theme.palette.surface]);
     }
       .width(34)
       .height(34)
-      .backgroundColor(this.app.theme.palette.surface)
+      .backgroundColor(this.app.theme.palette.danger)
       .enabled(this.canDelete())
       .onClick(() => {
         this.deleteCurrentTodo();
@@ -279,14 +338,38 @@ export struct TodoEditorContent {
   }
 
   @Builder
-  private buildCategoryChip(label: string, selected: boolean, onTap: () => void) {
+  private buildDoneToggleButton() {
+    Button({ type: ButtonType.Circle }) {
+      if (this.resolveCurrentDone() === 1) {
+        SymbolGlyph($r('sys.symbol.checkmark_square'))
+          .fontSize(18)
+          .fontColor([this.app.theme.palette.surface]);
+      } else {
+        SymbolGlyph($r('sys.symbol.square_slash'))
+          .fontSize(18)
+          .fontColor([this.app.theme.palette.surface]);
+      }
+    }
+      .width(34)
+      .height(34)
+      .backgroundColor(this.app.theme.palette.info)
+      .enabled(this.canToggleDone())
+      .onClick(() => {
+        this.runTodoListMutationAnimation(() => {
+          this.toggleDoneAndPersist();
+        });
+      });
+  }
+
+  @Builder
+  private buildCategoryChip(label: string, color: string, selected: boolean, onTap: () => void) {
     Button(label)
       .type(ButtonType.Capsule)
       .stateEffect(true)
       .height(28)
-      .fontSize(13)
+      .fontSize(FormTypography.LABEL_SIZE)
       .fontColor(selected ? this.app.theme.palette.surface : this.app.theme.palette.textSecondary)
-      .backgroundColor(selected ? this.app.theme.palette.primary : this.app.theme.palette.surfaceSecondary)
+      .backgroundColor(selected ? this.resolveCategoryChipColor(color) : this.app.theme.palette.surfaceSecondary)
       .borderRadius(999)
       .padding({ left: 12, right: 12, top: 4, bottom: 4 })
       .onClick(() => {
@@ -295,27 +378,50 @@ export struct TodoEditorContent {
   }
 
   @Builder
+  private buildAddCategoryChip() {
+    Button('+')
+      .type(ButtonType.Capsule)
+      .stateEffect(true)
+      .height(28)
+      .fontSize(16)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(this.app.theme.palette.textSecondary)
+      .backgroundColor(this.app.theme.palette.surfaceSecondary)
+      .borderRadius(999)
+      .padding({ left: 12, right: 12, top: 4, bottom: 4 })
+      .onClick(() => {
+        this.openCreateCategoryActionSheet();
+      });
+  }
+
+  @Builder
+  private buildCreateCategorySheetContent() {
+    CategoryCreateContent();
+  }
+
+  @Builder
   private buildContent() {
     Column({ space: 14 }) {
       Row({ space: 10 }) {
-        Text(this.hideInnerHeader ? '新增待办' : '编辑待办')
-          .fontSize(17)
+        Text(this.isForCreate ? '新增待办' : '编辑待办')
+          .fontSize(FormTypography.TITLE_SIZE)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.textPrimary)
           .layoutWeight(1);
 
-        this.buildSaveButton();
-        if (!this.hideInnerHeader) {
+        if (!this.isForCreate) {
           this.buildDeleteButton();
+          this.buildDoneToggleButton();
         }
+        this.buildSaveButton();
       }
       .width('100%')
       .alignItems(VerticalAlign.Center);
 
-      TextInput({ text: this.titleDraft, placeholder: '标题' })
+      TextInput({ text: this.titleDraft, placeholder: '待办标题' })
         .width('100%')
         .height(56)
-        .fontSize(16)
+        .fontSize(FormTypography.INPUT_CONTENT_SIZE)
         .fontWeight(FontWeight.Medium)
         .fontColor(this.app.theme.palette.textPrimary)
         .placeholderColor(this.app.theme.palette.textTertiary)
@@ -327,11 +433,11 @@ export struct TodoEditorContent {
           this.recalculateSaveEnabled();
         });
 
-      TextArea({ text: this.detailDraft, placeholder: this.hideInnerHeader ? '请输入待办详情（选填）' : '详情描述' })
+      TextArea({ text: this.detailDraft, placeholder: '待办详情（选填）' })
         .width('100%')
         .height(128)
-        .fontSize(14)
-        .fontColor(this.app.theme.palette.textSecondary)
+        .fontSize(FormTypography.INPUT_CONTENT_SIZE)
+        .fontColor(this.app.theme.palette.textPrimary)
         .placeholderColor(this.app.theme.palette.textTertiary)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
@@ -341,86 +447,57 @@ export struct TodoEditorContent {
           this.recalculateSaveEnabled();
         });
 
-      Scroll() {
-        Row({ space: 8 }) {
-          if (this.state.categories.length === 0) {
-            Text('暂无分类')
-              .fontSize(12)
-              .fontColor(this.app.theme.palette.textSecondary);
+      Row({ space: 8 }) {
+        Text('分类')
+          .fontSize(FormTypography.LABEL_SIZE)
+          .fontColor(this.app.theme.palette.textSecondary)
+          .padding({ left: 8, right: 8 });
+
+        Scroll() {
+          Row({ space: 8 }) {
+            ForEach(this.state.categories, (cat: TodoCategory) => {
+              this.buildCategoryChip(
+                cat.category,
+                cat.color,
+                this.resolveCurrentCategoryId() === this.normalizeId(cat.id),
+                () => {
+                  this.switchCategory(this.normalizeId(cat.id));
+                }
+              );
+            }, (cat: TodoCategory) => `${this.normalizeId(cat.id)}_${this.resolveCurrentCategoryId()}`);
+
+            this.buildAddCategoryChip();
           }
-
-          ForEach(this.state.categories, (cat: TodoCategory) => {
-            this.buildCategoryChip(
-              cat.category,
-              this.resolveCurrentCategoryId() === this.normalizeId(cat.id),
-              () => {
-                this.switchCategory(this.normalizeId(cat.id));
-              }
-            );
-          }, (cat: TodoCategory) => `${this.normalizeId(cat.id)}_${this.resolveCurrentCategoryId()}`);
+          .padding({ right: 4 });
         }
-        .padding({ top: 2, bottom: 2 });
+        .layoutWeight(1)
+        .scrollable(ScrollDirection.Horizontal)
+        .scrollBar(BarState.Off);
       }
-      .scrollable(ScrollDirection.Horizontal)
-      .scrollBar(BarState.Off)
       .width('100%')
-      .margin({ top: 2, bottom: 6 });
-
-      if (!this.hideInnerHeader) {
-        Row({ space: 10 }) {
-          Button(this.resolveCurrentDone() === 1 ? '标为未完成' : '标为已完成')
-            .type(ButtonType.Capsule)
-            .width('100%')
-            .height(50)
-            .backgroundColor(this.app.theme.palette.primary)
-            .fontColor(this.app.theme.palette.surface)
-            .fontSize(16)
-            .onClick(() => {
-              this.toggleDoneDraft();
-            });
-        }
-        .width('100%')
-        .margin({ top: 6 });
-      }
+      .alignItems(VerticalAlign.Center)
+      .padding({ top: 2, bottom: 2 });
     }
     .width('100%');
   }
 
   build() {
-    Column() {
-      if (!this.hideInnerHeader && this.resolveEditingTodo() === null) {
-        Column({ space: 8 }) {
-          Text('未找到待办')
-            .fontSize(16)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.app.theme.palette.textPrimary);
-          Text('该待办可能已被删除。')
-            .fontSize(12)
-            .fontColor(this.app.theme.palette.textSecondary);
-        }
-        .width('100%')
-        .padding({ left: 6, right: 6, top: 8, bottom: 8 });
-      } else {
-        Scroll() {
-          this.buildContent();
-        }
-        .width('100%')
-        .height('100%')
-        .scrollBar(BarState.Off)
-        .onAppear(() => {
-          if (this.hideInnerHeader) {
-            return;
-          }
-          const currentTodo = this.resolveEditingTodo();
-          const currentTodoId = currentTodo ? this.normalizeId(currentTodo.id) : 0;
-          if (this.loadedTodoId !== currentTodoId) {
-            this.loadDraftFromCurrentTodo();
-          }
-        });
-      }
+    Scroll() {
+      this.buildContent();
     }
     .width('100%')
-    .height('100%');
+    .height('100%')
+    .scrollBar(BarState.Off)
+    .onAppear(() => {
+      if (this.isForCreate) {
+        return;
+      }
+      const currentTodo = this.resolveEditingTodo();
+      const currentTodoId = currentTodo ? this.normalizeId(currentTodo.id) : 0;
+      if (this.loadedTodoId !== currentTodoId) {
+        this.loadDraftFromCurrentTodo();
+      }
+    });
   }
 
   aboutToDisappear(): void {
@@ -431,10 +508,10 @@ export struct TodoEditorContent {
     this.initialCategoryId = 0;
     this.initialDone = 0;
     this.loadedTodoId = 0;
-    this.selectedCategoryIdDraft = 0;
+    this.selectedCategoryIdDraft = -1;
     this.doneDraft = -1;
 
-    if (this.hideInnerHeader) {
+    if (this.isForCreate) {
       this.state.closeTodoEditor();
       return;
     }

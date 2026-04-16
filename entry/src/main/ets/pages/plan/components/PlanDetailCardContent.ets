@@ -7,7 +7,7 @@ import { PlanEditorContent } from './PlanEditorContent';
 export struct PlanDetailCardContent {
   build() {
     PlanEditorContent({
-      hideInnerHeader: false,
+      isForCreate: false,
     });
   }
 }

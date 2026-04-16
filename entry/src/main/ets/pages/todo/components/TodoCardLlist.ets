@@ -1,7 +1,7 @@
 import { AppState, useAppState } from "../../../app/AppStates";
 import { InteractableCard } from "../../../components/card/InteractableCard";
 import { AppRoute } from "../../../app/AppConstants";
-import { useTodoPageState, TodoCardItem, TodoPageState } from "../TodoPageState";
+import { useTodoPageState, TodoItem, TodoPageState } from "../TodoPageState";
 import { TodoDetailCardContent } from "./TodoDetailCardContent";
 
 /**
@@ -54,16 +54,20 @@ export struct TodoCardLlist {
     return text === "undefined" || text === "null" ? "" : text;
   }
 
-  private resolveTodoId(todo: TodoCardItem): number {
+  private resolveTodoId(todo: TodoItem): number {
     return todo.id > 0 ? todo.id : 0;
   }
 
-  private resolveTodoTitle(todo: TodoCardItem): string {
+  private resolveTodoTitle(todo: TodoItem): string {
     const title = this.normalizeText(todo.title);
     return title.length > 0 ? title : "未命名待办";
   }
 
-  private resolveCategoryBorderColor(todo: TodoCardItem): string {
+  private hasCategory(todo: TodoItem): boolean {
+    return todo.categoryId > 0;
+  }
+
+  private resolveCategoryBorderColor(todo: TodoItem): string {
     const localColor = this.normalizeText(todo.categoryColor);
     if (localColor.length > 0) {
       return localColor;
@@ -71,7 +75,7 @@ export struct TodoCardLlist {
     return this.state.resolveCategoryColor(todo.categoryId);
   }
 
-  private resolveCategoryBackgroundColor(todo: TodoCardItem): string {
+  private resolveCategoryBackgroundColor(todo: TodoItem): string {
     const color = this.normalizeText(this.resolveCategoryBorderColor(todo));
     if (color.length === 7 && color.charAt(0) === "#") {
       // ArkUI 颜色格式为 #AARRGGBB，这里固定使用浅色透明度。
@@ -91,7 +95,7 @@ export struct TodoCardLlist {
     return Date.now() >= this.suppressDetailOpenUntil;
   }
 
-  private resolveDisplayedDone(todo: TodoCardItem): number {
+  private resolveDisplayedDone(todo: TodoItem): number {
     const todoId = this.resolveTodoId(todo);
     if (todoId <= 0) {
       return todo.isDone === 1 ? 1 : 0;
@@ -103,22 +107,22 @@ export struct TodoCardLlist {
     return todo.isDone === 1 ? 1 : 0;
   }
 
-  private isDisplayedDone(todo: TodoCardItem): boolean {
+  private isDisplayedDone(todo: TodoItem): boolean {
     return this.resolveDisplayedDone(todo) === 1;
   }
 
-  private resolveDisplayedCardOpacity(todo: TodoCardItem): number {
+  private resolveDisplayedCardOpacity(todo: TodoItem): number {
     return this.isDisplayedDone(todo) ? 0.62 : 1;
   }
 
-  private resolveDisplayedTitleColor(todo: TodoCardItem): ResourceColor {
+  private resolveDisplayedTitleColor(todo: TodoItem): ResourceColor {
     if (this.isDisplayedDone(todo)) {
       return this.app.theme.palette.textSecondary;
     }
     return this.app.theme.palette.textPrimary;
   }
 
-  private updateDoneVisualOverride(todo: TodoCardItem, isDone: boolean): void {
+  private updateDoneVisualOverride(todo: TodoItem, isDone: boolean): void {
     const todoId = this.resolveTodoId(todo);
     if (todoId <= 0) {
       return;
@@ -133,7 +137,7 @@ export struct TodoCardLlist {
       const id = entry[0];
       const doneValue = entry[1];
       const todo = this.state.visibleTodoCards.find(
-        (item: TodoCardItem) => this.resolveTodoId(item) === id,
+        (item: TodoItem) => this.resolveTodoId(item) === id,
       );
       if (!todo) {
         next.delete(id);
@@ -171,7 +175,7 @@ export struct TodoCardLlist {
     this.restoreMoveScheduledIds = next;
   }
 
-  private scheduleRestoreMove(todo: TodoCardItem): void {
+  private scheduleRestoreMove(todo: TodoItem): void {
     const todoId = this.resolveTodoId(todo);
     if (todoId <= 0) {
       return;
@@ -194,18 +198,18 @@ export struct TodoCardLlist {
     this.restoreMoveDispatchTimers.set(todoId, timerId);
   }
 
-  private onTodoDoneChanged(todo: TodoCardItem, isDone: boolean): void {
+  private onTodoDoneChanged(todo: TodoItem, isDone: boolean): void {
     this.updateDoneVisualOverride(todo, isDone);
     this.state.toggleDone(todo.id, isDone);
   }
 
-  private onTodoDeleted(todo: TodoCardItem): void {
+  private onTodoDeleted(todo: TodoItem): void {
     animateTo({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
       this.state.requestDeleteTodo(todo.id);
     });
   }
 
-  private resolveTodoRenderKey(todo: TodoCardItem): string {
+  private resolveTodoRenderKey(todo: TodoItem): string {
     const normalizedId = this.resolveTodoId(todo);
     if (normalizedId > 0) {
       return `${normalizedId}`;
@@ -219,7 +223,7 @@ export struct TodoCardLlist {
   }
 
   @Builder
-  private buildTodoRow(todo: TodoCardItem) {
+  private buildTodoRow(todo: TodoItem) {
     InteractableCard({
       leftHint: "删除",
       rightHint: "专注",
@@ -244,6 +248,7 @@ export struct TodoCardLlist {
     }) {
       Row({ space: 8 }) {
         Toggle({ type: ToggleType.Checkbox, isOn: this.isDisplayedDone(todo) })
+          .selectedColor(this.resolveCategoryBorderColor(todo))
           .onChange((value: boolean) => {
             animateTo({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
               this.onTodoDoneChanged(todo, value);
@@ -258,79 +263,83 @@ export struct TodoCardLlist {
               type: this.isDisplayedDone(todo)
                 ? TextDecorationType.LineThrough
                 : TextDecorationType.None,
+              color: this.resolveDisplayedTitleColor(todo),
             })
             .width("100%")
             .animation({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
-          Row({ space: 8 }) {
-            Column()
-              .width(8)
-              .height(8)
-              .borderRadius(4)
-              .backgroundColor(this.resolveCategoryBorderColor(todo))
-            Text(
-              this.normalizeText(todo.categoryName).length > 0
-                ? todo.categoryName
-                : this.state.resolveCategoryName(todo.categoryId),
-            )
-              .fontSize(12)
-              .fontColor(this.app.theme.palette.textSecondary)
-            Blank()
+          if (this.hasCategory(todo)) {
+            Row({ space: 8 }) {
+              Column()
+                .width(8)
+                .height(8)
+                .borderRadius(4)
+                .backgroundColor(this.resolveCategoryBorderColor(todo))
+              Text(
+                this.normalizeText(todo.categoryName).length > 0
+                  ? todo.categoryName
+                  : this.state.resolveCategoryName(todo.categoryId),
+              )
+                .fontSize(12)
+                .fontColor(this.app.theme.palette.textSecondary)
+              Blank()
 
-            if (todo.inFocus === 1) {
-              Text("专注中").fontSize(12).fontColor(this.app.theme.palette.primary);
+              if (todo.inFocus === 1) {
+                Text("专注中").fontSize(12).fontColor(this.app.theme.palette.primary);
+              }
             }
+            .width("100%")
+            .alignItems(VerticalAlign.Center)
           }
-          .width("100%")
-          .alignItems(VerticalAlign.Center)
         }
         .layoutWeight(1)
-        .onClick(() => {
-          if (!this.canOpenDetailNow()) {
-            return;
-          }
-          this.state.openTodoDetail(todo.id);
-          this.app.nav.openDetailCard(this.buildTodoDetailContent, "50%");
-        })
       }
       .width("100%")
+      .onClick(() => {
+        if (!this.canOpenDetailNow()) {
+          return;
+        }
+        this.state.openTodoDetail(todo.id);
+        this.app.nav.openDetailCard(this.buildTodoDetailContent, "40%");
+      })
       .onAppear(() => {
         this.scheduleRestoreMove(todo);
       })
-      .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+      .padding({ left: 12, right: 12, top: 12, bottom: 12 })
       .alignItems(VerticalAlign.Center)
       .border({ width: 1, color: this.resolveCategoryBorderColor(todo) })
       .borderRadius(14)
       .backgroundColor(this.resolveCategoryBackgroundColor(todo))
       .opacity(this.resolveDisplayedCardOpacity(todo))
       .animation({ duration: 160, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
-    };
+    }
   }
 
   /**
    * 渲染待办卡片，并把手势事件透传给页面层。
    */
   build() {
-    Column({ space: 4 }) {
+    Column({ space: 8 }) {
       if (this.state.visibleTodoCards.length === 0) {
-        Column() {
-          Text("无任务")
-            .fontSize(18)
-            .fontWeight(FontWeight.Medium)
+        Column({ space: 12 }) {
+          Text("还没有待办事项")
+            .fontSize(16)
             .fontColor(this.app.theme.palette.textSecondary)
+          Text("点击右下角按钮，创建待办事项")
+            .fontSize(14)
+            .fontColor(this.app.theme.palette.textTertiary)
         }
         .width("100%")
-        .height(260)
-        .justifyContent(FlexAlign.Center)
+        .padding({ top: 40, bottom: 40 })
         .alignItems(HorizontalAlign.Center);
-      } else {
-        ForEach(
-          this.state.visibleTodoCards,
-          (item: TodoCardItem) => {
-            this.buildTodoRow(item);
-          },
-          (item: TodoCardItem) => this.resolveTodoRenderKey(item),
-        );
       }
+
+      ForEach(
+        this.state.visibleTodoCards,
+        (item: TodoItem) => {
+          this.buildTodoRow(item);
+        },
+        (item: TodoItem) => this.resolveTodoRenderKey(item),
+      );
     }
     .width("100%")
     .animation({ duration: 160, curve: Curve.EaseInOut, playMode: PlayMode.Normal });

@@ -67,6 +67,53 @@ export struct InteractableCard {
     return this.surfaceColor.length > 0 ? this.surfaceColor : this.app.theme.palette.surface;
   }
 
+  private resolveColorWithAlpha(color: string, alphaHex: string): string {
+    const value = `${color}`.trim();
+    if (value.length === 7 && value.charAt(0) === '#') {
+      return `#${alphaHex}${value.substring(1)}`;
+    }
+    if (value.length === 9 && value.charAt(0) === '#') {
+      return `#${alphaHex}${value.substring(3)}`;
+    }
+    return value;
+  }
+
+  private resolveTransparentHintColor(color: string): string {
+    return this.resolveColorWithAlpha(color, '00');
+  }
+
+  private resolveVisibleHintColor(color: string): string {
+    return this.resolveColorWithAlpha(color, 'CC');
+  }
+
+  private resolveRightHintCenterColor(): string {
+    if (!this.enableSwipeRight) {
+      return 'transparent';
+    }
+    return this.resolveTransparentHintColor(this.swipeRightColor);
+  }
+
+  private resolveRightHintEdgeColor(): string {
+    if (!this.enableSwipeRight) {
+      return 'transparent';
+    }
+    return this.resolveVisibleHintColor(this.swipeRightColor);
+  }
+
+  private resolveLeftHintEdgeColor(): string {
+    if (!this.enableSwipeLeft) {
+      return 'transparent';
+    }
+    return this.resolveVisibleHintColor(this.swipeLeftColor);
+  }
+
+  private resolveLeftHintCenterColor(): string {
+    if (!this.enableSwipeLeft) {
+      return 'transparent';
+    }
+    return this.resolveTransparentHintColor(this.swipeLeftColor);
+  }
+
   private resolveRightHintOpacity(): number {
     if (!this.enableSwipeRight || this.offsetX <= 0) {
       return 0;
@@ -151,7 +198,13 @@ export struct InteractableCard {
         .justifyContent(FlexAlign.Start)
         .alignItems(VerticalAlign.Center)
         .padding({ left: 18, right: 18, top: 0, bottom: 0 })
-        .backgroundColor(this.enableSwipeRight ? this.swipeRightColor : 'transparent')
+        .linearGradient({
+          angle: 270,
+          colors: [
+            [this.resolveRightHintCenterColor(), 0.2],
+            [this.resolveRightHintEdgeColor(), 1],
+          ],
+        })
         .opacity(this.resolveRightHintOpacity())
         .animation({ duration: 140, curve: Curve.EaseOut, playMode: PlayMode.Normal });
 
@@ -169,7 +222,13 @@ export struct InteractableCard {
         .justifyContent(FlexAlign.End)
         .alignItems(VerticalAlign.Center)
         .padding({ left: 18, right: 18, top: 0, bottom: 0 })
-        .backgroundColor(this.enableSwipeLeft ? this.swipeLeftColor : 'transparent')
+        .linearGradient({
+          angle: 270,
+          colors: [
+            [this.resolveLeftHintEdgeColor(), 0.2],
+            [this.resolveLeftHintCenterColor(), 1],
+          ],
+        })
         .opacity(this.resolveLeftHintOpacity())
         .animation({ duration: 140, curve: Curve.EaseOut, playMode: PlayMode.Normal });
       }

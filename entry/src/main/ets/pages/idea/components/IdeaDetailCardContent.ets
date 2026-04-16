@@ -7,7 +7,7 @@ import { IdeaEditorContent } from "./IdeaEditorContent";
 export struct IdeaDetailCardContent {
   build() {
     IdeaEditorContent({
-      hideInnerHeader: false,
+      isForCreate: false,
     });
   }
 }

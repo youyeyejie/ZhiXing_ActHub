@@ -28,7 +28,7 @@ class TodoUndoTask {
 }
 
 @ObservedV2
-export class TodoCardItem {
+export class TodoItem {
   @Trace id: number = 0;
   @Trace title: string = "";
   @Trace categoryId: number = 0;
@@ -77,21 +77,20 @@ export class TodoPageState {
   @Trace public selectedCategoryId: number = 0;
   @Trace public todos: Array<Todo> = [];
   @Trace public visibleTodos: Array<Todo> = [];
-  @Trace public visibleTodoCards: Array<TodoCardItem> = [];
+  @Trace public visibleTodoCards: Array<TodoItem> = [];
 
   @Trace public isCategoryEditorVisible: boolean = false;
   @Trace public isTodoEditorVisible: boolean = false;
   @Trace public isTodoDetailVisible: boolean = false;
 
+  @Trace public editingCategoryId: number = 0;
   @Trace public editingTodoId: number = 0;
   @Trace public undoTasks: Array<TodoUndoTask> = [];
   @Trace public pendingRestoreMoveTodoIds: Array<number> = [];
   private undoTaskSeq: number = 0;
-  private readonly defaultCategoryName: string = "学习";
 
   private refreshTask: Promise<void> | null = null;
-  private ensureDefaultCategoryTask: Promise<void> | null = null;
-  private todoCardItemMap: Map<number, TodoCardItem> = new Map<number, TodoCardItem>();
+  private todoItemMap: Map<number, TodoItem> = new Map<number, TodoItem>();
 
   private safeTrim(value: string): string {
     const text = `${value}`.trim();
@@ -103,6 +102,24 @@ export class TodoPageState {
 
   private normalizeId(value: number): number {
     return value > 0 ? value : 0;
+  }
+
+  private hasColorInPalette(color: string, palette: Array<string>): boolean {
+    for (let i = 0; i < palette.length; i++) {
+      if (palette[i] === color) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private pickFirstUnusedColor(usedColors: Set<string>, palette: Array<string>): string {
+    for (let i = 0; i < palette.length; i++) {
+      if (!usedColors.has(palette[i])) {
+        return palette[i];
+      }
+    }
+    return '';
   }
 
   private copyTodo(source: Todo): Todo {
@@ -125,36 +142,36 @@ export class TodoPageState {
   }
 
   private syncVisibleTodoCards(): void {
-    const nextCardMap: Map<number, TodoCardItem> = new Map<number, TodoCardItem>();
+    const nextItemMap: Map<number, TodoItem> = new Map<number, TodoItem>();
     for (let i = 0; i < this.todos.length; i++) {
       const todo = this.todos[i];
       const todoId = this.normalizeId(todo.id);
       if (todoId <= 0) {
         continue;
       }
-      let cardItem = this.todoCardItemMap.get(todoId);
-      if (cardItem === undefined) {
-        cardItem = new TodoCardItem();
+      let item = this.todoItemMap.get(todoId);
+      if (item === undefined) {
+        item = new TodoItem();
       }
-      cardItem.applyFrom(
+      item.applyFrom(
         todo,
         this.resolveTodoCardTitle(todo),
         this.resolveCategoryName(todo.categoryId),
         this.resolveCategoryColor(todo.categoryId),
       );
-      nextCardMap.set(todoId, cardItem);
+      nextItemMap.set(todoId, item);
     }
-    this.todoCardItemMap = nextCardMap;
+    this.todoItemMap = nextItemMap;
 
-    const nextVisibleCards: Array<TodoCardItem> = [];
+    const nextVisibleCards: Array<TodoItem> = [];
     for (let i = 0; i < this.visibleTodos.length; i++) {
       const todoId = this.normalizeId(this.visibleTodos[i].id);
       if (todoId <= 0) {
         continue;
       }
-      const cardItem = this.todoCardItemMap.get(todoId);
-      if (cardItem !== undefined) {
-        nextVisibleCards.push(cardItem);
+      const item = this.todoItemMap.get(todoId);
+      if (item !== undefined) {
+        nextVisibleCards.push(item);
       }
     }
     this.visibleTodoCards = nextVisibleCards;
@@ -184,7 +201,6 @@ export class TodoPageState {
   }
 
   private async refreshAllInternal(): Promise<void> {
-    await this.ensureDefaultCategories();
     await this.refreshCategories();
     await this.refreshTodos();
   }
@@ -211,15 +227,7 @@ export class TodoPageState {
       }
     }
     list.sort((a: TodoCategory, b: TodoCategory) => {
-      const aName = this.safeTrim(a.category);
-      const bName = this.safeTrim(b.category);
-      if (aName === this.defaultCategoryName && bName !== this.defaultCategoryName) {
-        return -1;
-      }
-      if (bName === this.defaultCategoryName && aName !== this.defaultCategoryName) {
-        return 1;
-      }
-      return aName.localeCompare(bName);
+      return this.safeTrim(a.category).localeCompare(this.safeTrim(b.category));
     });
 
     // 防止历史 bug 造成的同名重复分类在 UI 中多次出现（尤其是默认“学习”）。
@@ -237,7 +245,9 @@ export class TodoPageState {
       deduped.push(list[i]);
     }
 
-    // 给缺失颜色的旧数据补齐（颜色不在 UI 暴露，仅用于渲染）。
+    // 分类颜色严格与 accent 色板一一对应，缺失/重复/非法颜色会自动修复。
+    const palette = this.getCategoryColorPalette();
+    const usedColors: Set<string> = new Set<string>();
     for (let i = 0; i < deduped.length; i++) {
       const normalizedName = this.safeTrim(deduped[i].category);
       if (normalizedName.length > 0) {
@@ -245,15 +255,22 @@ export class TodoPageState {
       }
 
       const normalizedColor = this.safeTrim(deduped[i].color);
-      if (normalizedColor.length === 0) {
-        const colorPalette = this.getCategoryColorPalette();
-        deduped[i].color = colorPalette[i % colorPalette.length];
-        deduped[i].updatedAt = Date.now();
-        await this.categoryRepository.save(deduped[i]);
-        continue;
+      const colorInPalette = this.hasColorInPalette(normalizedColor, palette);
+      const colorDuplicated = colorInPalette && usedColors.has(normalizedColor);
+      let nextColor = normalizedColor;
+      if (normalizedColor.length === 0 || !colorInPalette || colorDuplicated) {
+        nextColor = this.pickFirstUnusedColor(usedColors, palette);
+        if (nextColor.length === 0) {
+          nextColor = colorInPalette ? normalizedColor : this.app.theme.palette.primary;
+        }
       }
-      if (deduped[i].color !== normalizedColor) {
-        deduped[i].color = normalizedColor;
+
+      if (nextColor.length > 0) {
+        usedColors.add(nextColor);
+      }
+
+      if (deduped[i].color !== nextColor) {
+        deduped[i].color = nextColor;
         deduped[i].updatedAt = Date.now();
         await this.categoryRepository.save(deduped[i]);
       }
@@ -284,50 +301,33 @@ export class TodoPageState {
 
   async refreshTodos(): Promise<void> {
     const list: Array<Todo> = await this.todoRepository.findAll();
-    // 强制所有待办都有合法分类：缺失或被删除的分类统一回落到默认分类（学习）。
-    if (this.categories.length === 0) {
-      await this.ensureDefaultCategories();
-      await this.refreshCategories();
-    }
     const validCategoryIds = new Set<number>(
       this.categories.map((item: TodoCategory) => this.normalizeId(item.id)),
     );
-    const defaultCategoryId = this.getDefaultCategoryId();
-    const fallbackCategoryId =
-      defaultCategoryId > 0
-        ? defaultCategoryId
-        : this.categories.length > 0
-          ? this.normalizeId(this.categories[0].id)
+    for (let i = 0; i < list.length; i++) {
+      const normalizedTitle = this.safeTrim(list[i].content);
+      if (list[i].content !== normalizedTitle) {
+        list[i].content = normalizedTitle;
+        list[i].updatedAt = Date.now();
+        await this.todoRepository.save(list[i]);
+      }
+
+      const normalizedDetail = this.safeTrim(list[i].detail);
+      if (list[i].detail !== normalizedDetail) {
+        list[i].detail = normalizedDetail;
+        list[i].updatedAt = Date.now();
+        await this.todoRepository.save(list[i]);
+      }
+
+      const normalizedCategoryId = this.normalizeId(list[i].categoryId);
+      const nextCategoryId =
+        normalizedCategoryId > 0 && validCategoryIds.has(normalizedCategoryId)
+          ? normalizedCategoryId
           : 0;
-    if (fallbackCategoryId > 0) {
-      for (let i = 0; i < list.length; i++) {
-        const normalizedTitle = this.safeTrim(list[i].content);
-        if (list[i].content !== normalizedTitle) {
-          list[i].content = normalizedTitle;
-          list[i].updatedAt = Date.now();
-          await this.todoRepository.save(list[i]);
-        }
-
-        const normalizedDetail = this.safeTrim(list[i].detail);
-        if (list[i].detail !== normalizedDetail) {
-          list[i].detail = normalizedDetail;
-          list[i].updatedAt = Date.now();
-          await this.todoRepository.save(list[i]);
-        }
-
-        const normalizedCategoryId = this.normalizeId(list[i].categoryId);
-        const invalid = normalizedCategoryId <= 0 || !validCategoryIds.has(normalizedCategoryId);
-        if (invalid) {
-          list[i].categoryId = fallbackCategoryId;
-          list[i].updatedAt = Date.now();
-          await this.todoRepository.save(list[i]);
-          continue;
-        }
-        if (list[i].categoryId !== normalizedCategoryId) {
-          list[i].categoryId = normalizedCategoryId;
-          list[i].updatedAt = Date.now();
-          await this.todoRepository.save(list[i]);
-        }
+      if (list[i].categoryId !== nextCategoryId) {
+        list[i].categoryId = nextCategoryId;
+        list[i].updatedAt = Date.now();
+        await this.todoRepository.save(list[i]);
       }
     }
     const sorted: Array<Todo> = list.slice();
@@ -336,44 +336,12 @@ export class TodoPageState {
     this.syncVisibleTodos();
   }
 
-  async ensureDefaultCategories(): Promise<void> {
-    if (this.ensureDefaultCategoryTask !== null) {
-      return this.ensureDefaultCategoryTask;
-    }
-    this.ensureDefaultCategoryTask = (async (): Promise<void> => {
-      try {
-        await this.ensureDefaultCategoriesInternal();
-      } finally {
-        this.ensureDefaultCategoryTask = null;
-      }
-    })();
-    return this.ensureDefaultCategoryTask;
+  getCategoryColorCapacity(): number {
+    return this.getCategoryColorPalette().length;
   }
 
-  private async ensureDefaultCategoriesInternal(): Promise<void> {
-    // 这里避免使用 where/exists 链式查询，规避潜在 QueryBuilder 条件残留导致的“列表消失”。
-    const existing: Array<TodoCategory> = await this.categoryRepository.findAll();
-    const hasLearning = existing.some(
-      (item: TodoCategory) => this.safeTrim(item.category) === this.defaultCategoryName,
-    );
-    if (hasLearning) {
-      return;
-    }
-
-    const now = Date.now();
-    const cat = new TodoCategory();
-    cat.category = this.defaultCategoryName;
-    cat.color = this.getCategoryColorPalette()[0];
-    cat.createdAt = now;
-    cat.updatedAt = now;
-    await this.categoryRepository.insert(cat);
-  }
-
-  getDefaultCategoryId(): number {
-    const found = this.categories.find(
-      (item: TodoCategory) => this.safeTrim(item.category) === this.defaultCategoryName,
-    );
-    return found ? this.normalizeId(found.id) : 0;
+  isCategoryColorCapacityReached(): boolean {
+    return this.categories.length >= this.getCategoryColorCapacity();
   }
 
   openCategoryEditor(): void {
@@ -382,6 +350,15 @@ export class TodoPageState {
 
   closeCategoryEditor(): void {
     this.isCategoryEditorVisible = false;
+    this.editingCategoryId = 0;
+  }
+
+  openCategoryCreate(): void {
+    this.editingCategoryId = 0;
+  }
+
+  openCategoryModify(categoryId: number): void {
+    this.editingCategoryId = this.normalizeId(categoryId);
   }
 
   selectCategory(categoryId: number): void {
@@ -457,30 +434,26 @@ export class TodoPageState {
   resolveCategoryName(categoryId: number): string {
     const resolvedId = this.normalizeId(categoryId);
     if (resolvedId <= 0) {
-      return this.defaultCategoryName;
+      return "";
     }
     const found = this.categories.find(
       (item: TodoCategory) => this.normalizeId(item.id) === resolvedId,
     );
-    return found ? found.category : this.defaultCategoryName;
+    return found ? found.category : "";
   }
 
   resolveCategoryColor(categoryId: number): string {
     const resolvedId = this.normalizeId(categoryId);
     if (resolvedId <= 0) {
-      const learning = this.categories.find(
-        (item: TodoCategory) => item.category === this.defaultCategoryName,
-      );
-      return learning ? learning.color : this.getCategoryColorPalette()[0];
+      return this.app.theme.palette.textTertiary;
     }
     const found = this.categories.find(
       (item: TodoCategory) => this.normalizeId(item.id) === resolvedId,
     );
-    return found ? found.color : this.getCategoryColorPalette()[0];
+    return found ? found.color : this.app.theme.palette.textTertiary;
   }
 
   async createTodo(title: string, detail: string, categoryId: number): Promise<boolean> {
-    await this.ensureDefaultCategories();
     if (this.categories.length === 0) {
       await this.refreshCategories();
     }
@@ -492,22 +465,11 @@ export class TodoPageState {
     const todo = new Todo();
     todo.content = trimmedTitle;
     todo.detail = trimmedDetail;
-    const defaultCategoryId = this.getDefaultCategoryId();
     const candidateId = this.normalizeId(categoryId);
     const hasCandidate =
       candidateId > 0 &&
       this.categories.some((item: TodoCategory) => this.normalizeId(item.id) === candidateId);
-    const resolvedCategoryId = hasCandidate
-      ? candidateId
-      : defaultCategoryId > 0
-        ? defaultCategoryId
-        : this.categories.length > 0
-          ? this.normalizeId(this.categories[0].id)
-          : 0;
-    if (resolvedCategoryId <= 0) {
-      return false;
-    }
-    todo.categoryId = resolvedCategoryId;
+    todo.categoryId = hasCandidate ? candidateId : 0;
     todo.isDone = 0;
     todo.inFocus = 0;
     todo.timestamp = Date.now();
@@ -608,7 +570,6 @@ export class TodoPageState {
   }
 
   async updateTodoCategory(todoId: number, categoryId: number): Promise<void> {
-    await this.ensureDefaultCategories();
     if (this.categories.length === 0) {
       await this.refreshCategories();
     }
@@ -622,16 +583,7 @@ export class TodoPageState {
     const valid =
       candidateId > 0 &&
       this.categories.some((item: TodoCategory) => this.normalizeId(item.id) === candidateId);
-    const fallbackCategoryId =
-      this.getDefaultCategoryId() > 0
-        ? this.getDefaultCategoryId()
-        : this.categories.length > 0
-          ? this.normalizeId(this.categories[0].id)
-          : 0;
-    const resolvedCategoryId = valid ? candidateId : fallbackCategoryId;
-    if (resolvedCategoryId <= 0) {
-      return;
-    }
+    const resolvedCategoryId = valid ? candidateId : 0;
 
     const now = Date.now();
     let targetTodo: Todo | null = null;
@@ -712,20 +664,38 @@ export class TodoPageState {
   }
 
   async addCategory(name: string): Promise<boolean> {
-    await this.ensureDefaultCategories();
     const trimmed = this.safeTrim(name);
     if (trimmed.length === 0) {
       return false;
     }
+
+    await this.refreshCategories();
+
     // 同名不重复创建：不使用 where/exists，避免 QueryBuilder 条件残留。
-    const existing: Array<TodoCategory> = await this.categoryRepository.findAll();
-    const exists = existing.some((item: TodoCategory) => this.safeTrim(item.category) === trimmed);
+    const existing: Array<TodoCategory> = this.categories.slice();
+    const existingNameSet: Set<string> = new Set<string>();
+    for (let i = 0; i < existing.length; i++) {
+      const normalizedName = this.safeTrim(existing[i].category);
+      if (normalizedName.length > 0) {
+        existingNameSet.add(normalizedName);
+      }
+    }
+    if (existing.length >= this.getCategoryColorCapacity()) {
+      return false;
+    }
+    const exists = existingNameSet.has(trimmed);
     if (exists) {
       return false;
     }
+
+    const nextColor = this.pickColorForNewCategory(existing);
+    if (nextColor.length === 0) {
+      return false;
+    }
+
     const cat = new TodoCategory();
     cat.category = trimmed;
-    cat.color = this.pickColorForNewCategory();
+    cat.color = nextColor;
     cat.createdAt = Date.now();
     cat.updatedAt = Date.now();
     const ok = await this.categoryRepository.insert(cat);
@@ -736,24 +706,38 @@ export class TodoPageState {
     return true;
   }
 
-  async updateCategoryName(categoryId: number, name: string): Promise<void> {
+  async updateCategoryName(categoryId: number, name: string): Promise<boolean> {
     const normalizedId = this.normalizeId(categoryId);
     const trimmed = this.safeTrim(name);
     if (normalizedId <= 0 || trimmed.length === 0) {
-      return;
+      return false;
     }
+
+    await this.refreshCategories();
+
+    const duplicated = this.categories.some((item: TodoCategory) => {
+      const itemId = this.normalizeId(item.id);
+      return itemId !== normalizedId && this.safeTrim(item.category) === trimmed;
+    });
+    if (duplicated) {
+      return false;
+    }
+
     const category = await this.categoryRepository.findById(normalizedId);
     if (!category) {
-      return;
+      return false;
     }
+
     const currentName = this.safeTrim(category.category);
     if (currentName === trimmed) {
-      return;
+      return true;
     }
+
     category.category = trimmed;
     category.updatedAt = Date.now();
     await this.categoryRepository.save(category);
     await this.refreshCategories();
+    return true;
   }
 
   async removeCategory(categoryId: number, cascadeDeleteTodos: boolean = false): Promise<boolean> {
@@ -761,19 +745,14 @@ export class TodoPageState {
     if (normalizedId <= 0) {
       return false;
     }
-    await this.ensureDefaultCategories();
-    if (this.categories.length === 0) {
-      await this.refreshCategories();
-    }
 
-    const removing = this.categories.find(
+    let removing: TodoCategory | null = this.categories.find(
       (item: TodoCategory) => this.normalizeId(item.id) === normalizedId,
-    );
+    ) ?? null;
     if (!removing) {
-      return false;
+      removing = await this.categoryRepository.findById(normalizedId);
     }
-    if (this.safeTrim(removing.category) === this.defaultCategoryName) {
-      // 保留默认“学习”分类，保证至少存在一个分类。
+    if (!removing) {
       return false;
     }
 
@@ -785,20 +764,12 @@ export class TodoPageState {
         }
       }
     } else {
-      const fallbackCategoryId =
-        this.getDefaultCategoryId() > 0
-          ? this.getDefaultCategoryId()
-          : this.categories.length > 0
-            ? this.categories[0].id
-            : 0;
-      if (fallbackCategoryId > 0) {
-        const todos = await this.todoRepository.findAll();
-        for (let i = 0; i < todos.length; i++) {
-          if (this.normalizeId(todos[i].categoryId) === normalizedId) {
-            todos[i].categoryId = fallbackCategoryId;
-            todos[i].updatedAt = Date.now();
-            await this.todoRepository.save(todos[i]);
-          }
+      const todos = await this.todoRepository.findAll();
+      for (let i = 0; i < todos.length; i++) {
+        if (this.normalizeId(todos[i].categoryId) === normalizedId) {
+          todos[i].categoryId = 0;
+          todos[i].updatedAt = Date.now();
+          await this.todoRepository.save(todos[i]);
         }
       }
     }
@@ -981,10 +952,21 @@ export class TodoPageState {
     return this.todos.length;
   }
 
-  private pickColorForNewCategory(): string {
-    const index = this.categories.length;
+  private pickColorForNewCategory(existingCategories: Array<TodoCategory>): string {
     const colorPalette = this.getCategoryColorPalette();
-    return colorPalette[index % colorPalette.length];
+    if (colorPalette.length === 0) {
+      return this.app.theme.palette.primary;
+    }
+
+    const usedColors: Set<string> = new Set<string>();
+    for (let i = 0; i < existingCategories.length; i++) {
+      const normalizedColor = this.safeTrim(existingCategories[i].color);
+      if (this.hasColorInPalette(normalizedColor, colorPalette)) {
+        usedColors.add(normalizedColor);
+      }
+    }
+
+    return this.pickFirstUnusedColor(usedColors, colorPalette);
   }
 
   resetForReload(): void {
@@ -1001,12 +983,12 @@ export class TodoPageState {
     this.isCategoryEditorVisible = false;
     this.isTodoEditorVisible = false;
     this.isTodoDetailVisible = false;
+    this.editingCategoryId = 0;
     this.editingTodoId = 0;
     this.undoTasks = [];
     this.pendingRestoreMoveTodoIds = [];
     this.refreshTask = null;
-    this.ensureDefaultCategoryTask = null;
-    this.todoCardItemMap = new Map<number, TodoCardItem>();
+    this.todoItemMap = new Map<number, TodoItem>();
   }
 
   clearListCache(): void {
@@ -1015,8 +997,7 @@ export class TodoPageState {
     this.visibleTodos = [];
     this.visibleTodoCards = [];
     this.refreshTask = null;
-    this.ensureDefaultCategoryTask = null;
-    this.todoCardItemMap = new Map<number, TodoCardItem>();
+    this.todoItemMap = new Map<number, TodoItem>();
   }
 }
 

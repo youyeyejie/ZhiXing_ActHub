@@ -256,6 +256,7 @@ export struct SettingsPanel {
           .fontColor(this.app.theme.palette.textPrimary)
           .layoutWeight(1)
         Toggle({ type: ToggleType.Switch, isOn: $$this.notificationEnabled })
+          .selectedColor(this.app.theme.palette.primary)
           .onChange(async (value: boolean) => {
             const success = await this.handleNotificationToggle(value);
             if (!success) {
@@ -274,6 +275,7 @@ export struct SettingsPanel {
           .fontColor(this.app.theme.palette.textPrimary)
           .layoutWeight(1)
         Toggle({ type: ToggleType.Switch, isOn: this.reminderEnabled })
+          .selectedColor(this.app.theme.palette.primary)
           .onChange(async (value: boolean) => {
             await this.handleReminderToggle(value);
           })

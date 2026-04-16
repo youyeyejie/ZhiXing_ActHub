@@ -222,6 +222,147 @@ export struct SearchPage {
     this.onRequestDismiss();
   }
 
+  private normalizeText(value: string): string {
+    const text = `${value}`.trim();
+    if (text === "undefined" || text === "null") {
+      return "";
+    }
+    return text;
+  }
+
+  private hasDisplayText(value: string): boolean {
+    return this.normalizeText(value).length > 0;
+  }
+
+  private joinDisplayParts(first: string, second: string): string {
+    const parts: Array<string> = [];
+    const firstPart = this.normalizeText(first);
+    const secondPart = this.normalizeText(second);
+    if (firstPart.length > 0) {
+      parts.push(firstPart);
+    }
+    if (secondPart.length > 0) {
+      parts.push(secondPart);
+    }
+    return parts.join(" · ");
+  }
+
+  private resolvePlanSecondaryText(item: SearchResultItem): string {
+    return this.joinDisplayParts(item.timeText, item.locationText);
+  }
+
+  private resolveTodoSecondaryText(item: SearchResultItem): string {
+    return this.joinDisplayParts(item.categoryText, item.statusText);
+  }
+
+  private hasKeyword(): boolean {
+    return this.keyword.trim().length > 0;
+  }
+
+  private resolveHintText(): string {
+    if (this.searching) {
+      return "搜索中...";
+    }
+    if (!this.hasKeyword()) {
+      return "输入关键字开始搜索";
+    }
+    return "没有匹配结果";
+  }
+
+  @Builder
+  private buildTitleLine(value: string) {
+    Text(value)
+      .fontSize(15)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(this.app.theme.palette.textSecondary)
+      .maxLines(1)
+      .textOverflow({ overflow: TextOverflow.Ellipsis })
+      .width("100%")
+  }
+
+  @Builder
+  private buildMinorLine(value: string, maxLines: number) {
+    Text(value)
+      .fontSize(12)
+      .fontColor(this.app.theme.palette.textTertiary)
+      .maxLines(maxLines)
+      .textOverflow({ overflow: TextOverflow.Ellipsis })
+      .width("100%")
+  }
+
+  @Builder
+  private buildTitleLineIfPresent(value: string) {
+    if (this.hasDisplayText(value)) {
+      this.buildTitleLine(this.normalizeText(value));
+    }
+  }
+
+  @Builder
+  private buildDescriptionLine(value: string) {
+    if (this.hasDisplayText(value)) {
+      this.buildMinorLine(this.normalizeText(value), 3);
+    }
+  }
+
+  @Builder
+  private buildSecondaryLine(value: string) {
+    if (this.hasDisplayText(value)) {
+      this.buildMinorLine(this.normalizeText(value), 2);
+    }
+  }
+
+  @Builder
+  private buildPlanResult(item: SearchResultItem) {
+    Column({ space: 4 }) {
+      this.buildTitleLineIfPresent(item.title);
+      this.buildSecondaryLine(this.resolvePlanSecondaryText(item));
+      this.buildDescriptionLine(item.descriptionText);
+    }
+    .width("100%")
+  }
+
+  @Builder
+  private buildTodoResult(item: SearchResultItem) {
+    Column({ space: 4 }) {
+      this.buildTitleLineIfPresent(item.title);
+      this.buildSecondaryLine(this.resolveTodoSecondaryText(item));
+      this.buildDescriptionLine(item.descriptionText);
+    }
+    .width("100%")
+  }
+
+  @Builder
+  private buildIdeaResult(item: SearchResultItem) {
+    Column({ space: 4 }) {
+      this.buildTitleLineIfPresent(item.title);
+      this.buildDescriptionLine(item.descriptionText);
+    }
+    .width("100%")
+  }
+
+  @Builder
+  private buildDefaultResult(item: SearchResultItem) {
+    Column({ space: 4 }) {
+      this.buildTitleLineIfPresent(item.title);
+      this.buildSecondaryLine(item.subtitle);
+      this.buildDescriptionLine(item.descriptionText);
+    }
+    .width("100%")
+  }
+
+  @Builder
+  private buildResultItem(item: SearchResultItem) {
+    if (item.scope === SearchScope.Plan) {
+      this.buildPlanResult(item);
+    } else if (item.scope === SearchScope.Todo) {
+      this.buildTodoResult(item);
+    } else if (item.scope === SearchScope.Idea) {
+      this.buildIdeaResult(item);
+    } else {
+      this.buildDefaultResult(item);
+    }
+  }
+
   /**
    * 渲染搜索输入框与结果列表。
    */
@@ -229,14 +370,8 @@ export struct SearchPage {
     Stack({ alignContent: Alignment.Top }) {
       Column({ space: 12 }) {
           Search({ value: this.keyword, placeholder: this.resolvePlaceholder() })
-            .searchIcon({
-              src: $r("sys.media.ohos_ic_public_search_filled"),
-            })
             .cancelButton({
-              style: CancelButtonStyle.CONSTANT,
-              icon: {
-                src: $r("sys.media.ohos_ic_public_cancel_filled"),
-              },
+              style: CancelButtonStyle.INPUT,
             })
             .width("90%")
             .height(44)
@@ -257,24 +392,20 @@ export struct SearchPage {
 
         Scroll() {
           Column({ space: 10 }) {
-            if (this.searching) {
-              Text("搜索中...").fontSize(13).fontColor(this.app.theme.palette.textTertiary);
-            } else if (this.resultList.length === 0) {
-              Text("没有匹配结果").fontSize(13).fontColor(this.app.theme.palette.textTertiary);
+            if (this.searching || this.resultList.length === 0) {
+              Column() {
+                Text(this.resolveHintText())
+                  .fontSize(13)
+                  .fontColor(this.app.theme.palette.textTertiary)
+                  .textAlign(TextAlign.Center)
+              }
+              .width("100%")
+              .alignItems(HorizontalAlign.Center)
+              .padding({ top: 28, bottom: 24 })
             } else {
               ForEach(this.resultList, (item: SearchResultItem) => {
-                Column({ space: 4 }) {
-                  Text(item.title)
-                    .fontSize(15)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor(this.app.theme.palette.textPrimary)
-                    .width("100%")
-                  Text(item.subtitle)
-                    .fontSize(12)
-                    .fontColor(this.app.theme.palette.textSecondary)
-                    .maxLines(2)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-                    .width("100%")
+                Column({ space: 6 }) {
+                  this.buildResultItem(item);
                 }
                 .width("100%")
                 .padding(12)
