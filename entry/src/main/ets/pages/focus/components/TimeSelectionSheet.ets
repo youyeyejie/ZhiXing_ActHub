@@ -1,5 +1,7 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 import promptAction from '@ohos.promptAction';
+import { common } from '@kit.AbilityKit'; 
+import { PlayerState } from '../../../core/services/WhiteNoisePlayer'; 
 
 /**
  * 组件功能简介：
@@ -117,7 +119,19 @@ export struct TimeSelectionSheet {
     .backgroundColor(this.isNoiseSelected(file) ? this.app.theme.palette.primary : this.app.theme.palette.surfaceSecondary)
     .borderRadius(12)
     .onClick(() => {
-      this.app.whiteNoisePlayer.selectedTrack = this.isNoiseSelected(file) ? '' : file;
+      // 🌟 修改点 1：如果点击的已经是当前选中的白噪音，直接返回，不再允许取消选中
+      if (this.isNoiseSelected(file)) {
+        return;
+      }
+
+      // 🌟 修改点 2：确定是选择了新的白噪音后，直接赋新值给全局状态
+      this.app.whiteNoisePlayer.selectedTrack = file;
+
+      // 🌟 修改点 3：如果当前白噪音正在播放，直接无缝切歌
+      if (this.app.whiteNoisePlayer.state === PlayerState.PLAYING) {
+        const context = getContext(this) as common.UIAbilityContext;
+        this.app.whiteNoisePlayer.playWhiteNoise(context, file);
+      }
     })
   }
 

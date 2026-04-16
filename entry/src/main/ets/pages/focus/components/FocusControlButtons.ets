@@ -40,11 +40,19 @@ export struct FocusControlButtons {
 
   private handleWhiteNoiseClick(): void {
     const player = this.app.whiteNoisePlayer;
+    
     if (player.state === PlayerState.PLAYING) {
       player.pause();
     } else if (player.state === PlayerState.PAUSED) {
-      player.resume();
+      // 校验偏好设置与底层缓存是否一致
+      if (player.selectedTrack !== player.currentTrackName) {
+        const context = getContext(this) as common.UIAbilityContext;
+        player.playWhiteNoise(context, player.selectedTrack);
+      } else {
+        player.resume();
+      }
     } else {
+      // IDLE 或 STOPPED 状态，直接播放新歌
       const context = getContext(this) as common.UIAbilityContext;
       player.playWhiteNoise(context, player.selectedTrack);
     }
@@ -143,7 +151,6 @@ export struct FocusControlButtons {
       .gesture(
         LongPressGesture({ repeat: false, duration: 400 })
           .onAction(() => {
-            // 🌟 唤出卡片，假设 AppNav 已支持传递高度，传入 'auto' 使其自适应包袱内容
             this.app.nav.openDetailCard(() => { this.buildNoiseSelector() }, 'auto');
           })
       )
