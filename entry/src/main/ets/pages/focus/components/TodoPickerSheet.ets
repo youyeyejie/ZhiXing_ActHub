@@ -216,12 +216,13 @@ export struct TodoPickerSheet {
           .fontColor(this.app.theme.palette.textPrimary)
           .layoutWeight(1);
 
-        Button("取消")
+        Button("清除选择")
           .type(ButtonType.Capsule)
           .height(40)
           .backgroundColor(this.app.theme.palette.surfaceSecondary)
           .fontColor(this.app.theme.palette.textSecondary)
           .onClick(() => {
+            this.app.focusEngine.setRelatedTodo(0)
             this.app.nav.back(false);
           });
       }
