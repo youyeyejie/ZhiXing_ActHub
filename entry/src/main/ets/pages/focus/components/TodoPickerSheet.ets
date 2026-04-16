@@ -10,7 +10,7 @@ import { TodoPickerStyle } from './TodoPickerStyle';
  * - 样式可由TodoPickerStyle.ets修改
  *
  * 可传入项：
- * - 无显式 @Param 传参（组件完全依赖并消费全局的 AppState 和 TodoPageState）。
+ * - 无显式 @Param 传参。
  *
  * 返回行为：
  * - 渲染包含标题栏和“取消”按钮的顶部控制区。
@@ -43,7 +43,6 @@ export struct TodoPickerSheet {
     try {
       this.isLoading = true;
       const repository = new TodoRepository();
-      
       this.todos = await repository.getUnfinishedTodos();
       
       if (this.app.focusEngine.hasTodo()) {
@@ -67,8 +66,6 @@ export struct TodoPickerSheet {
     this.app.focusEngine.setRelatedTodo(todoId);
     this.app.nav.back(false);
   }
-
-  // --- 样式解析辅助方法 ---
 
   private normalizeText(value: string): string {
     const text = `${value}`.trim();
@@ -95,8 +92,6 @@ export struct TodoPickerSheet {
     return this.app.theme.palette.surfaceSecondary;
   }
 
-  // --- UI 构建方法 ---
-
   @Builder
   private renderLoading(): void {
     Column({ space: TodoPickerStyle.COLUMN_SPACE_LARGE }) {
@@ -105,13 +100,12 @@ export struct TodoPickerSheet {
         .height(40)
         .style({ strokeWidth: 4 });
       Text('加载待办中...')
-        .fontSize(TodoPickerStyle.TITLE_FONT_SIZE) // 近似原14
+        .fontSize(TodoPickerStyle.TITLE_FONT_SIZE)
         .fontColor(this.app.theme.palette.textSecondary);
     }
     .width('100%')
-    .height('100%')
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center);
+    .padding({ top: 40, bottom: 40 })
+    .justifyContent(FlexAlign.Start);
   }
 
   @Builder
@@ -125,9 +119,8 @@ export struct TodoPickerSheet {
         .fontColor(this.app.theme.palette.textTertiary);
     }
     .width('100%')
-    .height('100%')
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center);
+    .padding({ top: 40, bottom: 40 })
+    .justifyContent(FlexAlign.Start);
   }
 
   @Builder
@@ -180,14 +173,12 @@ export struct TodoPickerSheet {
   private renderTodoList(): void {
     Scroll() {
       Column({ space: TodoPickerStyle.COLUMN_SPACE_LARGE }) {
-        
         if (this.app.focusEngine.hasTodo() && this.currentTodo) {
           Text("当前选择")
             .fontSize(TodoPickerStyle.SUB_HEADER_FONT_SIZE)
             .fontWeight(FontWeight.Medium)
             .fontColor(this.app.theme.palette.textPrimary)
             .width('100%') 
-
           this.buildTodoCard(this.currentTodo, true);
         }
         
@@ -208,7 +199,7 @@ export struct TodoPickerSheet {
     }
     .scrollBar(BarState.Off)
     .width('100%')
-    .layoutWeight(1)
+    .flexShrink(1) 
   }
 
   build() {
@@ -232,7 +223,6 @@ export struct TodoPickerSheet {
       .width("100%")
       .alignItems(VerticalAlign.Center)
 
-      // 内容区域
       if (this.isLoading) {
         this.renderLoading();
       } else if (this.todos.length === 0 && !this.app.focusEngine.hasTodo()) {
@@ -242,6 +232,9 @@ export struct TodoPickerSheet {
       }
     }
     .width("100%")
-    .height("100%")
+    .justifyContent(FlexAlign.Start)
+    .constraintSize({ maxHeight: '85%' }) 
+    .padding({ bottom: 20 }) 
+    .flexShrink(1) 
   }
 }
