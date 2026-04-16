@@ -127,6 +127,8 @@ export class ImportExportService {
         importedCount += 1;
       }
 
+      await usePlanPageState().refreshAll();
+
       return new ImportExportResult(true, `ICS 导入完成，新增 ${importedCount} 条课程`);
     } catch (error) {
       this.showError('导入 ICS 失败', error);

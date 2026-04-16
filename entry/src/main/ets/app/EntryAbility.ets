@@ -1,14 +1,21 @@
-import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
-import { window } from '@kit.ArkUI';
-import { AppDatabase } from '../core/database/AppDatabase';
-import { UserDatabase } from '../core/database/UserDatabase';
-import { AppSettingRepository } from '../core/repositories/AppSettingRepository';
-import { UserPreferenceRepository } from '../core/repositories/UserPreferenceRepository';
-import { UserRepository } from '../core/repositories/UserRepository';
-import { StatusBarService } from '../core/services/StatusBarService';
-import { ThemeMode } from '../core/theme/ThemeManager';
-import { useAppState } from './AppStates';
-import { AppPreferenceKey } from './AppConstants';
+import {
+  AbilityConstant,
+  Configuration,
+  ConfigurationConstant,
+  UIAbility,
+  Want,
+} from "@kit.AbilityKit";
+import { window } from "@kit.ArkUI";
+import { AppDatabase } from "../core/database/AppDatabase";
+import { UserDatabase } from "../core/database/UserDatabase";
+import { AppSettingRepository } from "../core/repositories/AppSettingRepository";
+import { UserPreferenceRepository } from "../core/repositories/UserPreferenceRepository";
+import { UserRepository } from "../core/repositories/UserRepository";
+import { CalendarReminderService } from "../core/services/CalendarReminderService";
+import { StatusBarService } from "../core/services/StatusBarService";
+import { ThemeMode } from "../core/theme/ThemeManager";
+import { useAppState } from "./AppStates";
+import { AppPreferenceKey } from "./AppConstants";
 
 export default class EntryAbility extends UIAbility {
   private app = useAppState();
@@ -29,17 +36,16 @@ export default class EntryAbility extends UIAbility {
 
   private syncTheme(colorMode: ConfigurationConstant.ColorMode | undefined): void {
     const inMemoryValue: Object | undefined = AppStorage.get(AppPreferenceKey.PREFERRED_THEME_MODE);
-    const mode: ThemeMode = typeof inMemoryValue === 'string'
-      ? this.normalizeThemeMode(inMemoryValue)
-      : ThemeMode.SYSTEM;
+    const mode: ThemeMode =
+      typeof inMemoryValue === "string" ? this.normalizeThemeMode(inMemoryValue) : ThemeMode.SYSTEM;
     this.app.applyThemePreference(mode, this.isSystemDarkMode(colorMode));
   }
 
   private async resolveLaunchThemeMode(): Promise<ThemeMode> {
     try {
       const settings: AppSettingRepository = new AppSettingRepository();
-      const loggedIn: boolean = await settings.getBoolean('session.logged_in', false);
-      const username: string = await settings.getString('session.username', '');
+      const loggedIn: boolean = await settings.getBoolean("session.logged_in", false);
+      const username: string = await settings.getString("session.username", "");
       if (!loggedIn || username.trim().length === 0) {
         return ThemeMode.SYSTEM;
       }
@@ -62,19 +68,21 @@ export default class EntryAbility extends UIAbility {
 
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     try {
-      this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
+      this.context
+        .getApplicationContext()
+        .setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
     } catch (_err) {}
 
     AppStorage.setOrCreate(AppPreferenceKey.PREFERRED_THEME_MODE, ThemeMode.SYSTEM);
-    AppStorage.setOrCreate('currentColorMode', this.context.config.colorMode);
-    AppStorage.setOrCreate('systemDarkMode', this.isSystemDarkMode(this.context.config.colorMode));
+    AppStorage.setOrCreate("currentColorMode", this.context.config.colorMode);
+    AppStorage.setOrCreate("systemDarkMode", this.isSystemDarkMode(this.context.config.colorMode));
     this.syncTheme(this.context.config.colorMode);
     this.app.enterSplash();
   }
 
   onConfigurationUpdate(newConfig: Configuration): void {
-    AppStorage.set('currentColorMode', newConfig.colorMode);
-    AppStorage.set('systemDarkMode', this.isSystemDarkMode(newConfig.colorMode));
+    AppStorage.set("currentColorMode", newConfig.colorMode);
+    AppStorage.set("systemDarkMode", this.isSystemDarkMode(newConfig.colorMode));
     this.syncTheme(newConfig.colorMode);
   }
 
@@ -86,10 +94,10 @@ export default class EntryAbility extends UIAbility {
       StatusBarService.bindMainWindow(mainWindow);
       mainWindow.setWindowLayoutFullScreen(true);
       mainWindow.setWindowSystemBarProperties({
-        statusBarColor: '#00000000',
-        navigationBarColor: '#00000000',
-        statusBarContentColor: '#18222F',
-        navigationBarContentColor: '#18222F'
+        statusBarColor: "#00000000",
+        navigationBarColor: "#00000000",
+        statusBarContentColor: "#18222F",
+        navigationBarContentColor: "#18222F",
       });
     } catch (_err) {
       return;
@@ -101,11 +109,17 @@ export default class EntryAbility extends UIAbility {
         const preferredThemeMode: ThemeMode = await this.resolveLaunchThemeMode();
         AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, preferredThemeMode);
         this.syncTheme(this.context.config.colorMode);
-        windowStage.loadContent('app/App', (err) => {
+
+        const calendarReminderService = new CalendarReminderService();
+        calendarReminderService.registerPlanReminder();
+
+        windowStage.loadContent("app/App", (err) => {
           if (err.code) {
             return;
           }
-          this.app.tryRequestNotificationPermissionOnLaunch(this.context).catch((_requestError: Error) => {});
+          this.app
+            .tryRequestNotificationPermissionOnLaunch(this.context)
+            .catch((_requestError: Error) => {});
         });
       })
       .catch((_err: Error): void => {});

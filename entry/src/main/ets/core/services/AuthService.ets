@@ -93,12 +93,12 @@ export class AuthService {
       '',
     );
     if (notificationFlag.length === 0) {
-    } else {
-      await this.userPreferenceRepository.setBoolean(
-        AppPreferenceKey.NOTIFICATION_ENABLED,
-        notificationFlag === '1',
-      );
+      notificationFlag = '1';
     }
+    await this.userPreferenceRepository.setBoolean(
+      AppPreferenceKey.NOTIFICATION_ENABLED,
+      notificationFlag === '1',
+    );
 
     let reminderFlag: string = await this.userPreferenceRepository.getString(
       AppPreferenceKey.PLAN_REMINDER_ENABLED,

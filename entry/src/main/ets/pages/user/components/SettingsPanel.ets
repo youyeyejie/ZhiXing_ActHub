@@ -2,6 +2,7 @@ import promptAction from "@ohos.promptAction";
 import { common } from "@kit.AbilityKit";
 import { AppState, useAppState } from "../../../app/AppStates";
 import { AppPreferenceKey } from "../../../app/AppConstants";
+import { CalendarReminderService } from "../../../core/services/CalendarReminderService";
 import { NotificationService } from "../../../core/services/NotificationService";
 import { UserPreferenceRepository } from "../../../core/repositories/UserPreferenceRepository";
 import {
@@ -18,7 +19,7 @@ export struct SettingsPanel {
   @Event onLogoutTap: () => void = () => {};
 
   private userPreferenceRepository: UserPreferenceRepository = new UserPreferenceRepository();
-  private notificationService: NotificationService = new NotificationService();
+  private calendarReminderService: CalendarReminderService = new CalendarReminderService();
   private importExportService: ImportExportService = new ImportExportService();
 
   aboutToAppear(): void {
@@ -43,14 +44,26 @@ export struct SettingsPanel {
   }
 
   private async handleReminderToggle(enabled: boolean): Promise<void> {
-    this.reminderEnabled = enabled;
-    await this.userPreferenceRepository.setBoolean(AppPreferenceKey.PLAN_REMINDER_ENABLED, enabled);
     if (enabled) {
-      await this.notificationService.registerPlanReminder();
+      const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      const granted = await this.calendarReminderService.requestCalendarPermission(context);
+      if (!granted) {
+        this.reminderEnabled = false;
+        await this.userPreferenceRepository.setBoolean(AppPreferenceKey.PLAN_REMINDER_ENABLED, false);
+        this.safeToast("日历权限未开启，请在系统设置里设置");
+        return;
+      }
+
+      this.reminderEnabled = true;
+      await this.userPreferenceRepository.setBoolean(AppPreferenceKey.PLAN_REMINDER_ENABLED, true);
+      await this.calendarReminderService.registerPlanReminder();
       this.safeToast("日程提醒已开启");
       return;
     }
-    await this.notificationService.cancelPlanReminder();
+
+    this.reminderEnabled = false;
+    await this.userPreferenceRepository.setBoolean(AppPreferenceKey.PLAN_REMINDER_ENABLED, false);
+    await this.calendarReminderService.cancelPlanReminder();
     this.safeToast("日程提醒已关闭");
   }
 
@@ -59,22 +72,23 @@ export struct SettingsPanel {
       this.notificationEnabled = false;
       await this.userPreferenceRepository.setBoolean(AppPreferenceKey.NOTIFICATION_ENABLED, false);
       NotificationService.cancelFocusNotification();
-      this.safeToast("系统通知已关闭");
+      this.safeToast("专注通知已关闭");
       return true;
     }
 
     const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
     const granted = await NotificationService.requestNotificationPermission(context);
-    if (granted) {
-      this.notificationEnabled = true;
-      await this.userPreferenceRepository.setBoolean(AppPreferenceKey.NOTIFICATION_ENABLED, true);
-      this.safeToast("系统通知已开启");
-      return true;
+    if (!granted) {
+      this.notificationEnabled = false;
+      await this.userPreferenceRepository.setBoolean(AppPreferenceKey.NOTIFICATION_ENABLED, false);
+      this.safeToast("通知权限未开启，请在系统设置里设置");
+      return false;
     }
-    this.notificationEnabled = false;
-    await this.userPreferenceRepository.setBoolean(AppPreferenceKey.NOTIFICATION_ENABLED, false);
-    this.safeToast("通知权限未开启，请在系统设置里设置");
-    return false;
+
+    this.notificationEnabled = true;
+    await this.userPreferenceRepository.setBoolean(AppPreferenceKey.NOTIFICATION_ENABLED, true);
+    this.safeToast("专注通知已开启");
+    return true;
   }
 
   private async runImportExportAction(index: number): Promise<void> {
@@ -95,11 +109,25 @@ export struct SettingsPanel {
       } else {
         result = await this.importExportService.exportCourseIcs(context, this.app);
       }
+      await this.syncReminderStateAfterImportExport(index, result);
       this.safeToast(result.message);
     } catch (_error) {
       this.safeToast("操作失败，请稍后重试");
     } finally {
       this.importExportRunning = false;
+    }
+  }
+
+  private async syncReminderStateAfterImportExport(
+    index: number,
+    result: ImportExportResult,
+  ): Promise<void> {
+    if (!result.success) {
+      return;
+    }
+
+    if (index === 2) {
+      await this.app.syncCalendarRemindersForCurrentUser();
     }
   }
 
@@ -222,7 +250,7 @@ export struct SettingsPanel {
         .fontWeight(FontWeight.Medium)
         .fontColor(this.app.theme.palette.textPrimary)
       Row({ space: 12 }) {
-        Text("系统通知")
+        Text("专注通知")
           .fontSize(15)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.textPrimary)
@@ -240,7 +268,7 @@ export struct SettingsPanel {
       .borderRadius(18)
       .backgroundColor(this.app.theme.palette.surfaceSecondary)
       Row({ space: 12 }) {
-        Text("日程提醒通知")
+        Text("日历提醒")
           .fontSize(15)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.textPrimary)

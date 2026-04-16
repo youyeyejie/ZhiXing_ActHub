@@ -1,7 +1,7 @@
-import { Plan } from '../../core/models/Plan';
-import { PlanRepository } from '../../core/repositories/PlanRepository';
-import { NotificationService } from '../../core/services/NotificationService';
-import { UndoStackItem } from '../../components/feedback/UndoNotificationStack';
+import { Plan } from "../../core/models/Plan";
+import { PlanRepository } from "../../core/repositories/PlanRepository";
+import { CalendarReminderService } from "../../core/services/CalendarReminderService";
+import { UndoStackItem } from "../../components/feedback/UndoNotificationStack";
 
 class PlanUndoTask {
   taskId: string;
@@ -10,7 +10,13 @@ class PlanUndoTask {
   timerId: number;
   deadlineMs: number;
 
-  constructor(taskId: string, plan: Plan, originalIndex: number, timerId: number, deadlineMs: number) {
+  constructor(
+    taskId: string,
+    plan: Plan,
+    originalIndex: number,
+    timerId: number,
+    deadlineMs: number,
+  ) {
     this.taskId = taskId;
     this.plan = plan;
     this.originalIndex = originalIndex;
@@ -23,6 +29,7 @@ class PlanUndoTask {
 export class PlanPageState {
   private readonly dayMs: number = 24 * 60 * 60 * 1000;
   private planRepository: PlanRepository = new PlanRepository();
+  private calendarReminderService: CalendarReminderService = new CalendarReminderService();
 
   @Trace public selectedDate: number = 0;
   @Trace public currentWeekBase: number = 0;
@@ -32,6 +39,8 @@ export class PlanPageState {
   @Trace public isEditorVisible: boolean = false;
   @Trace public isDetailVisible: boolean = false;
   @Trace public editingPlanId: number = 0;
+  @Trace public creatingPlanId: number = 0;
+  @Trace public returnTodayRequestVersion: number = 0;
   @Trace public undoTasks: Array<PlanUndoTask> = [];
   private undoTaskSeq: number = 0;
   private refreshTask: Promise<void> | null = null;
@@ -111,6 +120,11 @@ export class PlanPageState {
     const list: Array<Plan> = await this.planRepository.findAll();
     this.plans = this.sortPlansByStartTime(list);
     this.syncVisiblePlans();
+    this.syncPlanReminder();
+  }
+
+  private syncPlanReminder(): void {
+    this.calendarReminderService.registerPlanReminder();
   }
 
   private syncVisiblePlans(): void {
@@ -144,6 +158,17 @@ export class PlanPageState {
 
   jumpToToday(): void {
     this.selectDate(Date.now());
+  }
+
+  isSelectedDateToday(): boolean {
+    return this.toDayStart(this.selectedDate) === this.toDayStart(Date.now());
+  }
+
+  requestReturnToTodayAnimated(): void {
+    if (this.isSelectedDateToday()) {
+      return;
+    }
+    this.returnTodayRequestVersion = this.returnTodayRequestVersion + 1;
   }
 
   openCreatePlan(): void {
@@ -216,7 +241,7 @@ export class PlanPageState {
     endTime: number,
     location: string,
     isCourse: number,
-    description: string
+    description: string,
   ): Promise<boolean> {
     const title = `${content}`.trim();
     if (title.length === 0) {
@@ -234,7 +259,7 @@ export class PlanPageState {
     plan.location = `${location}`.trim();
     plan.isCourse = this.normalizeSwitchFlag(isCourse);
     plan.description = `${description}`.trim();
-    plan.loopRule = '';
+    plan.loopRule = "";
     plan.reminderId = 0;
     plan.enableRemind = 0;
     plan.timestamp = now;
@@ -251,10 +276,7 @@ export class PlanPageState {
     return true;
   }
 
-  private async updatePlan(
-    planId: number,
-    updater: (plan: Plan) => boolean
-  ): Promise<boolean> {
+  private async updatePlan(planId: number, updater: (plan: Plan) => boolean): Promise<boolean> {
     const normalizedId = this.normalizeId(planId);
     if (normalizedId <= 0) {
       return false;
@@ -277,7 +299,7 @@ export class PlanPageState {
     working.updatedAt = Date.now();
     this.fillComputedFields(working);
     await this.planRepository.save(working);
-    const reminderChanged = await NotificationService.syncPlanReminderRecord(working);
+    const reminderChanged = await this.calendarReminderService.syncPlanReminderRecord(working);
     if (reminderChanged) {
       await this.planRepository.save(working);
     }
@@ -375,12 +397,18 @@ export class PlanPageState {
     const timerId = setTimeout(async (): Promise<void> => {
       await this.commitDeletePlan(taskId);
     }, 5000);
-    this.undoTasks = [...this.undoTasks, new PlanUndoTask(taskId, snapshot, originalIndex, timerId, deadlineMs)];
-    this.plans = this.sortPlansByStartTime(this.plans.filter((item: Plan) => this.normalizeId(item.id) !== normalizedId));
+    this.undoTasks = [
+      ...this.undoTasks,
+      new PlanUndoTask(taskId, snapshot, originalIndex, timerId, deadlineMs),
+    ];
+    this.plans = this.sortPlansByStartTime(
+      this.plans.filter((item: Plan) => this.normalizeId(item.id) !== normalizedId),
+    );
     if (this.normalizeId(this.editingPlanId) === normalizedId) {
       this.closePlanDetail();
     }
     this.syncVisiblePlans();
+    this.syncPlanReminder();
   }
 
   undoDelete(taskId: string): void {
@@ -398,10 +426,12 @@ export class PlanPageState {
       this.plans = this.sortPlansByStartTime([...before, task.plan, ...after]);
       if (!this.isCurrentSelectedDateCovered(task.plan)) {
         this.syncVisiblePlans();
+        this.syncPlanReminder();
         return;
       }
     }
     this.syncVisiblePlans();
+    this.syncPlanReminder();
   }
 
   async commitDeletePlan(taskId: string): Promise<void> {
@@ -415,7 +445,7 @@ export class PlanPageState {
       return;
     }
     const deletingPlan = task.plan;
-    const reminderChanged = await NotificationService.clearPlanReminderRecord(deletingPlan);
+    const reminderChanged = await this.calendarReminderService.clearPlanReminderRecord(deletingPlan);
     if (reminderChanged) {
       await this.planRepository.save(deletingPlan);
     }
@@ -442,11 +472,11 @@ export class PlanPageState {
       list.push(
         new UndoStackItem(
           task.taskId,
-          `${title.length > 0 ? title : '日程'} 已删除`,
-          '撤销',
+          `${title.length > 0 ? title : "日程"} 已删除`,
+          "撤销",
           5000,
           task.deadlineMs,
-        )
+        ),
       );
     }
     return list;
@@ -463,7 +493,9 @@ export class PlanPageState {
 
   private hasUndoTaskForPlan(planId: number): boolean {
     const normalizedId = this.normalizeId(planId);
-    return this.undoTasks.some((task: PlanUndoTask) => this.normalizeId(task.plan.id) === normalizedId);
+    return this.undoTasks.some(
+      (task: PlanUndoTask) => this.normalizeId(task.plan.id) === normalizedId,
+    );
   }
 
   private findPlanIndexById(planId: number): number {
@@ -506,7 +538,6 @@ export class PlanPageState {
     this.visiblePlans = [];
     this.refreshTask = null;
   }
-
 }
 
 const PLAN_PAGE_STATE: PlanPageState = new PlanPageState();

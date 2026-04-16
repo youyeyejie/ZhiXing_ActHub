@@ -13,9 +13,15 @@ export struct WeekCalendar {
   @Local private lastTapEventAt: number = 0;
   @Local private swiperIndex: number = 2;
   @Local private ignoreNextSwiperChange: boolean = false;
+  @Local private isReturningToToday: boolean = false;
+  @Local private pendingReturnWeekOffset: number = 0;
+  @Local private returnTargetDayStart: number = 0;
+  private returnTodayTimerId: number = -1;
   private readonly dayMs: number = 24 * 60 * 60 * 1000;
   private readonly centerSwiperIndex: number = 2;
   private readonly weekOffsets: Array<number> = [-2, -1, 0, 1, 2];
+  private readonly returnStepDurationShort: number = 500;
+  private readonly returnStepDurationLong: number = 300;
 
   private resolveWeekDays(weekOffset: number): Array<number> {
     const list: Array<number> = [];
@@ -30,6 +36,13 @@ export struct WeekCalendar {
     const date = new Date(timestamp);
     date.setHours(0, 0, 0, 0);
     return date.getTime();
+  }
+
+  private resolveWeekStart(dayStart: number): number {
+    const date = new Date(dayStart);
+    const weekday = date.getDay();
+    const mondayOffset = weekday === 0 ? 6 : weekday - 1;
+    return dayStart - mondayOffset * this.dayMs;
   }
 
   private isSelectedDay(dayTimestamp: number): boolean {
@@ -64,6 +77,106 @@ export struct WeekCalendar {
     return `${month}`;
   }
 
+  @Monitor("state.returnTodayRequestVersion")
+  onReturnTodayRequestVersionChanged(): void {
+    this.startReturnToTodayAnimation();
+  }
+
+  aboutToDisappear(): void {
+    this.stopReturnToTodayAnimation();
+  }
+
+  private clearReturnTodayTimer(): void {
+    if (this.returnTodayTimerId >= 0) {
+      clearTimeout(this.returnTodayTimerId);
+      this.returnTodayTimerId = -1;
+    }
+  }
+
+  private stopReturnToTodayAnimation(): void {
+    this.clearReturnTodayTimer();
+    this.isReturningToToday = false;
+    this.pendingReturnWeekOffset = 0;
+  }
+
+  private resolveReturnWeekOffset(todayDayStart: number): number {
+    const currentWeekBase = this.resolveWeekStart(this.toDayStart(this.state.selectedDate));
+    const todayWeekBase = this.resolveWeekStart(todayDayStart);
+    return Math.round((todayWeekBase - currentWeekBase) / (7 * this.dayMs));
+  }
+
+  private resolveReturnStepWeekOffset(remainingWeekOffset: number): number {
+    if (remainingWeekOffset > 0) {
+      return remainingWeekOffset >= 2 ? 2 : 1;
+    }
+    if (remainingWeekOffset < 0) {
+      return remainingWeekOffset <= -2 ? -2 : -1;
+    }
+    return 0;
+  }
+
+  private resolveReturnStepDuration(stepWeekOffset: number): number {
+    return Math.abs(stepWeekOffset) === 2
+      ? this.returnStepDurationLong
+      : this.returnStepDurationShort;
+  }
+
+  private finishReturnToTodayAnimation(): void {
+    const targetDayStart = this.returnTargetDayStart > 0
+      ? this.returnTargetDayStart
+      : this.toDayStart(Date.now());
+    this.stopReturnToTodayAnimation();
+    this.state.selectDate(targetDayStart);
+    this.resetSwiperToCenter();
+  }
+
+  private runReturnToTodayStep(): void {
+    if (!this.isReturningToToday) {
+      return;
+    }
+    if (this.pendingReturnWeekOffset === 0) {
+      this.finishReturnToTodayAnimation();
+      return;
+    }
+    const stepWeekOffset = this.resolveReturnStepWeekOffset(this.pendingReturnWeekOffset);
+    const targetIndex = this.centerSwiperIndex + stepWeekOffset;
+    if (targetIndex < 0 || targetIndex >= this.weekOffsets.length) {
+      this.finishReturnToTodayAnimation();
+      return;
+    }
+    const stepDuration = this.resolveReturnStepDuration(stepWeekOffset);
+    animateTo({ duration: stepDuration, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
+      this.swiperIndex = targetIndex;
+    });
+    this.pendingReturnWeekOffset = this.pendingReturnWeekOffset - stepWeekOffset;
+    this.clearReturnTodayTimer();
+    this.returnTodayTimerId = setTimeout(() => {
+      this.returnTodayTimerId = -1;
+      this.runReturnToTodayStep();
+    }, stepDuration + 40);
+  }
+
+  private startReturnToTodayAnimation(): void {
+    if (this.isReturningToToday) {
+      return;
+    }
+    const todayDayStart = this.toDayStart(Date.now());
+    if (this.toDayStart(this.state.selectedDate) === todayDayStart) {
+      this.state.jumpToToday();
+      this.resetSwiperToCenter();
+      return;
+    }
+    this.returnTargetDayStart = todayDayStart;
+    this.pendingReturnWeekOffset = this.resolveReturnWeekOffset(todayDayStart);
+    if (this.pendingReturnWeekOffset === 0) {
+      this.state.selectDate(todayDayStart);
+      this.resetSwiperToCenter();
+      return;
+    }
+    this.isReturningToToday = true;
+    this.runReturnToTodayStep();
+  }
+
   private handleTapReturnToday(): boolean {
     const now = Date.now();
     // 去重同一次点击在父子节点触发的重复回调，避免误判为双击。
@@ -73,8 +186,7 @@ export struct WeekCalendar {
     this.lastTapEventAt = now;
     if (now - this.lastTapAt <= 320) {
       this.lastTapAt = 0;
-      this.state.jumpToToday();
-      this.resetSwiperToCenter();
+      this.startReturnToTodayAnimation();
       return true;
     }
     this.lastTapAt = now;
@@ -127,6 +239,7 @@ export struct WeekCalendar {
             ? this.app.theme.palette.primary
             : this.app.theme.palette.textSecondary,
         )
+        .animation({ duration: 280, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
       Text(`${new Date(dayTimestamp).getDate()}`)
         .fontSize(14)
         .fontWeight(this.isSelectedDay(dayTimestamp) ? FontWeight.Bold : FontWeight.Medium)
@@ -142,6 +255,7 @@ export struct WeekCalendar {
         .backgroundColor(
           this.isSelectedDay(dayTimestamp) ? this.app.theme.palette.primary : "transparent",
         )
+        .animation({ duration: 340, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
     }
     .width(40)
     .padding({ top: 4, bottom: 4 })
@@ -150,6 +264,7 @@ export struct WeekCalendar {
       if (this.handleTapReturnToday()) {
         return;
       }
+      this.stopReturnToTodayAnimation();
       this.state.selectDate(dayTimestamp);
     });
   }
@@ -194,9 +309,6 @@ export struct WeekCalendar {
       }
       .width("100%")
       .alignItems(VerticalAlign.Center)
-      Text("提示：双击日历可快速回到今天")
-        .fontSize(11)
-        .fontColor(this.app.theme.palette.textTertiary)
     }
     .width("100%")
     .padding(14)

@@ -25,6 +25,8 @@ export struct PlanEditorContent {
   @Local private initialDescription: string = '';
   @Local private isCourseDraft: number = 0;
   @Local private initialIsCourse: number = 0;
+  @Local private remindEnabledDraft: boolean = false;
+  @Local private initialRemindEnabled: boolean = false;
   @Local private startDateDraft: Date = new Date();
   @Local private startTimeDraft: Date = new Date();
   @Local private initialStartMs: number = 0;
@@ -163,6 +165,8 @@ export struct PlanEditorContent {
     this.initialDescription = '';
     this.isCourseDraft = 0;
     this.initialIsCourse = 0;
+    this.remindEnabledDraft = false;
+    this.initialRemindEnabled = false;
     this.startDateDraft = new Date(dayMs);
     this.startTimeDraft = this.buildDateWithTime(dayMs, 9, 0);
     this.endDateDraft = new Date(dayMs);
@@ -184,6 +188,8 @@ export struct PlanEditorContent {
       this.initialDescription = '';
       this.isCourseDraft = 0;
       this.initialIsCourse = 0;
+      this.remindEnabledDraft = false;
+      this.initialRemindEnabled = false;
       this.initialStartMs = 0;
       this.initialEndMs = 0;
       this.recalculateSaveEnabled();
@@ -202,6 +208,8 @@ export struct PlanEditorContent {
     this.initialDescription = this.descriptionDraft;
     this.isCourseDraft = plan.isCourse === 1 ? 1 : 0;
     this.initialIsCourse = this.isCourseDraft;
+    this.remindEnabledDraft = plan.enableRemind === 1;
+    this.initialRemindEnabled = this.remindEnabledDraft;
     this.startDateDraft = new Date(startMs);
     this.startTimeDraft = new Date(startMs);
     this.initialStartMs = startMs;
@@ -218,6 +226,7 @@ export struct PlanEditorContent {
       || this.normalizeText(this.locationDraft) !== this.initialLocation
       || this.normalizeText(this.descriptionDraft) !== this.initialDescription
       || this.isCourseDraft !== this.initialIsCourse
+      || this.remindEnabledDraft !== this.initialRemindEnabled
       || startMs !== this.initialStartMs
       || endMs !== this.initialEndMs;
   }
@@ -308,11 +317,13 @@ export struct PlanEditorContent {
       await this.state.updatePlanLocation(planId, this.normalizeText(this.locationDraft));
       await this.state.updatePlanDescription(planId, this.normalizeText(this.descriptionDraft));
       await this.state.updatePlanType(planId, this.isCourseDraft);
+      await this.state.updatePlanReminderEnabled(planId, this.remindEnabledDraft);
 
       this.initialTitle = this.normalizeText(this.titleDraft);
       this.initialLocation = this.normalizeText(this.locationDraft);
       this.initialDescription = this.normalizeText(this.descriptionDraft);
       this.initialIsCourse = this.isCourseDraft;
+      this.initialRemindEnabled = this.remindEnabledDraft;
       this.initialStartMs = startMs;
       this.initialEndMs = endMs;
       this.app.nav.back(false);
@@ -514,6 +525,31 @@ export struct PlanEditorContent {
         }, (type: number) => this.resolveTypeRenderToken(type));
       }
       .width('100%');
+
+      Row({ space: 12 }) {
+        Column({ space: 4 }) {
+          Text('提醒到系统日历')
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.app.theme.palette.textPrimary)
+          Text('开启后会按全局“日历提醒”设置同步到系统日历')
+            .fontSize(12)
+            .lineHeight(18)
+            .fontColor(this.app.theme.palette.textSecondary)
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        Toggle({ type: ToggleType.Switch, isOn: $$this.remindEnabledDraft })
+          .onChange((value: boolean) => {
+            this.remindEnabledDraft = value;
+            this.recalculateSaveEnabled();
+          })
+      }
+      .width('100%')
+      .padding(14)
+      .borderRadius(12)
+      .backgroundColor(this.app.theme.palette.surfaceSecondary);
     }
     .width('100%');
   }

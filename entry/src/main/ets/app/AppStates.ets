@@ -3,6 +3,7 @@ import { AppNav } from './AppNav';
 import { AppFlow, AppPreferenceKey } from './AppConstants';
 import { common } from '@kit.AbilityKit';
 import { AuthService } from '../core/services/AuthService';
+import { CalendarReminderService } from '../core/services/CalendarReminderService';
 import { FocusTimerEngine } from '../core/services/FocusTimerEngine';
 import { NotificationService } from '../core/services/NotificationService';
 import { WhiteNoisePlayer } from '../core/services/WhiteNoisePlayer';
@@ -37,6 +38,7 @@ export class AppState {
   private focusTimerEngine: FocusTimerEngine = new FocusTimerEngine();
   private _whiteNoisePlayer: WhiteNoisePlayer = new WhiteNoisePlayer();
   private authService: AuthService = new AuthService();
+  private calendarReminderService: CalendarReminderService = new CalendarReminderService();
   private currentUserValue: User | null = null;
   private userPreferenceRepository: UserPreferenceRepository = new UserPreferenceRepository();
 
@@ -117,6 +119,7 @@ export class AppState {
         this.applyThemePreference(ThemeMode.SYSTEM, this.readSystemDarkMode());
       }
       this.enterMain();
+      await this.syncCalendarRemindersForCurrentUser();
     } catch (_error) {
       this.applyCurrentUser(null);
       AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, ThemeMode.SYSTEM);
@@ -137,6 +140,7 @@ export class AppState {
     this.applyCurrentUser(user);
     await this.loadUserPreferences();
     this.enterMain();
+    await this.syncCalendarRemindersForCurrentUser();
     return {
       success: true,
       message: '欢迎回来，' + user.name,
@@ -155,6 +159,7 @@ export class AppState {
     this.applyCurrentUser(user);
     await this.loadUserPreferences();
     this.enterMain();
+    await this.syncCalendarRemindersForCurrentUser();
     return {
       success: true,
       message: '注册成功，' + user.name,
@@ -162,6 +167,9 @@ export class AppState {
   }
 
   async logout(): Promise<void> {
+    if (this.isLoggedIn) {
+      await this.calendarReminderService.cancelPlanReminder();
+    }
     await this.authService.logout();
     this.applyCurrentUser(null);
     AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, ThemeMode.SYSTEM);
@@ -187,6 +195,13 @@ export class AppState {
 
   enterMain(): void {
     this.flow = AppFlow.MAIN;
+  }
+
+  async syncCalendarRemindersForCurrentUser(): Promise<void> {
+    if (!this.isLoggedIn) {
+      return;
+    }
+    await this.calendarReminderService.registerPlanReminder();
   }
 
   private applyCurrentUser(user: User | null): void {
