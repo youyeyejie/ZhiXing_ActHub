@@ -79,6 +79,10 @@ export struct PlanCardListItem {
     return this.plan.isCourse === 1 ? "课程" : "日程";
   }
 
+  private isReminderEnabled(): boolean {
+    return this.plan.enableRemind === 1;
+  }
+
   private markSwipeActionTriggered(): void {
     this.suppressDetailOpenUntil = Date.now() + 280;
   }
@@ -137,6 +141,11 @@ export struct PlanCardListItem {
         .alignItems(VerticalAlign.Center)
 
         Row({ space: 8 }) {
+          if (this.isReminderEnabled()) {
+            SymbolGlyph($r('sys.symbol.bell_fill'))
+              .fontSize(12)
+              .fontColor([this.app.theme.palette.textSecondary]);
+          }
           Text(this.resolveDurationText())
             .fontSize(12)
             .fontColor(this.app.theme.palette.textSecondary)

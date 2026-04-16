@@ -1,6 +1,7 @@
 import { Idea } from "../../../core/models/Idea";
 import { IdeaRepository } from "../../../core/repositories/IdeaRepository";
 import { AppState, useAppState } from "../../../app/AppStates";
+import { FormTypography } from "../../../components/form/FormTypography";
 import { IdeaPageState, useIdeaPageState } from "../IdeaPageState";
 
 /**
@@ -11,7 +12,7 @@ import { IdeaPageState, useIdeaPageState } from "../IdeaPageState";
 export struct IdeaEditorContent {
   @Local private app: AppState = useAppState();
   @Local private state: IdeaPageState = useIdeaPageState();
-  @Param hideInnerHeader: boolean = false;
+  @Param isForCreate: boolean = false;
 
   private repository: IdeaRepository = new IdeaRepository();
 
@@ -164,10 +165,16 @@ export struct IdeaEditorContent {
   }
 
   private canDelete(): boolean {
-    if (this.isSaving || this.hideInnerHeader || this.isNew) {
+    if (this.isSaving || this.isForCreate || this.isNew) {
       return false;
     }
     return this.normalizeId(this.currentIdea.id) > 0;
+  }
+
+  private runIdeaListMutationAnimation(action: () => void): void {
+    animateTo({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
+      action();
+    });
   }
 
   private deleteCurrentIdea(): void {
@@ -177,7 +184,9 @@ export struct IdeaEditorContent {
     const ideaId = this.normalizeId(this.currentIdea.id);
     const inMemory = this.state.findIdeaInMemory(ideaId);
     const target = inMemory === null ? this.copyIdea(this.currentIdea) : inMemory;
-    this.state.requestDeleteIdea(target);
+    this.runIdeaListMutationAnimation(() => {
+      this.state.requestDeleteIdea(target);
+    });
     this.app.nav.back(false);
   }
 
@@ -202,11 +211,11 @@ export struct IdeaEditorContent {
     Button({ type: ButtonType.Circle }) {
       SymbolGlyph($r("sys.symbol.trash"))
         .fontSize(18)
-        .fontColor([this.app.theme.palette.danger]);
+        .fontColor([this.app.theme.palette.surface]);
     }
       .width(34)
       .height(34)
-      .backgroundColor(this.app.theme.palette.surface)
+      .backgroundColor(this.app.theme.palette.danger)
       .enabled(this.canDelete())
       .onClick(() => {
         this.deleteCurrentIdea();
@@ -217,12 +226,12 @@ export struct IdeaEditorContent {
     Column({ space: 16 }) {
       Row({ space: 10 }) {
         Text(this.isNew ? "新建闪记" : "编辑闪记")
-          .fontSize(17)
+          .fontSize(FormTypography.TITLE_SIZE)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.textPrimary)
           .layoutWeight(1)
 
-        if (!this.hideInnerHeader) {
+        if (!this.isForCreate) {
           this.buildDeleteButton();
         }
         this.buildSaveButton();
@@ -232,7 +241,7 @@ export struct IdeaEditorContent {
       TextInput({ placeholder: "标题", text: this.title })
         .width("100%")
         .height(52)
-        .fontSize(16)
+        .fontSize(FormTypography.INPUT_CONTENT_SIZE)
         .fontWeight(FontWeight.Medium)
         .fontColor(this.app.theme.palette.textPrimary)
         .placeholderColor(this.app.theme.palette.textTertiary)
@@ -247,8 +256,8 @@ export struct IdeaEditorContent {
       TextArea({ placeholder: "写下你的闪念...", text: this.content })
         .width("100%")
         .layoutWeight(1)
-        .fontSize(14)
-        .fontColor(this.app.theme.palette.textSecondary)
+        .fontSize(FormTypography.INPUT_CONTENT_SIZE)
+        .fontColor(this.app.theme.palette.textPrimary)
         .placeholderColor(this.app.theme.palette.textTertiary)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)

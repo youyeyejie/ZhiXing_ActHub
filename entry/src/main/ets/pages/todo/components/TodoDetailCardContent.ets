@@ -7,7 +7,7 @@ import { TodoEditorContent } from './TodoEditorContent';
 export struct TodoDetailCardContent {
   build() {
     TodoEditorContent({
-      hideInnerHeader: false,
+      isForCreate: false,
     });
   }
 }

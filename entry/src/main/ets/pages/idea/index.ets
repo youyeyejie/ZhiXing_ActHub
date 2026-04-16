@@ -41,7 +41,7 @@ export struct IdeaPage {
    */
   private openNewEditor(): void {
     this.state.openCreateIdea();
-    this.app.nav.openActionSheet(this.buildIdeaCreateContent);
+    this.app.nav.openActionSheet(this.buildIdeaCreateContent, "40%");
   }
 
   /**
@@ -61,7 +61,7 @@ export struct IdeaPage {
       // 主页面内容
       MainTabPageLayout({
         title: "闪记",
-        actionIcon: $r("sys.media.ohos_ic_public_search_filled"),
+        actionIcon: $r("sys.symbol.magnifyingglass"),
         onActionTap: () => {
           this.app.nav.pushOverlayByName(
             AppOverlayRoute.SEARCH,

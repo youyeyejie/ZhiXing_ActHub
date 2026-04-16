@@ -63,6 +63,10 @@ export struct TodoCardLlist {
     return title.length > 0 ? title : "未命名待办";
   }
 
+  private hasCategory(todo: TodoItem): boolean {
+    return todo.categoryId > 0;
+  }
+
   private resolveCategoryBorderColor(todo: TodoItem): string {
     const localColor = this.normalizeText(todo.categoryColor);
     if (localColor.length > 0) {
@@ -244,6 +248,7 @@ export struct TodoCardLlist {
     }) {
       Row({ space: 8 }) {
         Toggle({ type: ToggleType.Checkbox, isOn: this.isDisplayedDone(todo) })
+          .selectedColor(this.resolveCategoryBorderColor(todo))
           .onChange((value: boolean) => {
             animateTo({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
               this.onTodoDoneChanged(todo, value);
@@ -258,41 +263,44 @@ export struct TodoCardLlist {
               type: this.isDisplayedDone(todo)
                 ? TextDecorationType.LineThrough
                 : TextDecorationType.None,
+              color: this.resolveDisplayedTitleColor(todo),
             })
             .width("100%")
             .animation({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
-          Row({ space: 8 }) {
-            Column()
-              .width(8)
-              .height(8)
-              .borderRadius(4)
-              .backgroundColor(this.resolveCategoryBorderColor(todo))
-            Text(
-              this.normalizeText(todo.categoryName).length > 0
-                ? todo.categoryName
-                : this.state.resolveCategoryName(todo.categoryId),
-            )
-              .fontSize(12)
-              .fontColor(this.app.theme.palette.textSecondary)
-            Blank()
+          if (this.hasCategory(todo)) {
+            Row({ space: 8 }) {
+              Column()
+                .width(8)
+                .height(8)
+                .borderRadius(4)
+                .backgroundColor(this.resolveCategoryBorderColor(todo))
+              Text(
+                this.normalizeText(todo.categoryName).length > 0
+                  ? todo.categoryName
+                  : this.state.resolveCategoryName(todo.categoryId),
+              )
+                .fontSize(12)
+                .fontColor(this.app.theme.palette.textSecondary)
+              Blank()
 
-            if (todo.inFocus === 1) {
-              Text("专注中").fontSize(12).fontColor(this.app.theme.palette.primary);
+              if (todo.inFocus === 1) {
+                Text("专注中").fontSize(12).fontColor(this.app.theme.palette.primary);
+              }
             }
+            .width("100%")
+            .alignItems(VerticalAlign.Center)
           }
-          .width("100%")
-          .alignItems(VerticalAlign.Center)
         }
         .layoutWeight(1)
-        .onClick(() => {
-          if (!this.canOpenDetailNow()) {
-            return;
-          }
-          this.state.openTodoDetail(todo.id);
-          this.app.nav.openDetailCard(this.buildTodoDetailContent, "50%");
-        })
       }
       .width("100%")
+      .onClick(() => {
+        if (!this.canOpenDetailNow()) {
+          return;
+        }
+        this.state.openTodoDetail(todo.id);
+        this.app.nav.openDetailCard(this.buildTodoDetailContent, "40%");
+      })
       .onAppear(() => {
         this.scheduleRestoreMove(todo);
       })

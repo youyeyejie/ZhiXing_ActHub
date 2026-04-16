@@ -1,7 +1,6 @@
 import { CategoryFilter } from "./components/CategoryFilter";
 import { TodoCardLlist } from "./components/TodoCardLlist";
 import { TodoActionSheetContent } from "./components/TodoActionSheetContent";
-import { CategoryEditorOverlay } from "./components/CategoryEditorOverlay";
 import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
 import { UndoNotificationStack } from "../../components/feedback/UndoNotificationStack";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
@@ -68,10 +67,6 @@ export struct TodoPage {
           this.app.nav.openActionSheet(this.buildTodoEditorContent, "40%");
         },
       })
-
-      if (this.state.isCategoryEditorVisible) {
-        CategoryEditorOverlay()
-      }
     }
     .width("100%")
     .height("100%");

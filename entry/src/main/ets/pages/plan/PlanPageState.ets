@@ -33,6 +33,7 @@ export class PlanItem {
   @Trace endTime: number = 0;
   @Trace location: string = "";
   @Trace isCourse: number = 0;
+  @Trace enableRemind: number = 0;
   @Trace createdAt: number = 0;
   @Trace updatedAt: number = 0;
 
@@ -43,6 +44,7 @@ export class PlanItem {
     this.endTime = plan.endTime;
     this.location = plan.location;
     this.isCourse = plan.isCourse;
+    this.enableRemind = plan.enableRemind;
     this.createdAt = plan.createdAt;
     this.updatedAt = plan.updatedAt;
   }
@@ -337,6 +339,7 @@ export class PlanPageState {
     location: string,
     isCourse: number,
     description: string,
+    remindEnabled: boolean,
   ): Promise<boolean> {
     const title = `${content}`.trim();
     if (title.length === 0) {
@@ -356,7 +359,7 @@ export class PlanPageState {
     plan.description = `${description}`.trim();
     plan.loopRule = "";
     plan.reminderId = 0;
-    plan.enableRemind = 0;
+    plan.enableRemind = remindEnabled ? 1 : 0;
     plan.timestamp = now;
     plan.createdAt = now;
     plan.updatedAt = now;
@@ -368,6 +371,7 @@ export class PlanPageState {
     }
     await this.refreshAll();
     this.selectDate(startTime);
+    this.syncPlanReminder();
     return true;
   }
 

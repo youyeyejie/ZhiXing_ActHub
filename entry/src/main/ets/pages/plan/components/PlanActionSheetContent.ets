@@ -7,7 +7,7 @@ import { PlanEditorContent } from './PlanEditorContent';
 export struct PlanActionSheetContent {
   build() {
     PlanEditorContent({
-      hideInnerHeader: true,
+      isForCreate: true,
     });
   }
 }

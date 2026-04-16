@@ -1,17 +1,18 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 import { Plan } from '../../../core/models/Plan';
+import { FormTypography } from '../../../components/form/FormTypography';
 import { PlanPageState, usePlanPageState } from '../PlanPageState';
 import { PlanPickerStyle } from './PlanPickerStyle';
 
 /**
  * 日程编辑器内容。
- * hideInnerHeader=true 用于新建 ActionSheet，false 用于详情 DetailCard。
+ * isForCreate=true 用于新建 ActionSheet，false 用于详情 DetailCard。
  */
 @ComponentV2
 export struct PlanEditorContent {
   @Local private app: AppState = useAppState();
   @Local private state: PlanPageState = usePlanPageState();
-  @Param hideInnerHeader: boolean = false;
+  @Param isForCreate: boolean = false;
 
   @Local private saving: boolean = false;
   @Local private saveEnabled: boolean = false;
@@ -35,7 +36,7 @@ export struct PlanEditorContent {
   @Local private initialEndMs: number = 0;
 
   aboutToAppear(): void {
-    if (this.hideInnerHeader) {
+    if (this.isForCreate) {
       this.prepareDraftForCreate();
       return;
     }
@@ -90,15 +91,15 @@ export struct PlanEditorContent {
         useMilitaryTime: true,
         dateTimeOptions: { hour: '2-digit', minute: '2-digit' },
         disappearTextStyle: {
-          color: this.app.theme.palette.textTertiary,
+          // color: this.app.theme.palette.textTertiary,
           font: { size: PlanPickerStyle.DISAPPEAR_FONT_SIZE, weight: FontWeight.Regular }
         },
         textStyle: {
-          color: this.app.theme.palette.textSecondary,
+          // color: this.app.theme.palette.textSecondary,
           font: { size: PlanPickerStyle.TEXT_FONT_SIZE, weight: FontWeight.Regular }
         },
         selectedTextStyle: {
-          color: this.app.theme.palette.primary,
+          // color: this.app.theme.palette.textPrimary,
           font: { size: PlanPickerStyle.SELECTED_FONT_SIZE, weight: FontWeight.Medium }
         },
         onDateAccept: (value: Date) => {
@@ -155,6 +156,9 @@ export struct PlanEditorContent {
     const selectedDayStart = new Date(this.state.selectedDate);
     selectedDayStart.setHours(0, 0, 0, 0);
     const dayMs = selectedDayStart.getTime();
+    const now = new Date();
+    const createStart = this.buildDateWithTime(dayMs, now.getHours(), now.getMinutes());
+    const createEnd = new Date(createStart.getTime() + 60 * 60 * 1000);
 
     this.loadedPlanId = 0;
     this.titleDraft = '';
@@ -167,10 +171,10 @@ export struct PlanEditorContent {
     this.initialIsCourse = 0;
     this.remindEnabledDraft = false;
     this.initialRemindEnabled = false;
-    this.startDateDraft = new Date(dayMs);
-    this.startTimeDraft = this.buildDateWithTime(dayMs, 9, 0);
-    this.endDateDraft = new Date(dayMs);
-    this.endTimeDraft = this.buildDateWithTime(dayMs, 10, 0);
+    this.startDateDraft = new Date(createStart.getTime());
+    this.startTimeDraft = new Date(createStart.getTime());
+    this.endDateDraft = new Date(createEnd.getTime());
+    this.endTimeDraft = new Date(createEnd.getTime());
     this.initialStartMs = this.composeDateTime(this.startDateDraft, this.startTimeDraft);
     this.initialEndMs = this.composeDateTime(this.endDateDraft, this.endTimeDraft);
     this.recalculateSaveEnabled();
@@ -243,7 +247,7 @@ export struct PlanEditorContent {
     if (endMs <= startMs) {
       return false;
     }
-    if (this.hideInnerHeader) {
+    if (this.isForCreate) {
       return true;
     }
     return this.resolveEditingPlan() !== null;
@@ -258,7 +262,7 @@ export struct PlanEditorContent {
       this.recalculateSaveEnabled();
       return;
     }
-    if (this.hideInnerHeader) {
+    if (this.isForCreate) {
       await this.submitCreate();
       return;
     }
@@ -279,6 +283,7 @@ export struct PlanEditorContent {
         this.locationDraft,
         this.isCourseDraft,
         this.descriptionDraft,
+        this.remindEnabledDraft,
       );
       if (ok) {
         this.state.closePlanEditor();
@@ -337,6 +342,10 @@ export struct PlanEditorContent {
     return type === 1 ? '课程' : '日程';
   }
 
+  private resolveTypeChipColor(type: number): string {
+    return type === 1 ? this.app.theme.palette.warning : this.app.theme.palette.primary;
+  }
+
   private resolveTypeRenderToken(type: number): string {
     return `${type}_${this.isCourseDraft}`;
   }
@@ -351,10 +360,16 @@ export struct PlanEditorContent {
   }
 
   private canDelete(): boolean {
-    if (this.hideInnerHeader || this.saving) {
+    if (this.isForCreate || this.saving) {
       return false;
     }
     return this.resolveEditingPlan() !== null;
+  }
+
+  private runPlanListMutationAnimation(action: () => void): void {
+    animateTo({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
+      action();
+    });
   }
 
   private deleteCurrentPlan(): void {
@@ -363,7 +378,9 @@ export struct PlanEditorContent {
       return;
     }
     this.state.closePlanDetail();
-    this.state.requestDeletePlan(this.normalizeId(plan.id));
+    this.runPlanListMutationAnimation(() => {
+      this.state.requestDeletePlan(this.normalizeId(plan.id));
+    });
     this.loadedPlanId = 0;
     this.app.nav.back(false);
   }
@@ -389,11 +406,11 @@ export struct PlanEditorContent {
     Button({ type: ButtonType.Circle }) {
       SymbolGlyph($r('sys.symbol.trash'))
         .fontSize(18)
-        .fontColor([this.app.theme.palette.danger]);
+        .fontColor([this.app.theme.palette.surface]);
     }
       .width(34)
       .height(34)
-      .backgroundColor(this.app.theme.palette.surface)
+      .backgroundColor(this.app.theme.palette.danger)
       .enabled(this.canDelete())
       .onClick(() => {
         this.deleteCurrentPlan();
@@ -405,11 +422,11 @@ export struct PlanEditorContent {
     Button({ type: ButtonType.Circle }) {
       SymbolGlyph(this.remindEnabledDraft ? $r('sys.symbol.bell_fill') : $r('sys.symbol.bell_slash_fill'))
         .fontSize(18)
-        .fontColor([this.app.theme.palette.textSecondary]);
+        .fontColor([this.app.theme.palette.surface]);
     }
       .width(34)
       .height(34)
-      .backgroundColor(this.app.theme.palette.surface)
+      .backgroundColor(this.app.theme.palette.info)
       .enabled(!this.saving)
       .onClick(() => {
         this.remindEnabledDraft = !this.remindEnabledDraft;
@@ -418,14 +435,14 @@ export struct PlanEditorContent {
   }
 
   @Builder
-  private buildTypeChip(label: string, selected: boolean, onTap: () => void) {
+  private buildTypeChip(type: number, label: string, selected: boolean, onTap: () => void) {
     Button(label)
       .type(ButtonType.Capsule)
       .stateEffect(true)
       .height(28)
-      .fontSize(12)
+      .fontSize(FormTypography.SELECT_CONTENT_SIZE)
       .fontColor(selected ? this.app.theme.palette.surface : this.app.theme.palette.textSecondary)
-      .backgroundColor(selected ? this.app.theme.palette.primary : this.app.theme.palette.surfaceSecondary)
+      .backgroundColor(selected ? this.resolveTypeChipColor(type) : this.app.theme.palette.surfaceSecondary)
       .borderRadius(999)
       .padding({ left: 12, right: 12, top: 4, bottom: 4 })
       .onClick(() => {
@@ -437,13 +454,13 @@ export struct PlanEditorContent {
   private buildContent() {
     Column({ space: 12 }) {
       Row({ space: 10 }) {
-        Text(this.hideInnerHeader ? '新建日程' : '编辑日程')
-          .fontSize(17)
+        Text(this.isForCreate ? '新建日程' : '编辑日程')
+          .fontSize(FormTypography.TITLE_SIZE)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.textPrimary)
           .layoutWeight(1);
 
-        if (!this.hideInnerHeader) {
+        if (!this.isForCreate) {
           this.buildDeleteButton();
         }
         this.buildReminderButton();
@@ -452,10 +469,10 @@ export struct PlanEditorContent {
       .width('100%')
       .alignItems(VerticalAlign.Center);
 
-      TextInput({ text: this.titleDraft, placeholder: this.hideInnerHeader ? '日程标题（必填）' : '标题' })
+      TextInput({ text: this.titleDraft, placeholder: '日程标题' })
         .width('100%')
         .height(52)
-        .fontSize(16)
+        .fontSize(FormTypography.INPUT_CONTENT_SIZE)
         .fontWeight(FontWeight.Medium)
         .fontColor(this.app.theme.palette.textPrimary)
         .placeholderColor(this.app.theme.palette.textTertiary)
@@ -469,7 +486,7 @@ export struct PlanEditorContent {
 
       Row({ space: 10 }) {
         Text('开始时间')
-          .fontSize(14)
+          .fontSize(FormTypography.LABEL_SIZE)
           .fontColor(this.app.theme.palette.textSecondary)
           .padding({ left: 8, right: 8 });
         Button(this.formatDateTimeLabel(this.startDateDraft, this.startTimeDraft))
@@ -478,8 +495,8 @@ export struct PlanEditorContent {
           .layoutWeight(1)
           .backgroundColor(this.app.theme.palette.surfaceSecondary)
           .borderRadius(12)
-          .fontSize(PlanPickerStyle.TEXT_FONT_SIZE)
-          .fontColor(this.app.theme.palette.textSecondary)
+          .fontSize(FormTypography.INPUT_CONTENT_SIZE)
+          .fontColor(this.app.theme.palette.textPrimary)
           .onClick(() => {
             this.openStartDateTimeDialog();
           });
@@ -489,7 +506,7 @@ export struct PlanEditorContent {
 
       Row({ space: 10 }) {
         Text('结束时间')
-          .fontSize(14)
+          .fontSize(FormTypography.LABEL_SIZE)
           .fontColor(this.app.theme.palette.textSecondary)
           .padding({ left: 8, right: 8 });
         Button(this.formatDateTimeLabel(this.endDateDraft, this.endTimeDraft))
@@ -498,8 +515,8 @@ export struct PlanEditorContent {
           .layoutWeight(1)
           .backgroundColor(this.app.theme.palette.surfaceSecondary)
           .borderRadius(12)
-          .fontSize(PlanPickerStyle.TEXT_FONT_SIZE)
-          .fontColor(this.app.theme.palette.textSecondary)
+          .fontSize(FormTypography.INPUT_CONTENT_SIZE)
+          .fontColor(this.app.theme.palette.textPrimary)
           .onClick(() => {
             this.openEndDateTimeDialog();
           });
@@ -507,11 +524,11 @@ export struct PlanEditorContent {
       .width('100%')
       .alignItems(VerticalAlign.Center);
 
-      TextInput({ text: this.locationDraft, placeholder: '地点（选填）' })
+      TextInput({ text: this.locationDraft, placeholder: '日程地点（选填）' })
         .width('100%')
         .height(46)
-        .fontSize(14)
-        .fontColor(this.app.theme.palette.textSecondary)
+        .fontSize(FormTypography.INPUT_CONTENT_SIZE)
+        .fontColor(this.app.theme.palette.textPrimary)
         .placeholderColor(this.app.theme.palette.textTertiary)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
@@ -521,11 +538,11 @@ export struct PlanEditorContent {
           this.recalculateSaveEnabled();
         });
 
-      TextArea({ text: this.descriptionDraft, placeholder: '备注（选填）' })
+      TextArea({ text: this.descriptionDraft, placeholder: '日程详情（选填）' })
         .width('100%')
         .height(80)
-        .fontSize(14)
-        .fontColor(this.app.theme.palette.textSecondary)
+        .fontSize(FormTypography.INPUT_CONTENT_SIZE)
+        .fontColor(this.app.theme.palette.textPrimary)
         .placeholderColor(this.app.theme.palette.textTertiary)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
@@ -535,54 +552,44 @@ export struct PlanEditorContent {
           this.recalculateSaveEnabled();
         });
 
-      Row({ space: 10 }) {
+      Row({ space: 8 }) {
+        Text('分类')
+          .fontSize(FormTypography.LABEL_SIZE)
+          .fontColor(this.app.theme.palette.textSecondary)
+          .padding({ left: 8, right: 8 });
+
+        Blank();
         ForEach([0, 1], (type: number) => {
-          this.buildTypeChip(this.resolveTypeLabel(type), this.isCourseDraft === type, () => {
+          this.buildTypeChip(type, this.resolveTypeLabel(type), this.isCourseDraft === type, () => {
             this.switchType(type);
           });
         }, (type: number) => this.resolveTypeRenderToken(type));
       }
-      .width('100%');
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+      .margin({ top: 2, bottom: 4 });
 
     }
     .width('100%');
   }
 
   build() {
-    Column() {
-      if (!this.hideInnerHeader && this.resolveEditingPlan() === null) {
-        Column({ space: 8 }) {
-          Text('未找到日程')
-            .fontSize(16)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.app.theme.palette.textPrimary);
-          Text('该日程可能已被删除。')
-            .fontSize(12)
-            .fontColor(this.app.theme.palette.textSecondary);
-        }
-        .width('100%')
-        .padding({ left: 6, right: 6, top: 8, bottom: 8 });
-      } else {
-        Scroll() {
-          this.buildContent();
-        }
-        .width('100%')
-        .height('100%')
-        .scrollBar(BarState.Off)
-        .onAppear(() => {
-          if (this.hideInnerHeader) {
-            return;
-          }
-          const currentPlan = this.resolveEditingPlan();
-          const currentPlanId = currentPlan ? this.normalizeId(currentPlan.id) : 0;
-          if (this.loadedPlanId !== currentPlanId) {
-            this.loadDraftFromCurrentPlan();
-          }
-        });
-      }
+    Scroll() {
+      this.buildContent();
     }
     .width('100%')
-    .height('100%');
+    .height('100%')
+    .scrollBar(BarState.Off)
+    .onAppear(() => {
+      if (this.isForCreate) {
+        return;
+      }
+      const currentPlan = this.resolveEditingPlan();
+      const currentPlanId = currentPlan ? this.normalizeId(currentPlan.id) : 0;
+      if (this.loadedPlanId !== currentPlanId) {
+        this.loadDraftFromCurrentPlan();
+      }
+    });
   }
 
   aboutToDisappear(): void {
@@ -596,7 +603,7 @@ export struct PlanEditorContent {
     this.initialEndMs = 0;
     this.loadedPlanId = 0;
 
-    if (this.hideInnerHeader) {
+    if (this.isForCreate) {
       this.state.closePlanEditor();
       return;
     }

@@ -7,7 +7,7 @@ import { TodoEditorContent } from './TodoEditorContent';
 export struct TodoActionSheetContent {
   build() {
     TodoEditorContent({
-      hideInnerHeader: true,
+      isForCreate: true,
     });
   }
 }

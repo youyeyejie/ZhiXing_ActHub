@@ -9,7 +9,7 @@ export class PlanPickerStyle {
   static readonly CONTENT_SCALE_Y: number = 0.84;
   static readonly DATE_RANGE_START: string = '2000-1-1';
   static readonly DATE_RANGE_END: string = '2100-12-31';
-  static readonly DISAPPEAR_FONT_SIZE: string = '12fp';
-  static readonly TEXT_FONT_SIZE: string = '14fp';
-  static readonly SELECTED_FONT_SIZE: string = '16fp';
+  static readonly DISAPPEAR_FONT_SIZE: string = '14fp';
+  static readonly TEXT_FONT_SIZE: string = '16fp';
+  static readonly SELECTED_FONT_SIZE: string = '20fp';
 }
