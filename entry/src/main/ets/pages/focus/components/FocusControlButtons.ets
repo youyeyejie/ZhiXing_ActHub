@@ -109,7 +109,7 @@ export struct FocusControlButtons {
       .height(50)
       .backgroundColor(this.getMusicButtonColor()) 
       .shadow(this.app.whiteNoisePlayer.state === PlayerState.PLAYING ? 
-        { radius: 8, color: this.app.theme.palette.primary + '60', offsetY: 2 } : null)
+        { radius: 8, color: this.app.theme.palette.primaryShadowStrong, offsetY: 2 } : undefined)
       .onClick(() => {
         this.handleWhiteNoiseClick(); // 单击控制启停
       })
@@ -117,7 +117,7 @@ export struct FocusControlButtons {
       .gesture(
         LongPressGesture({ repeat: false, duration: 400 })
           .onAction(() => {
-            this.app.nav.openDetailCard(() => { this.buildNoiseSelector() }, '选择白噪音');
+            this.app.nav.openDetailCard(() => { this.buildNoiseSelector() });
           })
       )
 
@@ -133,7 +133,7 @@ export struct FocusControlButtons {
       .width(70)
       .height(70)
       .backgroundColor(this.app.theme.palette.primary)
-      .shadow({ radius: 10, color: this.app.theme.palette.primary + '40', offsetX: 0, offsetY: 4 })
+      .shadow({ radius: 10, color: this.app.theme.palette.primaryShadowSoft, offsetX: 0, offsetY: 4 })
       .onClick(() => {
         this.handlePlayPauseClick();
       })

@@ -50,7 +50,7 @@ export struct IdeaPage {
    */
   private openEditIdea(idea: Idea): void {
     this.state.openIdeaDetail(idea.id);
-    this.app.nav.openDetailCard(this.buildIdeaDetailContent, '编辑闪记');
+    this.app.nav.openDetailCard(this.buildIdeaDetailContent);
   }
 
   /**

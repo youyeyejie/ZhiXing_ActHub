@@ -303,7 +303,7 @@ export struct SharedInteractionTestPage {
                 this.logs.push(item.title + ' 右滑触发');
               },
               onCardTap: () => {
-                this.app.nav.openDetailCard(this.buildDetailDialogContent, '详情预览');
+                this.app.nav.openDetailCard(this.buildDetailDialogContent);
                 this.logs.push(item.title + ' 点击打开详情卡片');
               }
             }) {
@@ -365,7 +365,7 @@ export struct SharedInteractionTestPage {
               .backgroundColor(this.app.theme.palette.primary)
               .fontColor(this.app.theme.palette.surface)
               .onClick(() => {
-                this.app.nav.openDetailCard(this.buildDetailDialogContent, '详情预览');
+                this.app.nav.openDetailCard(this.buildDetailDialogContent);
                 this.logs.push('通过 DetailCard 组件打开详情卡片');
               });
 

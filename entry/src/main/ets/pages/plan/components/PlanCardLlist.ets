@@ -113,7 +113,7 @@ export struct PlanCardLlist {
           return;
         }
         this.state.openPlanDetail(this.plan.id);
-        this.app.nav.openDetailCard(this.buildPlanDetailContent, '编辑日程');
+        this.app.nav.openDetailCard(this.buildPlanDetailContent);
       },
     }) {
       Column({ space: 8 }) {

@@ -177,7 +177,7 @@ export struct SearchPage {
     this.app.nav.selectTab(AppTab.PLAN);
     this.app.nav.back(false);
     this.planState.openPlanDetail(recordId);
-    this.app.nav.openDetailCard(this.buildPlanDetailContent, '编辑日程');
+    this.app.nav.openDetailCard(this.buildPlanDetailContent);
   }
 
   private openTodoDetailFromSearch(item: SearchResultItem): void {
@@ -188,7 +188,7 @@ export struct SearchPage {
     this.app.nav.selectTab(AppTab.TODO);
     this.app.nav.back(false);
     this.todoState.openTodoDetail(recordId);
-    this.app.nav.openDetailCard(this.buildTodoDetailContent, '编辑待办');
+    this.app.nav.openDetailCard(this.buildTodoDetailContent);
   }
 
   private async openIdeaDetailFromSearch(item: SearchResultItem): Promise<void> {
@@ -203,7 +203,7 @@ export struct SearchPage {
     this.ideaState.openIdeaDetail(recordId);
     this.app.nav.selectTab(AppTab.IDEA);
     this.app.nav.back(false);
-    this.app.nav.openDetailCard(this.buildIdeaDetailContent, '编辑闪记');
+    this.app.nav.openDetailCard(this.buildIdeaDetailContent);
   }
 
   private handleSearchResultTap(item: SearchResultItem): void {

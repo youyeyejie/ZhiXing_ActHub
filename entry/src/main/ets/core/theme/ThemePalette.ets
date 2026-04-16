@@ -35,7 +35,9 @@ export class ThemePalette {
   textTertiary: string = '#98A2B3';
   border: string = '#E5E7EB';
   mask: string = '#66000000';
-  logo: string = "app.media.foreground";
+  primaryShadowStrong: string = '#60004C24';
+  primaryShadowSoft: string = '#40004C24';
+  logo: string = "app.media.foreground_white";
 
   static light(): ThemePalette {
     const palette = new ThemePalette();
@@ -62,7 +64,9 @@ export class ThemePalette {
     palette.textTertiary = '#98A2B3';
     palette.border = '#E5E7EB';
     palette.mask = '#66000000';
-    palette.logo = "app.media.foreground";
+    palette.primaryShadowStrong = '#60004C24';
+    palette.primaryShadowSoft = '#40004C24';
+    palette.logo = "app.media.foreground_white";
     return palette;
   }
 
@@ -91,6 +95,8 @@ export class ThemePalette {
     palette.textTertiary = '#94A3B8';
     palette.border = '#334155';
     palette.mask = '#99000000';
+    palette.primaryShadowStrong = '#60A8CEB3';
+    palette.primaryShadowSoft = '#40A8CEB3';
     palette.logo = "app.media.foreground"
     return palette;
   }

@@ -23,7 +23,6 @@ export class AppNav extends NavPathStack {
   @Trace public detailRecordId: number = 0;
   public actionSheetContentBuilder: () => void = () => {};
   public detailCardContentBuilder: () => void = () => {};
-  public detailCardTitle: string = '详情';
   public actionSheetHeight: string = AppNav.DEFAULT_ACTION_SHEET_HEIGHT;
   public detailCardHeight: string = AppNav.DEFAULT_DETAIL_CARD_HEIGHT;
 
@@ -81,13 +80,8 @@ export class AppNav extends NavPathStack {
   /**
    * 打开 DetailCard 覆盖页。
    */
-  openDetailCard(
-    contentBuilder: () => void = () => {},
-    title: string = '详情',
-    height: string = AppNav.DEFAULT_DETAIL_CARD_HEIGHT
-  ): void {
+  openDetailCard(contentBuilder: () => void = () => {}, height: string = AppNav.DEFAULT_DETAIL_CARD_HEIGHT): void {
     this.detailCardContentBuilder = contentBuilder;
-    this.detailCardTitle = title;
     this.detailCardHeight = this.resolveOverlayHeight(height, AppNav.DEFAULT_DETAIL_CARD_HEIGHT);
     this.pushOverlayRoute(AppOverlayRoute.DETAIL_CARD, undefined, true);
   }
@@ -187,7 +181,6 @@ export class AppNav extends NavPathStack {
   private clearDetailState(): void {
     this.detailModuleName = '';
     this.detailRecordId = 0;
-    this.detailCardTitle = '详情';
     this.actionSheetHeight = AppNav.DEFAULT_ACTION_SHEET_HEIGHT;
     this.detailCardHeight = AppNav.DEFAULT_DETAIL_CARD_HEIGHT;
     this.actionSheetContentBuilder = () => {};
