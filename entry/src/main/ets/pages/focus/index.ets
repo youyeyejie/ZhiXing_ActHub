@@ -34,7 +34,7 @@ export struct FocusPage {
   @Local private isEditingTime: boolean = false;
   
   private openTodoPicker(): void {
-    this.app.nav.openActionSheet(() => { this.buildTodoPickerContent() });
+    this.app.nav.openActionSheet(() => { this.buildTodoPickerContent() },'auto');
   }
 
   @Builder

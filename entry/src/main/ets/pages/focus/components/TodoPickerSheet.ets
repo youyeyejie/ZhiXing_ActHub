@@ -31,11 +31,11 @@ export struct TodoPickerSheet {
   @Local private currentTodo: Todo | undefined = undefined;
 
   private get availableTodos(): Todo[] {
-    return this.todos.filter(t => t.id !== this.app.focusEngine.todoId);
+    return this.todos.filter(t => String(t.id) !== String(this.app.focusEngine.todoId));
   }
 
   aboutToAppear(): void {
-    this.todoState.refreshTodos()
+    this.todoState.refreshTodos();
     this.loadData();
   }
 
@@ -46,23 +46,25 @@ export struct TodoPickerSheet {
       this.todos = await repository.getUnfinishedTodos();
       
       if (this.app.focusEngine.hasTodo()) {
-        const currentId = this.app.focusEngine.todoId;
-        let matchedTodo: Todo | undefined = this.todos.find(t => t.id === currentId);
+        const currentId = String(this.app.focusEngine.todoId);
+        let matchedTodo: Todo | undefined = this.todos.find(t => String(t.id) === currentId);
         
         if (!matchedTodo) {
-          const dbResult = await repository.findById(currentId);
+          const queryId: number = Number.parseInt(currentId, 10);
+          const dbResult = await repository.findById(queryId);
           matchedTodo = dbResult !== null ? dbResult : undefined;
         }
         this.currentTodo = matchedTodo;
       }
-    } catch (_error) {
+    } catch (error) {
+      console.error('[TodoPickerSheet] 加载待办列表失败:', error);
     } finally {
       this.isLoading = false;
     }
   }
 
   private onTodoItemClick(todoId: number): void {
-    if (todoId <= 0) return;
+    if (todoId === undefined || todoId === null || Number.isNaN(todoId)) return;
     this.app.focusEngine.setRelatedTodo(todoId);
     this.app.nav.back(false);
   }
@@ -78,7 +80,8 @@ export struct TodoPickerSheet {
   }
 
   private resolveCategoryBorderColor(todo: Todo): string {
-    return this.todoState.resolveCategoryColor(todo.categoryId);
+    const catIdNum: number = Number(todo.categoryId);
+    return this.todoState.resolveCategoryColor(catIdNum);
   }
 
   private resolveCategoryBackgroundColor(todo: Todo): string {
@@ -105,7 +108,7 @@ export struct TodoPickerSheet {
     }
     .width('100%')
     .padding({ top: 40, bottom: 40 })
-    .justifyContent(FlexAlign.Start);
+    .justifyContent(FlexAlign.Center);
   }
 
   @Builder
@@ -120,7 +123,7 @@ export struct TodoPickerSheet {
     }
     .width('100%')
     .padding({ top: 40, bottom: 40 })
-    .justifyContent(FlexAlign.Start);
+    .justifyContent(FlexAlign.Center);
   }
 
   @Builder
@@ -142,7 +145,7 @@ export struct TodoPickerSheet {
             .borderRadius(TodoPickerStyle.INDICATOR_DOT_SIZE / 2)
             .backgroundColor(this.resolveCategoryBorderColor(todo))
           
-          Text(this.todoState.resolveCategoryName(todo.categoryId))
+          Text(this.todoState.resolveCategoryName(Number(todo.categoryId)))
             .fontSize(TodoPickerStyle.INFO_FONT_SIZE)
             .fontColor(this.app.theme.palette.textSecondary)
         }
@@ -164,7 +167,7 @@ export struct TodoPickerSheet {
     .backgroundColor(this.resolveCategoryBackgroundColor(todo))
     .onClick(() => {
       if (!isCurrent) {
-        this.onTodoItemClick(todo.id);
+        this.onTodoItemClick(Number(todo.id));
       }
     })
   }
@@ -178,7 +181,8 @@ export struct TodoPickerSheet {
             .fontSize(TodoPickerStyle.SUB_HEADER_FONT_SIZE)
             .fontWeight(FontWeight.Medium)
             .fontColor(this.app.theme.palette.textPrimary)
-            .width('100%') 
+            .width('100%');
+
           this.buildTodoCard(this.currentTodo, true);
         }
         
@@ -187,29 +191,30 @@ export struct TodoPickerSheet {
             .fontSize(TodoPickerStyle.SUB_HEADER_FONT_SIZE)
             .fontWeight(FontWeight.Medium)
             .fontColor(this.app.theme.palette.textPrimary)
-            .width('100%') 
+            .width('100%');
 
           ForEach(this.availableTodos, (todo: Todo) => {
             this.buildTodoCard(todo, false);
-          }, (todo: Todo) => `${todo.id}`);
+          }, (todo: Todo) => String(todo.id));
         }
       }
       .width('100%')
-      .padding({ bottom: TodoPickerStyle.BOTTOM_PADDING }) 
+      .padding({ bottom: 45 }) 
     }
     .scrollBar(BarState.Off)
     .width('100%')
-    .flexShrink(1) 
+    .flexShrink(1)
+    .align(Alignment.Top); 
   }
 
   build() {
-    Column({ space: TodoPickerStyle.COLUMN_SPACE_LARGE }) { 
+    Column() { 
       Row() {
         Text("选择专注任务")
           .fontSize(TodoPickerStyle.HEADER_FONT_SIZE)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.textPrimary)
-          .layoutWeight(1)
+          .layoutWeight(1);
 
         Button("取消")
           .type(ButtonType.Capsule)
@@ -218,10 +223,11 @@ export struct TodoPickerSheet {
           .fontColor(this.app.theme.palette.textSecondary)
           .onClick(() => {
             this.app.nav.back(false);
-          })
+          });
       }
       .width("100%")
       .alignItems(VerticalAlign.Center)
+      .margin({ bottom: TodoPickerStyle.COLUMN_SPACE_LARGE });
 
       if (this.isLoading) {
         this.renderLoading();
@@ -233,8 +239,7 @@ export struct TodoPickerSheet {
     }
     .width("100%")
     .justifyContent(FlexAlign.Start)
-    .constraintSize({ maxHeight: '85%' }) 
-    .padding({ bottom: 20 }) 
-    .flexShrink(1) 
+    .constraintSize({ maxHeight: '50%' })
+    .flexShrink(1);
   }
 }

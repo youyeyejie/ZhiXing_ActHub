@@ -1,6 +1,6 @@
 /**
  * 组件功能简介：
- * - 专注控制按钮组，提供专注计时启停、结束操作，并集成了白噪音快捷播放与长按轨道选择。
+ * - 专注控制按钮组，提供专注计时启停、结束操作，集成了白噪音快捷播放，并支持长按弹出高度自适应的 DetailCard 轨道选择器。
  *
  * 可传入项：
  * - @Param customDuration: number (专注工作时长)
@@ -8,12 +8,11 @@
  * - @Event goBackIndex: () => void (返回首页回调)
  *
  * 返回行为：
- * - 渲染包含三个圆形按钮的控制条（白噪音开关、播放/暂停、停止），长按白噪音按钮弹出音轨选择器。
+ * - 渲染包含三个圆形按钮的控制条。长按白噪音按钮时，通过全局导航唤出 DetailCard 并渲染包含标题、关闭按钮和列表的自定义内容。
  *
  * 副作用：
  * - 启停或重置内部的 FocusTimerEngine。
  * - 调用 WhiteNoisePlayer 进行音频状态流转（播放、暂停），并更新当前选中的音轨资源。
- * - 触发 AppNav 打开 DetailCard 覆盖页。
  */
 import { AppState, useAppState } from '../../../app/AppStates';
 import { FocusTimerEngine, FocusState } from '../../../core/services/FocusTimerEngine';
@@ -79,19 +78,47 @@ export struct FocusControlButtons {
       this.app.whiteNoisePlayer.selectedTrack = file;
       const context = getContext(this) as common.UIAbilityContext;
       this.app.whiteNoisePlayer.playWhiteNoise(context, file);
-      this.app.nav.back(false);
+      this.app.nav.back(false); 
     })
   }
 
   @Builder
   private buildNoiseSelector() {
-    Column({ space: 8 }) {
-      this.buildNoiseItem('雨声', 'rain.mp3', $r('sys.symbol.icloud'))
-      this.buildNoiseItem('流水', 'water.mp3', $r('sys.symbol.drop'))
-      this.buildNoiseItem('海浪', 'sea.mp3', $r('sys.symbol.music'))
+    Column() {
+      Row() {
+        Text('选择白噪音')
+          .fontSize(18)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.app.theme.palette.textPrimary)
+          .layoutWeight(1)
+
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          Text('×')
+            .fontSize(18)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.app.theme.palette.textSecondary)
+        }
+        .width(28)
+        .height(28)
+        .backgroundColor(this.app.theme.palette.surfaceSecondary)
+        .onClick(() => {
+          this.app.nav.back(false); // 主动点击关闭
+        })
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+      .margin({ bottom: 16 }) // 标题与列表的间距
+
+      // 列表主体
+      Column({ space: 8 }) {
+        this.buildNoiseItem('雨声', 'rain.mp3', $r('sys.symbol.icloud'))
+        this.buildNoiseItem('流水', 'water.mp3', $r('sys.symbol.drop'))
+        this.buildNoiseItem('海浪', 'sea.mp3', $r('sys.symbol.music'))
+      }
+      .width('100%')
     }
     .width('100%')
-    .padding({ top: 10, bottom: 10 })
+    // 自身不设死高度，依靠内容自然撑开
   }
 
   build() {
@@ -111,13 +138,13 @@ export struct FocusControlButtons {
       .shadow(this.app.whiteNoisePlayer.state === PlayerState.PLAYING ? 
         { radius: 8, color: this.app.theme.palette.primaryShadowStrong, offsetY: 2 } : undefined)
       .onClick(() => {
-        this.handleWhiteNoiseClick(); // 单击控制启停
+        this.handleWhiteNoiseClick(); 
       })
-      // 长按手势呼出detailcard
       .gesture(
         LongPressGesture({ repeat: false, duration: 400 })
           .onAction(() => {
-            this.app.nav.openDetailCard(() => { this.buildNoiseSelector() });
+            // 🌟 唤出卡片，假设 AppNav 已支持传递高度，传入 'auto' 使其自适应包袱内容
+            this.app.nav.openDetailCard(() => { this.buildNoiseSelector() }, 'auto');
           })
       )
 
