@@ -83,7 +83,7 @@ export class AppNav extends NavPathStack {
   openDetailCard(contentBuilder: () => void = () => {}, height: string = AppNav.DEFAULT_DETAIL_CARD_HEIGHT): void {
     this.detailCardContentBuilder = contentBuilder;
     this.detailCardHeight = this.resolveOverlayHeight(height, AppNav.DEFAULT_DETAIL_CARD_HEIGHT);
-    this.pushOverlayRoute(AppOverlayRoute.DETAIL_CARD, undefined, true);
+    this.pushOverlayRoute(AppOverlayRoute.DETAIL_CARD, undefined, false);
   }
 
   /**

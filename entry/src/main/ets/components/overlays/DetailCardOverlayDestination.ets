@@ -38,6 +38,7 @@ export struct DetailCardOverlayDestination {
     .width('100%')
     .height('100%')
     .backgroundColor(Color.Transparent)
+    .hideTitleBar(true) // 不然栈深度大于1的时候，系统会自动加上一个导航栏和一个返回键
     .mode(NavDestinationMode.DIALOG)
     .onBackPressed(() => {
       this.detailCardController.dismiss();

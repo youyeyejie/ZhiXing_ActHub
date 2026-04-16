@@ -1,23 +1,8 @@
-/**
- * 组件功能简介：
- * - 专注控制按钮组，提供专注计时启停、结束操作，集成了白噪音快捷播放，并支持长按弹出高度自适应的 DetailCard 轨道选择器。
- *
- * 可传入项：
- * - @Param customDuration: number (专注工作时长)
- * - @Param customRestDuration: number (专注休息时长)
- * - @Event goBackIndex: () => void (返回首页回调)
- *
- * 返回行为：
- * - 渲染包含三个圆形按钮的控制条。长按白噪音按钮时，通过全局导航唤出 DetailCard 并渲染包含标题、关闭按钮和列表的自定义内容。
- *
- * 副作用：
- * - 启停或重置内部的 FocusTimerEngine。
- * - 调用 WhiteNoisePlayer 进行音频状态流转（播放、暂停），并更新当前选中的音轨资源。
- */
 import { AppState, useAppState } from '../../../app/AppStates';
 import { FocusTimerEngine, FocusState } from '../../../core/services/FocusTimerEngine';
 import { PlayerState } from '../../../core/services/WhiteNoisePlayer'; 
 import { common } from '@kit.AbilityKit'; 
+import { WhiteNoiseSelectorCard } from './WhiteNoiseSelectorCard';
 
 @ComponentV2
 export struct FocusControlButtons {
@@ -30,6 +15,12 @@ export struct FocusControlButtons {
     return this.app.focusEngine;
   }
 
+  // 干净利落的 Builder 挂载点
+  @Builder
+  private buildNoiseSelectorContent() {
+    WhiteNoiseSelectorCard();
+  }
+
   private getMusicButtonColor(): string {
     if (this.app.whiteNoisePlayer.state === PlayerState.PLAYING || 
         this.app.whiteNoisePlayer.state === PlayerState.LOADING) {
@@ -40,93 +31,19 @@ export struct FocusControlButtons {
 
   private handleWhiteNoiseClick(): void {
     const player = this.app.whiteNoisePlayer;
+    const context = getContext(this) as common.UIAbilityContext;
     
     if (player.state === PlayerState.PLAYING) {
       player.pause();
     } else if (player.state === PlayerState.PAUSED) {
-      // 校验偏好设置与底层缓存是否一致
       if (player.selectedTrack !== player.currentTrackName) {
-        const context = getContext(this) as common.UIAbilityContext;
-        player.playWhiteNoise(context, player.selectedTrack);
+        player.playWhiteNoise(context, player.selectedTrack); // 切了歌就重新加载
       } else {
-        player.resume();
+        player.resume(); // 没切歌就直接继续
       }
     } else {
-      // IDLE 或 STOPPED 状态，直接播放新歌
-      const context = getContext(this) as common.UIAbilityContext;
       player.playWhiteNoise(context, player.selectedTrack);
     }
-  }
-
-  @Builder
-  private buildNoiseItem(name: string, file: string, icon: Resource) {
-    Row({ space: 16 }) {
-      SymbolGlyph(icon)
-        .fontSize(24)
-        .fontColor([this.app.theme.palette.primary])
-        
-      Text(name)
-        .fontSize(16)
-        .fontColor(this.app.theme.palette.textPrimary)
-        .layoutWeight(1)
-
-      // 选中的打个勾
-      if (this.app.whiteNoisePlayer.selectedTrack === file) {
-        SymbolGlyph($r('sys.symbol.checkmark'))
-          .fontSize(20)
-          .fontColor([this.app.theme.palette.primary])
-      }
-    }
-    .width('100%')
-    .padding(16)
-    // 选中的高亮背景
-    .backgroundColor(this.app.whiteNoisePlayer.selectedTrack === file ? this.app.theme.palette.surfaceSecondary : Color.Transparent)
-    .borderRadius(12)
-    .onClick(() => {
-      this.app.whiteNoisePlayer.selectedTrack = file;
-      const context = getContext(this) as common.UIAbilityContext;
-      this.app.whiteNoisePlayer.playWhiteNoise(context, file);
-      this.app.nav.back(false); 
-    })
-  }
-
-  @Builder
-  private buildNoiseSelector() {
-    Column() {
-      Row() {
-        Text('选择白噪音')
-          .fontSize(18)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(this.app.theme.palette.textPrimary)
-          .layoutWeight(1)
-
-        Button({ type: ButtonType.Circle, stateEffect: true }) {
-          Text('×')
-            .fontSize(18)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.app.theme.palette.textSecondary)
-        }
-        .width(28)
-        .height(28)
-        .backgroundColor(this.app.theme.palette.surfaceSecondary)
-        .onClick(() => {
-          this.app.nav.back(false); // 主动点击关闭
-        })
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Center)
-      .margin({ bottom: 16 }) // 标题与列表的间距
-
-      // 列表主体
-      Column({ space: 8 }) {
-        this.buildNoiseItem('雨声', 'rain.mp3', $r('sys.symbol.icloud'))
-        this.buildNoiseItem('流水', 'water.mp3', $r('sys.symbol.drop'))
-        this.buildNoiseItem('海浪', 'sea.mp3', $r('sys.symbol.music'))
-      }
-      .width('100%')
-    }
-    .width('100%')
-    // 自身不设死高度，依靠内容自然撑开
   }
 
   build() {
@@ -151,7 +68,8 @@ export struct FocusControlButtons {
       .gesture(
         LongPressGesture({ repeat: false, duration: 400 })
           .onAction(() => {
-            this.app.nav.openDetailCard(() => { this.buildNoiseSelector() }, 'auto');
+            // 直接传递引用，呼出弹层
+            this.app.nav.openDetailCard(this.buildNoiseSelectorContent, 'auto');
           })
       )
 
