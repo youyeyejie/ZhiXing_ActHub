@@ -48,14 +48,6 @@ export struct TodoPage {
         }
       }
 
-      FloatingActionButton({
-        onTap: async () => {
-          await this.state.refreshAll();
-          this.state.openCreateTodo();
-          this.app.nav.openActionSheet(this.buildTodoEditorContent, "40%");
-        },
-      })
-
       UndoNotificationStack({
         tasks: this.state.buildUndoStackItems(),
         onUndo: (taskId: string) => {
@@ -66,6 +58,14 @@ export struct TodoPage {
         },
         onClose: (taskId: string) => {
           this.state.closeUndo(taskId);
+        },
+      })
+
+      FloatingActionButton({
+        onTap: async () => {
+          await this.state.refreshAll();
+          this.state.openCreateTodo();
+          this.app.nav.openActionSheet(this.buildTodoEditorContent, "40%");
         },
       })
 

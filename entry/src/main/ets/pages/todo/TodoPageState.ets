@@ -28,7 +28,7 @@ class TodoUndoTask {
 }
 
 @ObservedV2
-export class TodoCardItem {
+export class TodoItem {
   @Trace id: number = 0;
   @Trace title: string = "";
   @Trace categoryId: number = 0;
@@ -77,7 +77,7 @@ export class TodoPageState {
   @Trace public selectedCategoryId: number = 0;
   @Trace public todos: Array<Todo> = [];
   @Trace public visibleTodos: Array<Todo> = [];
-  @Trace public visibleTodoCards: Array<TodoCardItem> = [];
+  @Trace public visibleTodoCards: Array<TodoItem> = [];
 
   @Trace public isCategoryEditorVisible: boolean = false;
   @Trace public isTodoEditorVisible: boolean = false;
@@ -91,7 +91,7 @@ export class TodoPageState {
 
   private refreshTask: Promise<void> | null = null;
   private ensureDefaultCategoryTask: Promise<void> | null = null;
-  private todoCardItemMap: Map<number, TodoCardItem> = new Map<number, TodoCardItem>();
+  private todoItemMap: Map<number, TodoItem> = new Map<number, TodoItem>();
 
   private safeTrim(value: string): string {
     const text = `${value}`.trim();
@@ -125,36 +125,36 @@ export class TodoPageState {
   }
 
   private syncVisibleTodoCards(): void {
-    const nextCardMap: Map<number, TodoCardItem> = new Map<number, TodoCardItem>();
+    const nextItemMap: Map<number, TodoItem> = new Map<number, TodoItem>();
     for (let i = 0; i < this.todos.length; i++) {
       const todo = this.todos[i];
       const todoId = this.normalizeId(todo.id);
       if (todoId <= 0) {
         continue;
       }
-      let cardItem = this.todoCardItemMap.get(todoId);
-      if (cardItem === undefined) {
-        cardItem = new TodoCardItem();
+      let item = this.todoItemMap.get(todoId);
+      if (item === undefined) {
+        item = new TodoItem();
       }
-      cardItem.applyFrom(
+      item.applyFrom(
         todo,
         this.resolveTodoCardTitle(todo),
         this.resolveCategoryName(todo.categoryId),
         this.resolveCategoryColor(todo.categoryId),
       );
-      nextCardMap.set(todoId, cardItem);
+      nextItemMap.set(todoId, item);
     }
-    this.todoCardItemMap = nextCardMap;
+    this.todoItemMap = nextItemMap;
 
-    const nextVisibleCards: Array<TodoCardItem> = [];
+    const nextVisibleCards: Array<TodoItem> = [];
     for (let i = 0; i < this.visibleTodos.length; i++) {
       const todoId = this.normalizeId(this.visibleTodos[i].id);
       if (todoId <= 0) {
         continue;
       }
-      const cardItem = this.todoCardItemMap.get(todoId);
-      if (cardItem !== undefined) {
-        nextVisibleCards.push(cardItem);
+      const item = this.todoItemMap.get(todoId);
+      if (item !== undefined) {
+        nextVisibleCards.push(item);
       }
     }
     this.visibleTodoCards = nextVisibleCards;
@@ -1006,7 +1006,7 @@ export class TodoPageState {
     this.pendingRestoreMoveTodoIds = [];
     this.refreshTask = null;
     this.ensureDefaultCategoryTask = null;
-    this.todoCardItemMap = new Map<number, TodoCardItem>();
+    this.todoItemMap = new Map<number, TodoItem>();
   }
 
   clearListCache(): void {
@@ -1016,7 +1016,7 @@ export class TodoPageState {
     this.visibleTodoCards = [];
     this.refreshTask = null;
     this.ensureDefaultCategoryTask = null;
-    this.todoCardItemMap = new Map<number, TodoCardItem>();
+    this.todoItemMap = new Map<number, TodoItem>();
   }
 }
 

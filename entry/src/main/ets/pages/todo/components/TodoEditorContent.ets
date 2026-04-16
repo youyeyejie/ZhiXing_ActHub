@@ -304,10 +304,10 @@ export struct TodoEditorContent {
           .fontColor(this.app.theme.palette.textPrimary)
           .layoutWeight(1);
 
-        this.buildSaveButton();
         if (!this.hideInnerHeader) {
           this.buildDeleteButton();
         }
+        this.buildSaveButton();
       }
       .width('100%')
       .alignItems(VerticalAlign.Center);

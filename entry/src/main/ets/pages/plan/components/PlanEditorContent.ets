@@ -401,6 +401,23 @@ export struct PlanEditorContent {
   }
 
   @Builder
+  private buildReminderButton() {
+    Button({ type: ButtonType.Circle }) {
+      SymbolGlyph(this.remindEnabledDraft ? $r('sys.symbol.bell_fill') : $r('sys.symbol.bell_slash_fill'))
+        .fontSize(18)
+        .fontColor([this.app.theme.palette.textSecondary]);
+    }
+      .width(34)
+      .height(34)
+      .backgroundColor(this.app.theme.palette.surface)
+      .enabled(!this.saving)
+      .onClick(() => {
+        this.remindEnabledDraft = !this.remindEnabledDraft;
+        this.recalculateSaveEnabled();
+      });
+  }
+
+  @Builder
   private buildTypeChip(label: string, selected: boolean, onTap: () => void) {
     Button(label)
       .type(ButtonType.Capsule)
@@ -426,10 +443,11 @@ export struct PlanEditorContent {
           .fontColor(this.app.theme.palette.textPrimary)
           .layoutWeight(1);
 
-        this.buildSaveButton();
         if (!this.hideInnerHeader) {
           this.buildDeleteButton();
         }
+        this.buildReminderButton();
+        this.buildSaveButton();
       }
       .width('100%')
       .alignItems(VerticalAlign.Center);
@@ -450,7 +468,7 @@ export struct PlanEditorContent {
         });
 
       Row({ space: 10 }) {
-        Text(this.hideInnerHeader ? '开始时间（必填）' : '开始时间')
+        Text('开始时间')
           .fontSize(14)
           .fontColor(this.app.theme.palette.textSecondary)
           .padding({ left: 8, right: 8 });
@@ -470,7 +488,7 @@ export struct PlanEditorContent {
       .alignItems(VerticalAlign.Center);
 
       Row({ space: 10 }) {
-        Text(this.hideInnerHeader ? '结束时间（必填）' : '结束时间')
+        Text('结束时间')
           .fontSize(14)
           .fontColor(this.app.theme.palette.textSecondary)
           .padding({ left: 8, right: 8 });
@@ -503,15 +521,15 @@ export struct PlanEditorContent {
           this.recalculateSaveEnabled();
         });
 
-      TextArea({ text: this.descriptionDraft, placeholder: this.hideInnerHeader ? '备注描述（选填）' : '描述（选填）' })
+      TextArea({ text: this.descriptionDraft, placeholder: '备注（选填）' })
         .width('100%')
-        .height(92)
+        .height(80)
         .fontSize(14)
         .fontColor(this.app.theme.palette.textSecondary)
         .placeholderColor(this.app.theme.palette.textTertiary)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
-        .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+        .padding({ left: 12, right: 12, top: 9, bottom: 9 })
         .onChange((value: string) => {
           this.descriptionDraft = value;
           this.recalculateSaveEnabled();
@@ -526,30 +544,6 @@ export struct PlanEditorContent {
       }
       .width('100%');
 
-      Row({ space: 12 }) {
-        Column({ space: 4 }) {
-          Text('提醒到系统日历')
-            .fontSize(14)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.app.theme.palette.textPrimary)
-          Text('开启后会按全局“日历提醒”设置同步到系统日历')
-            .fontSize(12)
-            .lineHeight(18)
-            .fontColor(this.app.theme.palette.textSecondary)
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
-
-        Toggle({ type: ToggleType.Switch, isOn: $$this.remindEnabledDraft })
-          .onChange((value: boolean) => {
-            this.remindEnabledDraft = value;
-            this.recalculateSaveEnabled();
-          })
-      }
-      .width('100%')
-      .padding(14)
-      .borderRadius(12)
-      .backgroundColor(this.app.theme.palette.surfaceSecondary);
     }
     .width('100%');
   }

@@ -156,7 +156,7 @@ export struct IdeaEditorContent {
   }
 
   private hasRequiredFieldsFilled(): boolean {
-    return this.normalizeText(this.content).length > 0;
+    return this.normalizeText(this.title).length > 0 || this.normalizeText(this.content).length > 0;
   }
 
   private computeCanSave(): boolean {
@@ -164,7 +164,7 @@ export struct IdeaEditorContent {
   }
 
   private canDelete(): boolean {
-    if (this.isSaving || !this.hideInnerHeader || this.isNew) {
+    if (this.isSaving || this.hideInnerHeader || this.isNew) {
       return false;
     }
     return this.normalizeId(this.currentIdea.id) > 0;
@@ -181,13 +181,6 @@ export struct IdeaEditorContent {
     this.app.nav.back(false);
   }
 
-  private resolveHeaderActionButtonForeground(danger: boolean): string {
-    if (danger) {
-      return this.app.theme.palette.danger;
-    }
-    return this.app.theme.palette.surface;
-  }
-
   @Builder
   private buildSaveButton() {
     Button({ type: ButtonType.Circle }) {
@@ -198,9 +191,7 @@ export struct IdeaEditorContent {
       .width(34)
       .height(34)
       .backgroundColor(this.app.theme.palette.primary)
-      .enabled(
-        !this.isSaving && (this.content.trim().length > 0 || this.title.trim().length > 0)
-      )
+      .enabled(this.saveEnabled)
       .onClick(() => {
         this.saveToRepository();
       });
@@ -231,10 +222,10 @@ export struct IdeaEditorContent {
           .fontColor(this.app.theme.palette.textPrimary)
           .layoutWeight(1)
 
-        this.buildSaveButton();
         if (!this.hideInnerHeader) {
           this.buildDeleteButton();
         }
+        this.buildSaveButton();
       }
       .width("100%")
 

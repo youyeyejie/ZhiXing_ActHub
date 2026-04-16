@@ -26,6 +26,29 @@ class PlanUndoTask {
 }
 
 @ObservedV2
+export class PlanItem {
+  @Trace id: number = 0;
+  @Trace content: string = "";
+  @Trace startTime: number = 0;
+  @Trace endTime: number = 0;
+  @Trace location: string = "";
+  @Trace isCourse: number = 0;
+  @Trace createdAt: number = 0;
+  @Trace updatedAt: number = 0;
+
+  applyFrom(plan: Plan): void {
+    this.id = plan.id;
+    this.content = plan.content;
+    this.startTime = plan.startTime;
+    this.endTime = plan.endTime;
+    this.location = plan.location;
+    this.isCourse = plan.isCourse;
+    this.createdAt = plan.createdAt;
+    this.updatedAt = plan.updatedAt;
+  }
+}
+
+@ObservedV2
 export class PlanPageState {
   private readonly dayMs: number = 24 * 60 * 60 * 1000;
   private planRepository: PlanRepository = new PlanRepository();
@@ -35,6 +58,7 @@ export class PlanPageState {
   @Trace public currentWeekBase: number = 0;
   @Trace public plans: Array<Plan> = [];
   @Trace public visiblePlans: Array<Plan> = [];
+  @Trace public visiblePlanCards: Array<PlanItem> = [];
 
   @Trace public isEditorVisible: boolean = false;
   @Trace public isDetailVisible: boolean = false;
@@ -42,8 +66,10 @@ export class PlanPageState {
   @Trace public creatingPlanId: number = 0;
   @Trace public returnTodayRequestVersion: number = 0;
   @Trace public undoTasks: Array<PlanUndoTask> = [];
+  @Trace public pendingRestoreMovePlanIds: Array<number> = [];
   private undoTaskSeq: number = 0;
   private refreshTask: Promise<void> | null = null;
+  private planItemMap: Map<number, PlanItem> = new Map<number, PlanItem>();
 
   constructor() {
     const today = this.toDayStart(Date.now());
@@ -75,10 +101,25 @@ export class PlanPageState {
   private sortPlansByStartTime(list: Array<Plan>): Array<Plan> {
     const sorted = list.slice();
     sorted.sort((a: Plan, b: Plan) => {
-      if (a.startTime === b.startTime) {
-        return b.updatedAt - a.updatedAt;
+      if (a.startTime !== b.startTime) {
+        return a.startTime - b.startTime;
       }
-      return a.startTime - b.startTime;
+
+      if (a.endTime !== b.endTime) {
+        return a.endTime - b.endTime;
+      }
+
+      if (a.createdAt !== b.createdAt) {
+        return a.createdAt - b.createdAt;
+      }
+
+      const idA = this.normalizeId(a.id);
+      const idB = this.normalizeId(b.id);
+      if (idA !== idB) {
+        return idA - idB;
+      }
+
+      return 0;
     });
     return sorted;
   }
@@ -100,6 +141,37 @@ export class PlanPageState {
     plan.createdAt = source.createdAt;
     plan.updatedAt = source.updatedAt;
     return plan;
+  }
+
+  private syncVisiblePlanCards(): void {
+    const nextItemMap: Map<number, PlanItem> = new Map<number, PlanItem>();
+    for (let i = 0; i < this.plans.length; i++) {
+      const plan = this.plans[i];
+      const planId = this.normalizeId(plan.id);
+      if (planId <= 0) {
+        continue;
+      }
+      let item = this.planItemMap.get(planId);
+      if (item === undefined) {
+        item = new PlanItem();
+      }
+      item.applyFrom(plan);
+      nextItemMap.set(planId, item);
+    }
+    this.planItemMap = nextItemMap;
+
+    const nextVisibleCards: Array<PlanItem> = [];
+    for (let i = 0; i < this.visiblePlans.length; i++) {
+      const planId = this.normalizeId(this.visiblePlans[i].id);
+      if (planId <= 0) {
+        continue;
+      }
+      const item = this.planItemMap.get(planId);
+      if (item !== undefined) {
+        nextVisibleCards.push(item);
+      }
+    }
+    this.visiblePlanCards = nextVisibleCards;
   }
 
   async refreshAll(): Promise<void> {
@@ -127,6 +199,28 @@ export class PlanPageState {
     this.calendarReminderService.registerPlanReminder();
   }
 
+  private sortVisiblePlanList(list: Array<Plan>): Array<Plan> {
+    const sorted = this.sortPlansByStartTime(list);
+    if (this.pendingRestoreMovePlanIds.length === 0) {
+      return sorted;
+    }
+
+    const pendingSet: Set<number> = new Set<number>(
+      this.pendingRestoreMovePlanIds.map((id: number) => this.normalizeId(id)),
+    );
+    const normal: Array<Plan> = [];
+    const pending: Array<Plan> = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const planId = this.normalizeId(sorted[i].id);
+      if (planId > 0 && pendingSet.has(planId)) {
+        pending.push(sorted[i]);
+      } else {
+        normal.push(sorted[i]);
+      }
+    }
+    return [...normal, ...pending];
+  }
+
   private syncVisiblePlans(): void {
     const dayStart = this.toDayStart(this.selectedDate);
     const dayEnd = dayStart + this.dayMs;
@@ -139,7 +233,8 @@ export class PlanPageState {
       const endTime = item.endTime > startTime ? item.endTime : startTime;
       return startTime < dayEnd && endTime > dayStart;
     });
-    this.visiblePlans = this.sortPlansByStartTime(filtered);
+    this.visiblePlans = this.sortVisiblePlanList(filtered);
+    this.syncVisiblePlanCards();
   }
 
   selectDate(timestamp: number): void {
@@ -381,6 +476,7 @@ export class PlanPageState {
     if (normalizedId <= 0) {
       return;
     }
+    this.clearPendingRestoreMove(normalizedId);
     const target = this.resolvePlanById(normalizedId);
     if (target === null) {
       return;
@@ -424,10 +520,8 @@ export class PlanPageState {
       const before = this.plans.slice(0, insertIndex);
       const after = this.plans.slice(insertIndex);
       this.plans = this.sortPlansByStartTime([...before, task.plan, ...after]);
-      if (!this.isCurrentSelectedDateCovered(task.plan)) {
-        this.syncVisiblePlans();
-        this.syncPlanReminder();
-        return;
+      if (this.isCurrentSelectedDateCovered(task.plan)) {
+        this.markPlanPendingRestoreMove(snapshotId);
       }
     }
     this.syncVisiblePlans();
@@ -498,6 +592,56 @@ export class PlanPageState {
     );
   }
 
+  isPlanPendingRestoreMove(planId: number): boolean {
+    const normalizedId = this.normalizeId(planId);
+    if (normalizedId <= 0) {
+      return false;
+    }
+    return this.pendingRestoreMovePlanIds.some((id: number) => this.normalizeId(id) === normalizedId);
+  }
+
+  settlePendingRestoreMove(planId: number): void {
+    const normalizedId = this.normalizeId(planId);
+    if (normalizedId <= 0) {
+      return;
+    }
+    if (!this.isPlanPendingRestoreMove(normalizedId)) {
+      return;
+    }
+    animateTo({ duration: 280, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
+      this.clearPendingRestoreMove(normalizedId);
+      this.syncVisiblePlans();
+    });
+  }
+
+  private markPlanPendingRestoreMove(planId: number): void {
+    const normalizedId = this.normalizeId(planId);
+    if (normalizedId <= 0) {
+      return;
+    }
+
+    const exists = this.pendingRestoreMovePlanIds.some(
+      (id: number) => this.normalizeId(id) === normalizedId,
+    );
+    if (!exists) {
+      this.pendingRestoreMovePlanIds = [...this.pendingRestoreMovePlanIds, normalizedId];
+    }
+  }
+
+  private clearPendingRestoreMove(planId: number): void {
+    const normalizedId = this.normalizeId(planId);
+    if (normalizedId <= 0) {
+      return;
+    }
+
+    const next = this.pendingRestoreMovePlanIds.filter(
+      (id: number) => this.normalizeId(id) !== normalizedId,
+    );
+    if (next.length !== this.pendingRestoreMovePlanIds.length) {
+      this.pendingRestoreMovePlanIds = next;
+    }
+  }
+
   private findPlanIndexById(planId: number): number {
     for (let i = 0; i < this.plans.length; i++) {
       if (this.normalizeId(this.plans[i].id) === planId) {
@@ -526,17 +670,23 @@ export class PlanPageState {
     this.currentWeekBase = this.resolveWeekStart(today);
     this.plans = [];
     this.visiblePlans = [];
+    this.visiblePlanCards = [];
     this.isEditorVisible = false;
     this.isDetailVisible = false;
     this.editingPlanId = 0;
     this.undoTasks = [];
+    this.pendingRestoreMovePlanIds = [];
     this.refreshTask = null;
+    this.planItemMap = new Map<number, PlanItem>();
   }
 
   clearListCache(): void {
     this.plans = [];
     this.visiblePlans = [];
+    this.visiblePlanCards = [];
+    this.pendingRestoreMovePlanIds = [];
     this.refreshTask = null;
+    this.planItemMap = new Map<number, PlanItem>();
   }
 }
 

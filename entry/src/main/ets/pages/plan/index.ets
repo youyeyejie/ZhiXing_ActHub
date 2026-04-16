@@ -17,8 +17,6 @@ import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
 export struct PlanPage {
   @Local private app: AppState = useAppState();
   @Local private state: PlanPageState = usePlanPageState();
-  private readonly floatingButtonSize: number = 56;
-  private readonly returnTodayGap: number = 20;
 
   @Builder
   private buildPlanEditorContent() {
@@ -27,34 +25,6 @@ export struct PlanPage {
 
   private shouldShowReturnTodayButton(): boolean {
     return !this.state.isSelectedDateToday();
-  }
-
-  @Builder
-  private buildReturnTodayButton() {
-    Button("今")
-      .type(ButtonType.Circle)
-      .width(this.floatingButtonSize)
-      .height(this.floatingButtonSize)
-      .fontSize(20)
-      .fontWeight(FontWeight.Medium)
-      .fontColor(this.app.theme.palette.surface)
-      .backgroundColor(this.app.theme.palette.primary)
-      .shadow({
-        radius: 16,
-        color: this.app.theme.palette.primary + "40",
-        offsetX: 0,
-        offsetY: 4,
-      })
-      .margin({ right: 20, bottom: "6%" })
-      .translate({ x: 0, y: -(this.floatingButtonSize + this.returnTodayGap) })
-      .transition(
-        TransitionEffect.OPACITY
-          .combine(TransitionEffect.scale({ x: 0.92, y: 0.92 }))
-          .animation({ duration: 320, curve: Curve.EaseInOut }),
-      )
-      .onClick(() => {
-        this.state.requestReturnToTodayAnimated();
-      });
   }
 
   aboutToAppear(): void {
@@ -76,24 +46,11 @@ export struct PlanPage {
           );
         },
       }) {
-        WeekCalendar()
-        .width("90%")
+        WeekCalendar().width("90%")
         PageScrollLayout({ space: 12, paddingTop: 12 }) {
           TimelineView()
         }
       }
-
-      if (this.shouldShowReturnTodayButton()) {
-        this.buildReturnTodayButton();
-      }
-
-      FloatingActionButton({
-        onTap: async () => {
-          await this.state.refreshAll();
-          this.state.openCreatePlan();
-          this.app.nav.openActionSheet(this.buildPlanEditorContent);
-        },
-      })
 
       UndoNotificationStack({
         tasks: this.state.buildUndoStackItems(),
@@ -108,6 +65,28 @@ export struct PlanPage {
         },
       })
 
+      FloatingActionButton({
+        onTap: async () => {
+          await this.state.refreshAll();
+          this.state.openCreatePlan();
+          this.app.nav.openActionSheet(this.buildPlanEditorContent, "55%");
+        },
+      })
+
+      if (this.shouldShowReturnTodayButton()) {
+        FloatingActionButton({
+          label: "今",
+          onTap: () => {
+            this.state.requestReturnToTodayAnimated();
+          },
+        })
+          .translate({ x: 0, y: -76 })
+          .transition(
+            TransitionEffect.OPACITY.combine(
+              TransitionEffect.scale({ x: 0.92, y: 0.92 }),
+            ).animation({ duration: 320, curve: Curve.EaseInOut }),
+          );
+      }
     }
     .width("100%")
     .height("100%");

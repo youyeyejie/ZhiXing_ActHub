@@ -8,18 +8,28 @@ import { AppState, useAppState } from "../../app/AppStates";
 export struct FloatingActionButton {
   @Local private app: AppState = useAppState();
   @Param content: Resource = $r("sys.media.ohos_ic_public_add");
+  @Param label: string = "";
+  @Param buttonSize: number = 56;
+  @Param iconSize: number = 28;
   @Event onTap: () => void = () => {};
 
   build() {
     Button() {
-      Image(this.content)
-        .width(28)
-        .height(28)
-        .fillColor(this.app.theme.palette.surface);
+      if (this.label.trim().length > 0) {
+        Text(this.label)
+          .fontSize(20)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.app.theme.palette.surface);
+      } else {
+        Image(this.content)
+          .width(this.iconSize)
+          .height(this.iconSize)
+          .fillColor(this.app.theme.palette.surface);
+      }
     }
     .type(ButtonType.Circle)
-    .width(56)
-    .height(56)
+    .width(this.buttonSize)
+    .height(this.buttonSize)
     .backgroundColor(this.app.theme.palette.primary)
     .shadow({
       radius: 16,
