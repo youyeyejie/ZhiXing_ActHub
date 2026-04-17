@@ -2,6 +2,7 @@ import { AppState, useAppState } from '../../../app/AppStates';
 import promptAction from '@ohos.promptAction';
 import { common } from '@kit.AbilityKit'; 
 import { PlayerState } from '../../../core/services/WhiteNoisePlayer'; 
+import { FormTypography } from '../../../components/form/FormTypography';
 
 /**
  * 组件功能简介：
@@ -74,26 +75,31 @@ export struct TimeSelectionSheet {
 
   @Builder
   private buildPresetItem(icon: Resource, title: string, workMin: number, restMin: number) {
-    Row({ space: 16 }) {
+    Row({ space: 6 }) {
       SymbolGlyph(icon)
         .fontSize(22)
         .fontColor([this.app.theme.palette.primary])
 
-      Text(title)
-        .fontSize(15)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.app.theme.palette.textPrimary)
-        .layoutWeight(1)
+      Column({ space: 4 }) {
+        Text(title)
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.app.theme.palette.textPrimary)
+        Text(`${workMin} + ${restMin}`)
+          .fontSize(12)
+          .fontColor(this.app.theme.palette.textSecondary)
+      }
     }
-    .width("100%")
+    .layoutWeight(1)
     .height(56) 
+    .justifyContent(FlexAlign.Center)
     .backgroundColor(this.app.theme.palette.surfaceSecondary)
     .borderRadius(12)
-    .padding({ left: 16, right: 16 })
     .onClick(() => {
+      this.workMin = `${workMin}`;
+      this.restMin = `${restMin}`;
       this.onSave(workMin * 60, restMin * 60);
       this.app.focusEngine.DefaultRestDuration = restMin * 60;
-      this.app.nav.back(false);
     })
   }
 
@@ -136,77 +142,80 @@ export struct TimeSelectionSheet {
   }
 
   @Builder
+  private buildSaveButton() {
+    Button({ type: ButtonType.Circle }) {
+      SymbolGlyph($r('sys.symbol.save'))
+        .fontSize(18)
+        .fontColor([this.app.theme.palette.surface]);
+    }
+      .width(34)
+      .height(34)
+      .backgroundColor(this.app.theme.palette.primary)
+      .fontColor(this.app.theme.palette.surface)
+      .onClick(() => {
+        this.submit();
+      })
+  }
+
+  @Builder
   private buildContent() {
-    Column({ space: 20 }) { 
-      Row() {
-        Text("时间设置")
-          .fontSize(16)
+    Column({ space: 14 }) { 
+      Row({ space: 10 }) {
+        Text("专注设置")
+          .fontSize(FormTypography.TITLE_SIZE)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.textPrimary)
-          .layoutWeight(1)
+          .layoutWeight(1);
         
-        Button("保存")
-          .type(ButtonType.Capsule)
-          .height(40)
-          .backgroundColor(this.app.theme.palette.primary)
-          .fontColor(this.app.theme.palette.surface)
-          .onClick(() => {
-            this.submit();
-          })
+        this.buildSaveButton();
       }
       .width("100%")
       .alignItems(VerticalAlign.Center)
 
-      Column({ space: 10 }) {
-        this.buildPresetItem($r('sys.symbol.timer_circle_fill'), "标准番茄钟（25+5）", 25, 5)
-        this.buildPresetItem($r('sys.symbol.book_open_fill'), "课堂与课间（45+10）", 45, 10)
-        this.buildPresetItem($r('sys.symbol.clock_fill'), "一小时（60+10）", 60, 10)
-      }
-      .width("100%")
+      Text("自定义时长")
+        .fontSize(FormTypography.LABEL_SIZE)
+        .fontColor(this.app.theme.palette.textSecondary)
+        .padding({ left: 8, right: 8 });
 
-      Column({ space: 10 }) {
-        Text("自定义时长")
-          .fontSize(13)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(this.app.theme.palette.textPrimary)
-          .width("100%")
-          .textAlign(TextAlign.Start) 
+      Row() {
+        Row() {
+          Text("专注")
+            .fontSize(FormTypography.LABEL_SIZE)
+            .fontColor(this.app.theme.palette.textSecondary)
+          TextInput({ text: this.workMin })
+            .type(InputType.Number)
+            .fontSize(FormTypography.INPUT_CONTENT_SIZE)
+            .fontColor(this.app.theme.palette.textPrimary)
+            .width(50)
+            .textAlign(TextAlign.Center)
+            .backgroundColor(Color.Transparent) 
+            .onChange((value: string) => { this.workMin = value; })
+            Text("分钟")
+            .fontSize(FormTypography.LABEL_SIZE)
+            .fontColor(this.app.theme.palette.textSecondary)
+        }
+
+        Divider()
+          .vertical(true)
+          .height(16)
+          .color(this.app.theme.palette.textTertiary)
+          .opacity(0.3)
 
         Row() {
-          Row() {
-            Text("专注")
-              .fontSize(14)
-              .fontColor(this.app.theme.palette.textSecondary)
-            TextInput({ text: this.workMin })
-              .type(InputType.Number)
-              .width(50)
-              .textAlign(TextAlign.Center)
-              .backgroundColor(Color.Transparent) 
-              .onChange((value: string) => { this.workMin = value; })
-            Text("分钟")
-              .fontSize(14)
-              .fontColor(this.app.theme.palette.textSecondary)
-          }
-
-          Divider()
-            .vertical(true)
-            .height(16)
-            .color(this.app.theme.palette.textTertiary)
-            .opacity(0.3)
-
-          Row() {
-            Text("休息")
-              .fontSize(14)
-              .fontColor(this.app.theme.palette.textSecondary)
-            TextInput({ text: this.restMin })
-              .type(InputType.Number)
-              .width(50)
-              .textAlign(TextAlign.Center)
-              .backgroundColor(Color.Transparent)
-              .onChange((value: string) => { this.restMin = value; })
-            Text("分钟")
-              .fontSize(14)
-              .fontColor(this.app.theme.palette.textSecondary)
+          Text("休息")
+            .fontSize(FormTypography.LABEL_SIZE)
+            .fontColor(this.app.theme.palette.textSecondary)
+          TextInput({ text: this.restMin })
+            .type(InputType.Number)
+            .fontSize(FormTypography.INPUT_CONTENT_SIZE)
+            .fontColor(this.app.theme.palette.textPrimary)
+            .width(50)
+            .textAlign(TextAlign.Center)
+            .backgroundColor(Color.Transparent)
+            .onChange((value: string) => { this.restMin = value; })
+          Text("分钟")
+            .fontSize(FormTypography.LABEL_SIZE)
+            .fontColor(this.app.theme.palette.textSecondary)
           }
         }
         .width("100%")
@@ -214,23 +223,23 @@ export struct TimeSelectionSheet {
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
         .justifyContent(FlexAlign.SpaceEvenly) 
+
+      Row({ space: 12 }) {
+        this.buildPresetItem($r('sys.symbol.timer_circle_fill'), "标准", 25, 5)
+        this.buildPresetItem($r('sys.symbol.book_open_fill'), "课堂", 45, 10)
+        this.buildPresetItem($r('sys.symbol.clock_fill'), "小时", 60, 10)
       }
       .width("100%")
 
-      Column({ space: 10 }) {
-        Text("白噪音伴随")
-          .fontSize(13)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(this.app.theme.palette.textPrimary)
-          .width("100%")
-          .textAlign(TextAlign.Start) 
+      Text("白噪音")
+        .fontSize(FormTypography.LABEL_SIZE)
+        .fontColor(this.app.theme.palette.textSecondary)
+        .padding({ left: 8, right: 8 });
 
-        Row({ space: 12 }) {
-          this.buildNoiseItem('雨声', 'rain.mp3', $r('sys.symbol.icloud'))
-          this.buildNoiseItem('流水', 'water.mp3', $r('sys.symbol.drop'))
-          this.buildNoiseItem('海浪', 'sea.mp3', $r('sys.symbol.music'))
-        }
-        .width("100%")
+      Row({ space: 12 }) {
+        this.buildNoiseItem('雨声', 'rain.mp3', $r('sys.symbol.icloud'))
+        this.buildNoiseItem('流水', 'water.mp3', $r('sys.symbol.drop'))
+        this.buildNoiseItem('海浪', 'sea.mp3', $r('sys.symbol.music'))
       }
       .width("100%")
 
@@ -245,8 +254,6 @@ export struct TimeSelectionSheet {
       }
       .width("100%")
       .justifyContent(FlexAlign.Center)
-      .margin({ top: 5 }) 
-      
     }
     .width("100%")
     .alignItems(HorizontalAlign.Center)
@@ -258,6 +265,5 @@ export struct TimeSelectionSheet {
     }
     .width("100%")
     .justifyContent(FlexAlign.Start)
-    .padding({ bottom: 40 }) 
   }
 }

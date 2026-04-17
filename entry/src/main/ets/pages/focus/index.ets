@@ -110,6 +110,7 @@ export struct FocusPage {
             .fontColor([this.app.theme.palette.textPrimary])
           }
           .type(ButtonType.Circle)
+          .stateEffect(true)
           .width(40)
           .height(40)
           .backgroundColor(this.app.theme.palette.surface)
@@ -128,6 +129,7 @@ export struct FocusPage {
             .fontColor([this.app.theme.palette.textPrimary])
           }
           .type(ButtonType.Circle)
+          .stateEffect(true)
           .width(40)
           .height(40)
           .backgroundColor(this.app.theme.palette.surface)
@@ -138,7 +140,7 @@ export struct FocusPage {
             } else {
               // 非空闲状态，弹出提示
               try {
-                promptAction.showToast({ message: "计时中无法修改计时器设置，可长按音乐按键更换白噪音", duration: 1500 });
+                promptAction.showToast({ message: "计时中无法修改计时器设置\n可长按音乐按键更换白噪音", duration: 1500 });
               } catch (e) {}
             }
           })

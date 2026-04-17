@@ -104,7 +104,7 @@ export struct CategoryFilter {
       return;
     }
     this.state.openCategoryCreate();
-    this.app.nav.openActionSheet(this.buildCategoryCreateContent, '18%');
+    this.app.nav.openActionSheet(this.buildCategoryCreateContent, 'auto');
   }
 
   private openEditCategoryActionSheet(category: TodoCategory): void {
@@ -114,7 +114,7 @@ export struct CategoryFilter {
     }
     this.ignoreNextCategoryTap = true;
     this.state.openCategoryModify(categoryId);
-    this.app.nav.openActionSheet(this.buildCategoryModifyContent, '18%');
+    this.app.nav.openActionSheet(this.buildCategoryModifyContent, 'auto');
   }
 
   @Builder

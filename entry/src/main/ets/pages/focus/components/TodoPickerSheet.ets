@@ -2,12 +2,11 @@ import { AppState, useAppState } from '../../../app/AppStates';
 import { Todo } from '../../../core/models/Todo';
 import { TodoRepository } from '../../../core/repositories/TodoRepository';
 import { TodoPageState, useTodoPageState } from '../../todo/TodoPageState';
-import { TodoPickerStyle } from './TodoPickerStyle';
+import { FormTypography } from '../../../components/form/FormTypography';
 
 /**
  * 组件功能简介：
  * - 专注前待办选择器弹层内容，用于展示未完成的待办任务列表，并允许用户将选中的任务绑定到当前的专注计时中。
- * - 样式可由TodoPickerStyle.ets修改
  *
  * 可传入项：
  * - 无显式 @Param 传参。
@@ -97,13 +96,13 @@ export struct TodoPickerSheet {
 
   @Builder
   private renderLoading(): void {
-    Column({ space: TodoPickerStyle.COLUMN_SPACE_LARGE }) {
+    Column({ space: 14 }) {
       Progress({ value: 30, total: 100, type: ProgressType.Ring })
         .width(40)
         .height(40)
         .style({ strokeWidth: 4 });
       Text('加载待办中...')
-        .fontSize(TodoPickerStyle.TITLE_FONT_SIZE)
+        .fontSize(FormTypography.LABEL_SIZE)
         .fontColor(this.app.theme.palette.textSecondary);
     }
     .width('100%')
@@ -113,12 +112,12 @@ export struct TodoPickerSheet {
 
   @Builder
   private renderEmpty(): void {
-    Column({ space: TodoPickerStyle.COLUMN_SPACE_LARGE }) {
+    Column({ space: 14 }) {
       Text('暂无待办任务')
-        .fontSize(TodoPickerStyle.HEADER_FONT_SIZE)
+        .fontSize(FormTypography.LABEL_SIZE)
         .fontColor(this.app.theme.palette.textSecondary);
       Text('请先创建待办任务')
-        .fontSize(TodoPickerStyle.INFO_FONT_SIZE)
+        .fontSize(FormTypography.LABEL_SIZE)
         .fontColor(this.app.theme.palette.textTertiary);
     }
     .width('100%')
@@ -128,42 +127,44 @@ export struct TodoPickerSheet {
 
   @Builder
   private buildTodoCard(todo: Todo, isCurrent: boolean): void {
-    Row({ space: TodoPickerStyle.COLUMN_SPACE_LARGE }) {
-      Column({ space: TodoPickerStyle.COLUMN_SPACE_SMALL }) {
+    Row({ space: 10 }) {
+      Column({ space: 4 }) {
         Text(this.resolveTodoTitle(todo))
-          .fontSize(TodoPickerStyle.TITLE_FONT_SIZE)
+          .fontSize(16)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.textPrimary)
           .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .width('100%');
         
-        Row({ space: TodoPickerStyle.ROW_SPACE }) {
-          Column()
-            .width(TodoPickerStyle.INDICATOR_DOT_SIZE)
-            .height(TodoPickerStyle.INDICATOR_DOT_SIZE)
-            .borderRadius(TodoPickerStyle.INDICATOR_DOT_SIZE / 2)
-            .backgroundColor(this.resolveCategoryBorderColor(todo))
-          
-          Text(this.todoState.resolveCategoryName(Number(todo.categoryId)))
-            .fontSize(TodoPickerStyle.INFO_FONT_SIZE)
-            .fontColor(this.app.theme.palette.textSecondary)
+        if (todo.categoryId !== 0) {
+          Row({ space: 10 }) {
+            Column()
+              .width(8)
+              .height(8)
+              .borderRadius(4)
+              .backgroundColor(this.resolveCategoryBorderColor(todo))
+            
+            Text(this.todoState.resolveCategoryName(Number(todo.categoryId)))
+              .fontSize(12)
+              .fontColor(this.app.theme.palette.textSecondary)
+          }
+          .width("100%")
+          .alignItems(VerticalAlign.Center)
         }
-        .width("100%")
-        .alignItems(VerticalAlign.Center)
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
       
       SymbolGlyph(isCurrent ? $r('sys.symbol.checkmark') : $r('sys.symbol.chevron_right'))
-        .fontSize(TodoPickerStyle.ICON_SIZE)
+        .fontSize(18)
         .fontColor([isCurrent ? this.app.theme.palette.primary : this.app.theme.palette.textTertiary]);
     }
     .width('100%')
-    .padding(TodoPickerStyle.CARD_PADDING)
+    .padding(12)
     .alignItems(VerticalAlign.Center)
     .border({ width: 1, color: this.resolveCategoryBorderColor(todo) })
-    .borderRadius(TodoPickerStyle.CARD_BORDER_RADIUS)
+    .borderRadius(14)
     .backgroundColor(this.resolveCategoryBackgroundColor(todo))
     .onClick(() => {
       if (!isCurrent) {
@@ -175,23 +176,25 @@ export struct TodoPickerSheet {
   @Builder
   private renderTodoList(): void {
     Scroll() {
-      Column({ space: TodoPickerStyle.COLUMN_SPACE_LARGE }) {
+      Column({ space: 12 }) {
         if (this.app.focusEngine.hasTodo() && this.currentTodo) {
-          Text("当前选择")
-            .fontSize(TodoPickerStyle.SUB_HEADER_FONT_SIZE)
+          Text("--- 当前选择 ---")
+            .fontSize(FormTypography.INFO_SIZE)
             .fontWeight(FontWeight.Medium)
-            .fontColor(this.app.theme.palette.textPrimary)
-            .width('100%');
+            .fontColor(this.app.theme.palette.textSecondary)
+            .width('100%')
+            .textAlign(TextAlign.Center);
 
           this.buildTodoCard(this.currentTodo, true);
         }
         
         if (this.availableTodos.length > 0) {
-          Text(this.app.focusEngine.hasTodo() ? "其他未完成待办" : "未完成待办")
-            .fontSize(TodoPickerStyle.SUB_HEADER_FONT_SIZE)
+          Text(this.app.focusEngine.hasTodo() ? "--- 其他未完成待办 ---" : "--- 未完成待办 ---")
+            .fontSize(FormTypography.INFO_SIZE)
             .fontWeight(FontWeight.Medium)
-            .fontColor(this.app.theme.palette.textPrimary)
-            .width('100%');
+            .fontColor(this.app.theme.palette.textSecondary)
+            .width('100%')
+            .textAlign(TextAlign.Center);
 
           ForEach(this.availableTodos, (todo: Todo) => {
             this.buildTodoCard(todo, false);
@@ -207,28 +210,36 @@ export struct TodoPickerSheet {
     .align(Alignment.Top); 
   }
 
+  @Builder
+  private buildClearButton(): void {
+    Button({ type: ButtonType.Circle }) {
+      SymbolGlyph($r('sys.symbol.clean'))
+        .fontSize(18)
+        .fontColor([this.app.theme.palette.surface]);
+    }
+      .width(34)
+      .height(34)
+      .backgroundColor(this.app.theme.palette.primary)
+      .enabled(this.app.focusEngine.hasTodo())
+      .onClick(() => {
+        this.app.focusEngine.setRelatedTodo(0)
+        this.app.nav.back(false);
+      });
+  }
+
   build() {
-    Column() { 
-      Row() {
+    Column({ space: 14 }) {
+      Row({ space: 10 }) {
         Text("选择专注任务")
-          .fontSize(TodoPickerStyle.HEADER_FONT_SIZE)
+          .fontSize(FormTypography.TITLE_SIZE)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.textPrimary)
           .layoutWeight(1);
 
-        Button("清除选择")
-          .type(ButtonType.Capsule)
-          .height(40)
-          .backgroundColor(this.app.theme.palette.surfaceSecondary)
-          .fontColor(this.app.theme.palette.textSecondary)
-          .onClick(() => {
-            this.app.focusEngine.setRelatedTodo(0)
-            this.app.nav.back(false);
-          });
+        this.buildClearButton();
       }
       .width("100%")
       .alignItems(VerticalAlign.Center)
-      .margin({ bottom: TodoPickerStyle.COLUMN_SPACE_LARGE });
 
       if (this.isLoading) {
         this.renderLoading();

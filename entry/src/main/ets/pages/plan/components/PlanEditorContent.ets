@@ -570,16 +570,7 @@ export struct PlanEditorContent {
       .margin({ top: 2, bottom: 4 });
 
     }
-    .width('100%');
-  }
-
-  build() {
-    Scroll() {
-      this.buildContent();
-    }
     .width('100%')
-    .height('100%')
-    .scrollBar(BarState.Off)
     .onAppear(() => {
       if (this.isForCreate) {
         return;
@@ -590,6 +581,10 @@ export struct PlanEditorContent {
         this.loadDraftFromCurrentPlan();
       }
     });
+  }
+
+  build() {
+    this.buildContent();
   }
 
   aboutToDisappear(): void {

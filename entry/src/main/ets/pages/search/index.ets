@@ -11,6 +11,7 @@ import { IdeaDetailCardContent } from "../idea/components/IdeaDetailCardContent"
 import { IdeaPageState, useIdeaPageState } from "../idea/IdeaPageState";
 import { KeyboardAvoidMode } from "@kit.ArkUI";
 import { SafeAreaUtils } from "../../core/theme/SafeAreaUtils";
+import { SymbolGlyphModifier } from "@kit.ArkUI";
 
 /**
  * 组件功能简介：
@@ -277,7 +278,7 @@ export struct SearchPage {
       .fontColor(this.app.theme.palette.textSecondary)
       .maxLines(1)
       .textOverflow({ overflow: TextOverflow.Ellipsis })
-      .width("100%")
+      .width("100%");
   }
 
   @Builder
@@ -287,7 +288,7 @@ export struct SearchPage {
       .fontColor(this.app.theme.palette.textTertiary)
       .maxLines(maxLines)
       .textOverflow({ overflow: TextOverflow.Ellipsis })
-      .width("100%")
+      .width("100%");
   }
 
   @Builder
@@ -314,40 +315,36 @@ export struct SearchPage {
   @Builder
   private buildPlanResult(item: SearchResultItem) {
     Column({ space: 4 }) {
-      this.buildTitleLineIfPresent(item.title);
-      this.buildSecondaryLine(this.resolvePlanSecondaryText(item));
-      this.buildDescriptionLine(item.descriptionText);
-    }
-    .width("100%")
+      this.buildTitleLineIfPresent(item.title)
+      this.buildSecondaryLine(this.resolvePlanSecondaryText(item))
+      this.buildDescriptionLine(item.descriptionText)
+    }.width("100%");
   }
 
   @Builder
   private buildTodoResult(item: SearchResultItem) {
     Column({ space: 4 }) {
-      this.buildTitleLineIfPresent(item.title);
-      this.buildSecondaryLine(this.resolveTodoSecondaryText(item));
-      this.buildDescriptionLine(item.descriptionText);
-    }
-    .width("100%")
+      this.buildTitleLineIfPresent(item.title)
+      this.buildSecondaryLine(this.resolveTodoSecondaryText(item))
+      this.buildDescriptionLine(item.descriptionText)
+    }.width("100%");
   }
 
   @Builder
   private buildIdeaResult(item: SearchResultItem) {
     Column({ space: 4 }) {
-      this.buildTitleLineIfPresent(item.title);
-      this.buildDescriptionLine(item.descriptionText);
-    }
-    .width("100%")
+      this.buildTitleLineIfPresent(item.title)
+      this.buildDescriptionLine(item.descriptionText)
+    }.width("100%");
   }
 
   @Builder
   private buildDefaultResult(item: SearchResultItem) {
     Column({ space: 4 }) {
-      this.buildTitleLineIfPresent(item.title);
-      this.buildSecondaryLine(item.subtitle);
-      this.buildDescriptionLine(item.descriptionText);
-    }
-    .width("100%")
+      this.buildTitleLineIfPresent(item.title)
+      this.buildSecondaryLine(item.subtitle)
+      this.buildDescriptionLine(item.descriptionText)
+    }.width("100%");
   }
 
   @Builder
@@ -369,26 +366,34 @@ export struct SearchPage {
   build() {
     Stack({ alignContent: Alignment.Top }) {
       Column({ space: 12 }) {
-          Search({ value: this.keyword, placeholder: this.resolvePlaceholder() })
-            .cancelButton({
-              style: CancelButtonStyle.INPUT,
-            })
-            .width("90%")
-            .height(44)
-            .borderRadius(12)
-            .backgroundColor(this.app.theme.palette.surface)
-            .padding({ left: 12, right: 12 })
-            .margin({ left: 16, right: 16, bottom: 16, top: SafeAreaUtils.getTopInset() + 16 })
-            .defaultFocus(true)
-            .placeholderColor(this.app.theme.palette.textTertiary)
-            .fontColor(this.app.theme.palette.textPrimary)
-            .onChange((value: string) => {
-              this.keyword = value;
-              this.performSearch(value);
-            })
-            .onSubmit(() => {
-              // 软键盘提交时不做额外处理，保持搜索结果不变。
-            })
+        Search({ value: this.keyword, placeholder: this.resolvePlaceholder() })
+          .searchIcon(
+            new SymbolGlyphModifier($r('sys.symbol.magnifyingglass'))
+              .fontColor([this.app.theme.palette.textSecondary])
+              .fontSize(16)
+          )
+          .cancelButton({
+            style: CancelButtonStyle.INPUT,
+            icon: new SymbolGlyphModifier($r('sys.symbol.xmark'))
+              .fontColor([this.app.theme.palette.textSecondary])
+              .fontSize(16)
+          })
+          .width("90%")
+          .height(44)
+          .borderRadius(12)
+          .backgroundColor(this.app.theme.palette.surface)
+          .padding({ left: 12, right: 12 })
+          .margin({ left: 16, right: 16, bottom: 16, top: SafeAreaUtils.getTopInset() + 16 })
+          .defaultFocus(true)
+          .placeholderColor(this.app.theme.palette.textTertiary)
+          .fontColor(this.app.theme.palette.textPrimary)
+          .onChange((value: string) => {
+            this.keyword = value;
+            this.performSearch(value);
+          })
+          .onSubmit(() => {
+            // 软键盘提交时不做额外处理，保持搜索结果不变。
+          })
 
         Scroll() {
           Column({ space: 10 }) {
@@ -401,11 +406,11 @@ export struct SearchPage {
               }
               .width("100%")
               .alignItems(HorizontalAlign.Center)
-              .padding({ top: 28, bottom: 24 })
+              .padding({ top: 28, bottom: 24 });
             } else {
               ForEach(this.resultList, (item: SearchResultItem) => {
                 Column({ space: 6 }) {
-                  this.buildResultItem(item);
+                  this.buildResultItem(item)
                 }
                 .width("100%")
                 .padding(12)

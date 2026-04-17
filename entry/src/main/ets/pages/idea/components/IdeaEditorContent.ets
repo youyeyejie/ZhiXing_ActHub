@@ -247,7 +247,7 @@ export struct IdeaEditorContent {
         .placeholderColor(this.app.theme.palette.textTertiary)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
-        .padding({ left: 16, right: 16 })
+        .padding({ left: 12, right: 12, top: 10, bottom: 10 })
         .onChange((value: string) => {
           this.title = value;
           this.recalculateSaveEnabled();
@@ -255,13 +255,13 @@ export struct IdeaEditorContent {
 
       TextArea({ placeholder: "写下你的闪念...", text: this.content })
         .width("100%")
-        .layoutWeight(1)
+        .height(256)
         .fontSize(FormTypography.INPUT_CONTENT_SIZE)
         .fontColor(this.app.theme.palette.textPrimary)
         .placeholderColor(this.app.theme.palette.textTertiary)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
-        .padding(16)
+        .padding({ left: 12, right: 12, top: 10, bottom: 10 })
         .textAlign(TextAlign.Start)
         .enterKeyType(EnterKeyType.NEW_LINE)
         .onChange((value: string) => {
@@ -269,7 +269,6 @@ export struct IdeaEditorContent {
           this.recalculateSaveEnabled();
         })
     }
-    .width("100%")
-    .height("100%");
+    .width("100%");
   }
 }

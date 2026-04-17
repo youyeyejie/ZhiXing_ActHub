@@ -267,7 +267,7 @@ export struct TodoEditorContent {
       this.safeToast(`分类数量已达上限（最多 ${this.state.getCategoryColorCapacity()} 个）`);
       return;
     }
-    this.app.nav.openActionSheet(this.buildCreateCategorySheetContent, '18%');
+    this.app.nav.openActionSheet(this.buildCreateCategorySheetContent, 'auto');
   }
 
   private canDelete(): boolean {
@@ -478,16 +478,7 @@ export struct TodoEditorContent {
       .alignItems(VerticalAlign.Center)
       .padding({ top: 2, bottom: 2 });
     }
-    .width('100%');
-  }
-
-  build() {
-    Scroll() {
-      this.buildContent();
-    }
     .width('100%')
-    .height('100%')
-    .scrollBar(BarState.Off)
     .onAppear(() => {
       if (this.isForCreate) {
         return;
@@ -498,6 +489,10 @@ export struct TodoEditorContent {
         this.loadDraftFromCurrentTodo();
       }
     });
+  }
+
+  build() {
+    this.buildContent();
   }
 
   aboutToDisappear(): void {

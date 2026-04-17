@@ -64,7 +64,7 @@ export struct TodoPage {
         onTap: async () => {
           await this.state.refreshAll();
           this.state.openCreateTodo();
-          this.app.nav.openActionSheet(this.buildTodoEditorContent, "40%");
+          this.app.nav.openActionSheet(this.buildTodoEditorContent, 'auto');
         },
       })
     }

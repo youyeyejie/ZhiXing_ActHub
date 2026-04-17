@@ -69,7 +69,7 @@ export struct PlanPage {
         onTap: async () => {
           await this.state.refreshAll();
           this.state.openCreatePlan();
-          this.app.nav.openActionSheet(this.buildPlanEditorContent, "55%");
+          this.app.nav.openActionSheet(this.buildPlanEditorContent, 'auto');
         },
       })
 

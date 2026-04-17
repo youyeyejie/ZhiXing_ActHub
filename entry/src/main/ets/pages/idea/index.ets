@@ -41,7 +41,7 @@ export struct IdeaPage {
    */
   private openNewEditor(): void {
     this.state.openCreateIdea();
-    this.app.nav.openActionSheet(this.buildIdeaCreateContent, "40%");
+    this.app.nav.openActionSheet(this.buildIdeaCreateContent, 'auto');
   }
 
   /**
