@@ -1,4 +1,7 @@
 import { http } from "@kit.NetworkKit";
+import { buffer } from "@kit.ArkTS";
+import { common } from "@kit.AbilityKit";
+import { AppDatabase } from "../database/AppDatabase";
 
 /**
  * AI 服务配置。
@@ -29,6 +32,7 @@ export class AIService {
   };
 
   private config: AIConfig;
+  private configLoaded: boolean = false;
 
   constructor(apiKey: string = "") {
     this.config = {
@@ -38,6 +42,39 @@ export class AIService {
     };
     if (apiKey.length > 0) {
       this.config.apiKey = apiKey;
+    }
+    this.loadConfig();
+  }
+
+  /**
+   * 从 rawfile/ai_config.json 读取配置。
+   * 解析失败或文件不存在时 apiKey 留空，不影响其他功能。
+   * 构造函数自动调用一次；也可在 context 可用后手动再调用。
+   */
+  loadConfig(): void {
+    if (this.configLoaded) {
+      return;
+    }
+    try {
+      const context = AppDatabase.getInstance().getContext() as common.Context;
+      const rawContent: Uint8Array = context.resourceManager.getRawFileContentSync('ai_config.json');
+      const jsonStr: string = buffer.from(rawContent).toString('utf-8');
+      const parsed: Record<string, Object> = JSON.parse(jsonStr);
+      const parsedKey = parsed.apiKey as string;
+      const parsedUrl = parsed.baseUrl as string;
+      const parsedModel = parsed.model as string;
+      if (parsedKey && parsedKey.length > 0) {
+        this.config.apiKey = parsedKey;
+      }
+      if (parsedUrl && parsedUrl.length > 0) {
+        this.config.baseUrl = parsedUrl;
+      }
+      if (parsedModel && parsedModel.length > 0) {
+        this.config.model = parsedModel;
+      }
+      this.configLoaded = true;
+    } catch (_err) {
+      // 配置文件不存在或 context 尚未就绪，apiKey 留空
     }
   }
 
@@ -50,19 +87,32 @@ export class AIService {
 
   /**
    * 检查是否已配置 API Key。
+   * 若首次构造时 context 不可用，会再尝试加载一次配置。
    */
   hasApiKey(): boolean {
+    if (!this.configLoaded) {
+      this.loadConfig();
+    }
     return this.config.apiKey.length > 0;
   }
 
   /**
-   * 生成闪记洞察报告。
+   * 流式生成闪记洞察报告。
    * @param ideasContent 闪记内容汇总
-   * @returns AI 生成的洞察报告
+   * @param onChunk 每收到一段增量文本时回调
+   * @param onDone 流式接收完成时回调
+   * @param onError 出错时回调
+   * @returns HttpRequest 对象，可调用 destroy() 取消请求；若 API Key 未配置则返回 null
    */
-  async generateInsight(ideasContent: string): Promise<string> {
+  generateInsightStream(
+    ideasContent: string,
+    onChunk: (text: string) => void,
+    onDone: () => void,
+    onError: (error: string) => void,
+  ): http.HttpRequest | null {
     if (!this.hasApiKey()) {
-      return "请先配置 DeepSeek API Key。在设置页面可以输入您的 API Key。";
+      onError("AI 功能需配置 API Key，请参考 rawfile/ai_config.example.json 创建 ai_config.json 并填入您的 Key。");
+      return null;
     }
 
     const systemPrompt = `你是一个 thoughtful 的思考伙伴和洞察分析师。
@@ -94,7 +144,7 @@ export class AIService {
       { role: "user", content: `以下是我最近的闪念笔记：\n\n${ideasContent}` },
     ];
 
-    return this.chat(messages);
+    return this.chatStream(messages, onChunk, onDone, onError);
   }
 
   /**
@@ -124,12 +174,79 @@ export class AIService {
   }
 
   /**
-   * 调用聊天 API。
+   * 流式调用聊天 API（SSE）。
+   * 通过 requestInStream + on('dataReceive') 逐 chunk 接收，
+   * 从 choices[0].delta.content 提取增量文本。
+   * @returns HttpRequest 对象，调用方可通过 destroy() 取消请求
    */
-  private async chat(messages: ChatMessage[]): Promise<string> {
+  private chatStream(
+    messages: ChatMessage[],
+    onChunk: (text: string) => void,
+    onDone: () => void,
+    onError: (error: string) => void,
+  ): http.HttpRequest {
     const httpRequest = http.createHttp();
-    try {
-      const result = await httpRequest.request(`${this.config.baseUrl}/v1/chat/completions`, {
+    let sseBuffer: string = '';
+    let hasError: boolean = false;
+
+    // 注册数据接收事件：逐 chunk 解析 SSE 格式
+    httpRequest.on('dataReceive', (data: ArrayBuffer) => {
+      if (hasError) {
+        return;
+      }
+      const text: string = buffer.from(data).toString('utf-8');
+      sseBuffer += text;
+
+      // 按 SSE 事件边界（\n\n）拆分
+      const parts: string[] = sseBuffer.split('\n\n');
+      // 最后一段可能不完整，留在 buffer 中
+      sseBuffer = parts[parts.length - 1];
+
+      for (let i = 0; i < parts.length - 1; i++) {
+        const event: string = parts[i].trim();
+        if (event.length === 0) {
+          continue;
+        }
+        const lines: string[] = event.split('\n');
+        for (let j = 0; j < lines.length; j++) {
+          const line: string = lines[j];
+          if (!line.startsWith('data: ')) {
+            continue;
+          }
+          const payload: string = line.substring(6).trim();
+          if (payload === '[DONE]') {
+            continue;
+          }
+          try {
+            const parsed: Record<string, Object> = JSON.parse(payload);
+            const choices = parsed.choices as Array<Record<string, Object>>;
+            if (choices && choices.length > 0) {
+              const delta = choices[0].delta as Record<string, Object>;
+              if (delta) {
+                const content = delta.content as string;
+                if (content && content.length > 0) {
+                  onChunk(content);
+                }
+              }
+            }
+          } catch (_parseErr) {
+            // 单条 SSE 事件解析失败不中断整体流
+          }
+        }
+      }
+    });
+
+    // 注册数据接收完成事件
+    httpRequest.on('dataEnd', () => {
+      if (!hasError) {
+        onDone();
+      }
+    });
+
+    // 发起流式请求
+    httpRequest.requestInStream(
+      `${this.config.baseUrl}/v1/chat/completions`,
+      {
         method: http.RequestMethod.POST,
         header: {
           "Content-Type": "application/json",
@@ -140,66 +257,58 @@ export class AIService {
           messages: messages,
           temperature: 0.7,
           max_tokens: 2000,
+          stream: true,
         }),
         connectTimeout: 30000,
-        readTimeout: 90000,
-      });
+        readTimeout: 120000,
+      },
+    ).then((responseCode: number) => {
+      if (responseCode !== 200) {
+        hasError = true;
+        onError(this.resolveHttpError(responseCode));
+      }
+    }).catch((error: Error) => {
+      hasError = true;
+      onError(this.resolveNetworkError(error));
+    });
 
-      if (result.responseCode === 200 && result.result) {
-        try {
-          const data: Record<string, Object> = JSON.parse(result.result as string);
+    return httpRequest;
+  }
 
-          // 检查 API 返回的错误
-          if (data.error) {
-            const errorObj = data.error as Record<string, string>;
-            const errorMsg = errorObj.message || JSON.stringify(data.error);
-            return `API 错误：${errorMsg}`;
-          }
-
-          const choices = data.choices as Array<Record<string, Object>>;
-          if (choices && choices.length > 0) {
-            const message = choices[0].message as Record<string, string>;
-            if (message && message.content) {
-              return message.content;
-            }
-          }
-          return "解析响应失败：无法获取消息内容";
-        } catch (parseError) {
-          return `解析响应失败：${parseError instanceof Error ? parseError.message : String(parseError)}`;
-        }
-      }
-
-      // 处理特定的 HTTP 错误码
-      if (result.responseCode === 401) {
-        return "请求失败：API Key 无效或已过期，请检查配置";
-      }
-      if (result.responseCode === 429) {
-        return "请求失败：请求过于频繁，请稍后再试";
-      }
-      if (result.responseCode === 500 || result.responseCode === 502 || result.responseCode === 503) {
-        return "请求失败：服务器暂时不可用，请稍后再试";
-      }
-
-      return `请求失败，状态码：${result.responseCode}`;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      // 分类常见网络错误
-      if (errorMessage.includes("SSL") || errorMessage.includes("certificate")) {
-        return "网络错误：SSL 证书验证失败";
-      }
-      if (errorMessage.includes("timeout") || errorMessage.includes("Timed out")) {
-        return "网络错误：请求超时，请检查网络连接";
-      }
-      if (errorMessage.includes("ECONNREFUSED") || errorMessage.includes("Connection refused")) {
-        return "网络错误：无法连接到服务器";
-      }
-      if (errorMessage.includes("Network")) {
-        return "网络错误：请检查网络连接";
-      }
-      return `请求出错：${errorMessage}`;
-    } finally {
-      httpRequest.destroy();
+  /**
+   * 根据 HTTP 状态码返回错误提示。
+   */
+  private resolveHttpError(code: number): string {
+    if (code === 401) {
+      return '请求失败：API Key 无效或已过期，请检查配置';
     }
+    if (code === 429) {
+      return '请求失败：请求过于频繁，请稍后再试';
+    }
+    if (code === 500 || code === 502 || code === 503) {
+      return '请求失败：服务器暂时不可用，请稍后再试';
+    }
+    return `请求失败，状态码：${code}`;
+  }
+
+  /**
+   * 根据网络错误类型返回分类提示。
+   */
+  private resolveNetworkError(error: Error): string {
+    const msg: string = error.message;
+    if (msg.includes('SSL') || msg.includes('certificate')) {
+      return '网络错误：SSL 证书验证失败';
+    }
+    if (msg.includes('timeout') || msg.includes('Timed out')) {
+      return '网络错误：请求超时，请检查网络连接';
+    }
+    if (msg.includes('ECONNREFUSED') || msg.includes('Connection refused')) {
+      return '网络错误：无法连接到服务器';
+    }
+    if (msg.includes('Network')) {
+      return '网络错误：请检查网络连接';
+    }
+    return `请求出错：${msg}`;
   }
 }
 

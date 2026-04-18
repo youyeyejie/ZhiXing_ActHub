@@ -1,0 +1,5 @@
+{
+  "apiKey": "",
+  "baseUrl": "https://api.deepseek.com",
+  "model": "deepseek-chat"
+}

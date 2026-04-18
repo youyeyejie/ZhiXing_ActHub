@@ -1,3 +1,4 @@
+import { http } from '@kit.NetworkKit';
 import { Idea } from '../../core/models/Idea';
 import { AIInsight } from '../../core/models/AIInsight';
 import { AIService, useAIService } from '../../core/services/AIService';
@@ -42,7 +43,7 @@ export class InsightRecord {
 
 /**
  * AI 洞察中心状态管理。
- * 管理历史记录、当前对话、打字机进度、笔记选择等状态。
+ * 管理历史记录、当前对话、流式生成、笔记选择等状态。
  */
 @ObservedV2
 export class AIInsightState {
@@ -55,15 +56,12 @@ export class AIInsightState {
   @Trace public activeRecord: InsightRecord | null = null;
   @Trace public selectedNoteIds: number[] = [];
   @Trace public isGenerating: boolean = false;
-  @Trace public isTypewriting: boolean = false;
   @Trace public generatingText: string = '';
   @Trace public errorMessage: string = '';
   @Trace public activeNoteCount: number = 0;
   @Trace public activeTotalLength: number = 0;
 
-  private fullResponseText: string = '';
-  private typewriterTimerId: number = -1;
-  private typewriterIndex: number = 0;
+  private streamRequest: http.HttpRequest | null = null;
   private historyLoadingTask: Promise<void> | null = null;
   private lastRecordId: number = 0;
 
@@ -145,12 +143,11 @@ export class AIInsightState {
   }
 
   /**
-   * 停止打字机输出，以当前已显示文本作为最终结果。
+   * 停止流式生成，以当前已显示文本作为最终结果。
    */
   stopGeneration(): void {
-    this.stopTypewriter();
+    this.cancelStream();
     this.isGenerating = false;
-    this.isTypewriting = false;
     if (this.generatingText.length > 0) {
       this.finalizeRecord(
         this.generatingText,
@@ -162,7 +159,7 @@ export class AIInsightState {
   }
 
   /**
-   * 查看历史记录（直接显示完整 Markdown，无打字机）。
+   * 查看历史记录（直接显示完整 Markdown）。
    */
   openRecord(record: InsightRecord): void {
     this.activeRecord = record;
@@ -170,7 +167,6 @@ export class AIInsightState {
     this.activeNoteCount = record.noteCount;
     this.activeTotalLength = record.totalLength;
     this.isGenerating = false;
-    this.isTypewriting = false;
     this.errorMessage = '';
     this.viewMode = 'conversation';
   }
@@ -179,9 +175,8 @@ export class AIInsightState {
    * 从对话流返回首页。
    */
   backToHome(): void {
-    this.stopTypewriter();
+    this.cancelStream();
     this.isGenerating = false;
-    this.isTypewriting = false;
     this.generatingText = '';
     this.errorMessage = '';
     this.activeRecord = null;
@@ -229,12 +224,11 @@ export class AIInsightState {
   }
 
   private performGeneration(content: string, mode: string, noteCount: number): void {
+    this.cancelStream();
     this.viewMode = 'conversation';
     this.isGenerating = true;
-    this.isTypewriting = false;
     this.generatingText = '';
     this.errorMessage = '';
-    this.fullResponseText = '';
     this.activeRecord = null;
 
     const tempRecord = new InsightRecord(
@@ -242,88 +236,43 @@ export class AIInsightState {
     );
     this.activeRecord = tempRecord;
 
-    this.aiService.generateInsight(content).then((result: string) => {
-      // 判断是否为错误返回
-      if (
-        result.startsWith('请求失败') || result.startsWith('请求出错') ||
-        result.startsWith('请先配置') || result.startsWith('API 错误') ||
-        result.startsWith('网络错误') || result.startsWith('解析响应失败')
-      ) {
-        this.errorMessage = result;
-        this.isGenerating = false;
-      } else {
-        this.fullResponseText = result;
-        this.startTypewriter();
+    const onChunk = (text: string): void => {
+      if (this.isGenerating) {
+        this.generatingText += text;
       }
-    }).catch((error: Error) => {
-      this.errorMessage = `生成失败：${error.message}`;
-      this.isGenerating = false;
-    });
-  }
+    };
 
-  private startTypewriter(): void {
-    this.stopTypewriter();
-    this.isTypewriting = true;
-    this.typewriterIndex = 0;
-    this.generatingText = '';
-
-    this.typewriterTimerId = setInterval(() => {
-      if (this.typewriterIndex >= this.fullResponseText.length) {
-        this.stopTypewriter();
-        this.isTypewriting = false;
-        this.isGenerating = false;
-        this.finalizeRecord(
-          this.fullResponseText,
-          this.activeRecord?.mode ?? 'global',
-          this.activeNoteCount,
-          this.activeTotalLength,
-        );
+    const onDone = (): void => {
+      if (!this.isGenerating) {
         return;
       }
-      const chunk = this.resolveNextChunk();
-      this.generatingText += chunk;
-      this.typewriterIndex += chunk.length;
-    }, 25);
-  }
+      this.isGenerating = false;
+      this.streamRequest = null;
+      this.finalizeRecord(
+        this.generatingText,
+        this.activeRecord?.mode ?? 'global',
+        this.activeNoteCount,
+        this.activeTotalLength,
+      );
+    };
 
-  private stopTypewriter(): void {
-    if (this.typewriterTimerId >= 0) {
-      clearInterval(this.typewriterTimerId);
-      this.typewriterTimerId = -1;
-    }
+    const onError = (error: string): void => {
+      this.streamRequest = null;
+      this.errorMessage = error;
+      this.isGenerating = false;
+    };
+
+    this.streamRequest = this.aiService.generateInsightStream(content, onChunk, onDone, onError);
   }
 
   /**
-   * 智能分块：标题整行输出，空行一次跳过，其余每次 2 字符。
+   * 取消当前流式请求。
    */
-  private resolveNextChunk(): string {
-    const remaining = this.fullResponseText.substring(this.typewriterIndex);
-    if (remaining.length === 0) {
-      return '';
+  private cancelStream(): void {
+    if (this.streamRequest !== null) {
+      this.streamRequest.destroy();
+      this.streamRequest = null;
     }
-    const ch = remaining.charAt(0);
-
-    // 标题行整行输出
-    if (ch === '#' && (this.typewriterIndex === 0 || this.fullResponseText.charAt(this.typewriterIndex - 1) === '\n')) {
-      const lineEnd = remaining.indexOf('\n');
-      if (lineEnd >= 0) {
-        return remaining.substring(0, lineEnd + 1);
-      }
-      return remaining;
-    }
-
-    // 换行符跳过
-    if (ch === '\n') {
-      let end = 1;
-      while (end < remaining.length && remaining.charAt(end) === '\n') {
-        end++;
-      }
-      return remaining.substring(0, end);
-    }
-
-    // 默认取 2 字符
-    const chunkSize = Math.min(2, remaining.length);
-    return remaining.substring(0, chunkSize);
   }
 
   private finalizeRecord(content: string, mode: string, noteCount: number, totalLength: number): void {

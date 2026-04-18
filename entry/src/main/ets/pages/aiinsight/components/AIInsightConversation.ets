@@ -4,7 +4,7 @@ import { MarkdownRenderer } from './MarkdownRenderer';
 
 /**
  * AI 洞察对话流界面。
- * 展示洞察生成过程（打字机效果 + 自动滚动）和完成后的报告。
+ * 展示洞察流式生成过程（自动滚动）和完成后的报告。
  */
 @ComponentV2
 export struct AIInsightConversation {
@@ -21,9 +21,9 @@ export struct AIInsightConversation {
       this.dotPhase = (this.dotPhase + 1) % 3;
     }, 600);
 
-    // 自动滚动定时器：打字机输出时持续滚到底
+    // 自动滚动定时器：流式输出时持续滚到底
     this.scrollTimerId = setInterval(() => {
-      if (this.state.isTypewriting) {
+      if (this.state.isGenerating && this.state.generatingText.length > 0) {
         this.scroller.scrollEdge(Edge.Bottom);
       }
     }, 100);
@@ -177,7 +177,7 @@ export struct AIInsightConversation {
   @Builder
   private buildBottomBar() {
     Row() {
-      if (this.state.isGenerating || this.state.isTypewriting) {
+      if (this.state.isGenerating) {
         // 停止生成按钮
         Button() {
           Row({ space: 6 }) {
