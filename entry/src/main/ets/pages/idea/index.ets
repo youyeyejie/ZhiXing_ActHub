@@ -1,9 +1,7 @@
-import { Idea } from "../../core/models/Idea";
 import { IdeaCardList } from "./components/IdeaCardList";
 import { IdeaActionSheetContent } from "./components/IdeaActionSheetContent";
 import { IdeaDetailCardContent } from "./components/IdeaDetailCardContent";
 import { HitokotoCard } from "./components/HitokotoCard";
-import { ActivityHeatmap } from "./components/ActivityHeatmap";
 import { AIInsightPanel } from "./components/AIInsightPanel";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
 import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
@@ -12,7 +10,6 @@ import { UndoNotificationStack } from "../../components/feedback/UndoNotificatio
 import { AppOverlayRoute } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
 import { IdeaPageState, useIdeaPageState } from "./IdeaPageState";
-
 /**
  * 闪记模块主页。
  * 支持闪记列表展示、新建、编辑、删除和搜索。
@@ -43,7 +40,7 @@ export struct IdeaPage {
    */
   private openNewEditor(): void {
     this.state.openCreateIdea();
-    this.app.nav.openActionSheet(this.buildIdeaCreateContent, 'auto');
+    this.app.nav.openActionSheet(this.buildIdeaCreateContent);
   }
 
   /**
@@ -71,13 +68,11 @@ export struct IdeaPage {
           );
         },
       }) {
+
         // 闪记列表
         PageScrollLayout({ space: 12, paddingTop: 12 }) {
           // 一言卡片
           HitokotoCard()
-
-          // 活动热力图
-          ActivityHeatmap()
 
           IdeaCardList({
             onOpenIdea: (ideaId: number) => {
@@ -89,6 +84,18 @@ export struct IdeaPage {
           Column().height(100)
         }
       }
+
+      // 右下角悬浮按钮组：AI 洞察 + 新建
+      // AI 洞察按钮（在加号上方 20vp，水平对齐）
+      AIInsightPanel()
+        .margin({ right: 20, bottom: 96 }) // 76 = FAB高度56 + 间距20
+
+      // 新建按钮（FAB）
+      FloatingActionButton({
+        onTap: () => {
+          this.openNewEditor();
+        },
+      })
 
       UndoNotificationStack({
         tasks: this.state.buildUndoStackItems(),
@@ -103,15 +110,6 @@ export struct IdeaPage {
         },
       })
 
-      // AI 洞察入口按钮
-      AIInsightPanel()
-
-      // 新建按钮（FAB）
-      FloatingActionButton({
-        onTap: () => {
-          this.openNewEditor();
-        },
-      })
     }
     .width("100%")
     .height("100%");
