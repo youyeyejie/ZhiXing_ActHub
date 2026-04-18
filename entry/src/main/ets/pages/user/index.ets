@@ -1,15 +1,18 @@
-import { ActivityHeatmap } from "../idea/components/ActivityHeatmap";
+import promptAction from '@ohos.promptAction';
+import pasteboard from '@ohos.pasteboard';
 import { FocusStatsChart } from "./components/FocusStatsChart";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { UserActivityHeatmap } from './components/UserActivityHeatmap';
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
 import { AppState, useAppState } from "../../app/AppStates";
 import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
 import { ThemeMode } from "../../core/theme/ThemeManager";
-import { AppOverlayRoute } from "../../app/AppConstants";
+
 @ComponentV2
 export struct UserPage {
   @Local private app: AppState = useAppState();
   @Event onBottomBarVisibleChange: (visible: boolean) => void = (_visible: boolean): void => {};
+  private readonly SHARE_SNAPSHOT_ID: string = 'user_share_snapshot';
 
   aboutToAppear(): void {
     this.onBottomBarVisibleChange(true);
@@ -67,6 +70,28 @@ export struct UserPage {
 
   private async handleLogout(): Promise<void> {
     await this.app.logout();
+  }
+
+  private safeToast(message: string): void {
+    try {
+      promptAction.showToast({ message, duration: 1400 });
+    } catch (_error) {
+    }
+  }
+
+  private async handleShare(): Promise<void> {
+    try {
+      const snapshot = await this.getUIContext().getComponentSnapshot().get(this.SHARE_SNAPSHOT_ID, {
+        scale: 2,
+        waitUntilRenderFinished: true,
+      });
+      const board = pasteboard.getSystemPasteboard();
+      const data = pasteboard.createData(pasteboard.MIMETYPE_PIXELMAP, snapshot);
+      await board.setData(data);
+      this.safeToast('分享图已复制到剪贴板，可直接粘贴发送');
+    } catch (_error) {
+      this.safeToast('生成分享图失败，请稍后重试');
+    }
   }
 
   @Builder
@@ -131,21 +156,30 @@ export struct UserPage {
     .backgroundColor(this.app.theme.palette.surface);
   }
 
+  @Builder
+  private buildShareableStatsSection() {
+    Column({ space: 12 }) {
+      this.buildProfileCard()
+      FocusStatsChart()
+      UserActivityHeatmap()
+    }
+    .width('100%')
+    .id(this.SHARE_SNAPSHOT_ID);
+  }
+
   build() {
     MainTabPageLayout({
       title: "我的",
-      actionIcon: $r("sys.symbol.textstyle"),
-      onActionTap: () => {
-        this.app.nav.pushOverlayByName(AppOverlayRoute.SHARED_TEST);
+      actionIcon: $r('sys.symbol.share'),
+      onActionTap: async () => {
+        await this.handleShare();
       },
     }) {
       PageScrollLayout({ space: 12, paddingTop: 12 }) {
         Row() {
           Blank()
           Column({ space: 12 }) {
-            this.buildProfileCard()
-            FocusStatsChart()
-            ActivityHeatmap()
+            this.buildShareableStatsSection()
             SettingsPanel({
               onLogoutTap: async () => {
                 await this.handleLogout();

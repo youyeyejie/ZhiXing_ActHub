@@ -38,6 +38,10 @@ export struct LoginPage {
     this.confirmPassword = '';
   }
 
+  private isModeActive(registerMode: boolean): boolean {
+    return this.isRegisterMode === registerMode;
+  }
+
   private async submit(): Promise<void> {
     if (this.submitting) {
       return;
@@ -67,17 +71,20 @@ export struct LoginPage {
   }
 
   @Builder
-  private buildModeButton(label: string, active: boolean, onTap: () => void) {
-    Button(label)
+  private buildModeButton(label: string, registerMode: boolean) {
+    Button() {
+      Text(label)
+        .fontSize(14)
+        .fontWeight(this.isModeActive(registerMode) ? FontWeight.Medium : FontWeight.Regular)
+        .fontColor(this.isModeActive(registerMode) ? this.app.theme.palette.surface : this.app.theme.palette.textSecondary);
+    }
       .layoutWeight(1)
       .height(40)
-      .backgroundColor(active ? this.app.theme.palette.primary : this.app.theme.palette.surfaceSecondary)
-      .fontColor(active ? this.app.theme.palette.surface : this.app.theme.palette.textSecondary)
-      .fontSize(14)
-      .fontWeight(active ? FontWeight.Medium : FontWeight.Regular)
-      .borderRadius(14)
+      .stateEffect(false)
+      .backgroundColor(this.isModeActive(registerMode) ? this.app.theme.palette.primary : Color.Transparent)
+      .borderRadius(12)
       .onClick(() => {
-        onTap();
+        this.switchMode(registerMode);
       });
   }
 
@@ -113,14 +120,13 @@ export struct LoginPage {
 
         Column({ space: 16 }) {
           Row({ space: 8 }) {
-            this.buildModeButton('登录', !this.isRegisterMode, () => {
-              this.switchMode(false);
-            });
-            this.buildModeButton('注册', this.isRegisterMode, () => {
-              this.switchMode(true);
-            });
+            this.buildModeButton('登录', false);
+            this.buildModeButton('注册', true);
           }
-          .width('100%');
+          .width('100%')
+          .padding(4)
+          .borderRadius(16)
+          .backgroundColor(this.app.theme.palette.surfaceSecondary);
 
           TextInput({ text: this.account, placeholder: '请输入账号' })
             .width('100%')
