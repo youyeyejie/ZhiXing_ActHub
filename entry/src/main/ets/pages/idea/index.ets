@@ -3,11 +3,9 @@ import { IdeaCardLlist } from "./components/IdeaCardLlist";
 import { IdeaActionSheetContent } from "./components/IdeaActionSheetContent";
 import { IdeaDetailCardContent } from "./components/IdeaDetailCardContent";
 import { HitokotoCard } from "./components/HitokotoCard";
-import { ActivityHeatmap } from "./components/ActivityHeatmap";
 import { AIInsightPanel } from "./components/AIInsightPanel";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
 import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
-import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
 import { UndoNotificationStack, UndoStackItem } from "../../components/feedback/UndoNotificationStack";
 import { AppOverlayRoute } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
@@ -62,7 +60,7 @@ export struct IdeaPage {
       // 主页面内容
       MainTabPageLayout({
         title: "闪记",
-        actionIcon: $r("sys.media.ohos_ic_public_search_filled"),
+        actionIcon: $r("sys.symbol.magnifyingglass"),
         onActionTap: () => {
           this.app.nav.pushOverlayByName(
             AppOverlayRoute.SEARCH,
@@ -108,20 +106,39 @@ export struct IdeaPage {
             (idea: Idea) => idea.id + '_' + this.state.refreshVersion,
           )
 
-          // 热力图
-          ActivityHeatmap()
-
           // 底部留白（给 FAB 留空间）
           Column().height(100)
         }
       }
 
-      // 新建按钮（FAB）
-      FloatingActionButton({
-        onTap: () => {
+      // 右下角悬浮按钮组：AI 洞察 + 新建
+      Column({ space: 20 }) {
+        // AI 洞察入口
+        AIInsightPanel()
+
+        // 新建按钮
+        Button() {
+          Image($r("sys.media.ohos_ic_public_add"))
+            .width(28)
+            .height(28)
+            .fillColor(this.app.theme.palette.surface);
+        }
+        .type(ButtonType.Circle)
+        .width(56)
+        .height(56)
+        .backgroundColor(this.app.theme.palette.primary)
+        .shadow({
+          radius: 16,
+          color: this.app.theme.palette.primary + "40",
+          offsetX: 0,
+          offsetY: 4,
+        })
+        .onClick(() => {
           this.openNewEditor();
-        },
-      })
+        })
+      }
+      .margin({ right: 20, bottom: "6%" })
+      .alignItems(HorizontalAlign.Center)
 
       UndoNotificationStack({
         tasks: this.state.buildUndoStackItems(),
