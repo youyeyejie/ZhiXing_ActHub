@@ -17,6 +17,7 @@ export struct FocusStatsChart {
 
   private repository: FocusRepository = new FocusRepository();
   private readonly DAY_COUNT: number = 7;
+  private readonly WEEKDAY_LABELS: Array<string> = ['一', '二', '三', '四', '五', '六', '日'];
 
   aboutToAppear(): void {
     this.loadStats();
@@ -40,22 +41,35 @@ export struct FocusStatsChart {
 
   private buildBars(durationMap: Record<string, number>): Array<FocusDayBar> {
     const result: Array<FocusDayBar> = [];
-    const today: Date = new Date();
-    today.setHours(0, 0, 0, 0);
+    const weekStart: Date = this.resolveWeekStart(new Date());
 
-    for (let offset = this.DAY_COUNT - 1; offset >= 0; offset--) {
-      const currentDate: Date = new Date(today.getTime() - offset * 24 * 60 * 60 * 1000);
-      const month: string = String(currentDate.getMonth() + 1).padStart(2, '0');
-      const day: string = String(currentDate.getDate()).padStart(2, '0');
-      const dateKey: string = `${currentDate.getFullYear()}-${month}-${day}`;
+    for (let index = 0; index < this.DAY_COUNT; index++) {
+      const currentDate: Date = new Date(weekStart);
+      currentDate.setDate(weekStart.getDate() + index);
+      const dateKey: string = this.formatDateKey(currentDate);
       result.push({
         dateKey,
-        label: `${Number(month)}/${Number(day)}`,
+        label: this.WEEKDAY_LABELS[index],
         duration: durationMap[dateKey] ? durationMap[dateKey] : 0,
       });
     }
 
     return result;
+  }
+
+  private resolveWeekStart(date: Date): Date {
+    const result: Date = new Date(date);
+    result.setHours(0, 0, 0, 0);
+    const weekDay: number = result.getDay();
+    const offset: number = weekDay === 0 ? 6 : weekDay - 1;
+    result.setDate(result.getDate() - offset);
+    return result;
+  }
+
+  private formatDateKey(date: Date): string {
+    const month: string = String(date.getMonth() + 1).padStart(2, '0');
+    const day: string = String(date.getDate()).padStart(2, '0');
+    return `${date.getFullYear()}-${month}-${day}`;
   }
 
   private resolveMaxDuration(): number {
@@ -75,6 +89,9 @@ export struct FocusStatsChart {
   }
 
   private formatDuration(seconds: number): string {
+    if (seconds <= 0) {
+      return '0 分钟';
+    }
     if (seconds >= 3600) {
       return `${(seconds / 3600).toFixed(1)} 小时`;
     }
@@ -94,7 +111,15 @@ export struct FocusStatsChart {
     if (this.totalCount <= 0) {
       return '还没有专注记录';
     }
-    return '累计 ' + this.totalCount + ' 次 | ' + this.formatDuration(this.totalDuration);
+    return '本周 ' + this.formatDuration(this.resolveWeeklyDuration()) + ' | 累计 ' + this.totalCount + ' 次';
+  }
+
+  private resolveWeeklyDuration(): number {
+    let weeklyDuration: number = 0;
+    for (let index = 0; index < this.bars.length; index++) {
+      weeklyDuration += this.bars[index].duration;
+    }
+    return weeklyDuration;
   }
 
   @Builder
@@ -132,7 +157,7 @@ export struct FocusStatsChart {
     Column({ space: 12 }) {
       Row() {
         Column({ space: 4 }) {
-          Text('专注时长')
+          Text('本周专注时长')
             .fontSize(16)
             .fontWeight(FontWeight.Medium)
             .fontColor(this.app.theme.palette.textPrimary);
@@ -145,7 +170,7 @@ export struct FocusStatsChart {
 
         Blank();
 
-        Text('近 ' + this.DAY_COUNT + ' 天')
+        Text('周一至周日')
           .fontSize(12)
           .fontColor(this.app.theme.palette.textTertiary);
       }
@@ -168,7 +193,7 @@ export struct FocusStatsChart {
           Text('还没有图表数据')
             .fontSize(14)
             .fontColor(this.app.theme.palette.textSecondary);
-          Text('开始一次专注后，这里会展示最近七天的专注时长柱状图。')
+          Text('开始一次专注后，这里会按周一到周日展示本周的专注时长柱状图。')
             .fontSize(12)
             .lineHeight(18)
             .fontColor(this.app.theme.palette.textTertiary)
