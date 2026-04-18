@@ -11,6 +11,10 @@
     {
       "name": "EntryAbility_label",
       "value": "知行"
+    },
+    {
+      "name": "calendar_permission_reason",
+      "value": "用于将应用中的日程同步到系统日历并提供日历提醒"
     }
   ]
 }

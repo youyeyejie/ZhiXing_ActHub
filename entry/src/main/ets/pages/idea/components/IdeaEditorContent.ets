@@ -1,7 +1,7 @@
 import { Idea } from "../../../core/models/Idea";
 import { IdeaRepository } from "../../../core/repositories/IdeaRepository";
 import { AppState, useAppState } from "../../../app/AppStates";
-import promptAction from "@ohos.promptAction";
+import { FormTypography } from "../../../components/form/FormTypography";
 import { IdeaPageState, useIdeaPageState } from "../IdeaPageState";
 
 /**
@@ -12,7 +12,7 @@ import { IdeaPageState, useIdeaPageState } from "../IdeaPageState";
 export struct IdeaEditorContent {
   @Local private app: AppState = useAppState();
   @Local private state: IdeaPageState = useIdeaPageState();
-  @Param hideInnerHeader: boolean = false;
+  @Param isForCreate: boolean = false;
 
   private repository: IdeaRepository = new IdeaRepository();
 
@@ -21,6 +21,7 @@ export struct IdeaEditorContent {
   @Local private isNew: boolean = true;
   @Local private currentIdea: Idea = new Idea();
   @Local private isSaving: boolean = false;
+  @Local private saveEnabled: boolean = false;
 
   aboutToAppear(): void {
     this.initializeDraft();
@@ -28,6 +29,14 @@ export struct IdeaEditorContent {
 
   private normalizeId(value: number): number {
     return value > 0 ? value : 0;
+  }
+
+  private normalizeText(value: string): string {
+    const text = `${value}`.trim();
+    if (text === "undefined" || text === "null") {
+      return "";
+    }
+    return text;
   }
 
   private copyIdea(source: Idea): Idea {
@@ -47,6 +56,7 @@ export struct IdeaEditorContent {
     this.title = this.currentIdea.title || "";
     this.content = this.currentIdea.content || "";
     this.isNew = false;
+    this.recalculateSaveEnabled();
   }
 
   private applyNewIdeaDraft(): void {
@@ -54,6 +64,7 @@ export struct IdeaEditorContent {
     this.title = "";
     this.content = "";
     this.isNew = true;
+    this.recalculateSaveEnabled();
   }
 
   private initializeDraft(): void {
@@ -77,10 +88,8 @@ export struct IdeaEditorContent {
         this.applyExistingIdea(found);
         return;
       }
-      this.safeToast("未找到对应闪记");
       this.app.nav.back(false);
     } catch (_error) {
-      this.safeToast("读取闪记失败");
       this.app.nav.back(false);
     }
   }
@@ -104,15 +113,16 @@ export struct IdeaEditorContent {
    * 保存到数据库。
    */
   private async saveToRepository(): Promise<void> {
-    // 检查内容是否为空
-    const trimmedContent = this.content.trim();
-    if (trimmedContent.length === 0 && this.title.trim().length === 0) {
-      return; // 空内容不保存
+    if (!this.computeCanSave()) {
+      this.recalculateSaveEnabled();
+      return;
     }
 
     this.isSaving = true;
+    this.recalculateSaveEnabled();
+    const trimmedContent = this.normalizeText(this.content);
     const now = Date.now();
-    this.currentIdea.title = this.title.trim();
+    this.currentIdea.title = this.normalizeText(this.title);
     this.currentIdea.content = trimmedContent;
     this.currentIdea.length = trimmedContent.length;
     this.currentIdea.timestamp = now;
@@ -127,8 +137,8 @@ export struct IdeaEditorContent {
     try {
       await this.repository.save(this.currentIdea);
     } catch (_error) {
-      this.safeToast("保存失败，请重试");
       this.isSaving = false;
+      this.recalculateSaveEnabled();
       return;
     }
 
@@ -139,92 +149,126 @@ export struct IdeaEditorContent {
     } catch (_error) {
     }
     this.isSaving = false;
+    this.recalculateSaveEnabled();
   }
 
-  private safeToast(message: string): void {
-    try {
-      promptAction.showToast({ message, duration: 1200 });
-    } catch (_error) {}
+  private recalculateSaveEnabled(): void {
+    this.saveEnabled = this.computeCanSave();
+  }
+
+  private hasRequiredFieldsFilled(): boolean {
+    return this.normalizeText(this.title).length > 0 || this.normalizeText(this.content).length > 0;
+  }
+
+  private computeCanSave(): boolean {
+    return !this.isSaving && this.hasRequiredFieldsFilled();
+  }
+
+  private canDelete(): boolean {
+    if (this.isSaving || this.isForCreate || this.isNew) {
+      return false;
+    }
+    return this.normalizeId(this.currentIdea.id) > 0;
+  }
+
+  private runIdeaListMutationAnimation(action: () => void): void {
+    animateTo({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
+      action();
+    });
+  }
+
+  private deleteCurrentIdea(): void {
+    if (!this.canDelete()) {
+      return;
+    }
+    const ideaId = this.normalizeId(this.currentIdea.id);
+    const inMemory = this.state.findIdeaInMemory(ideaId);
+    const target = inMemory === null ? this.copyIdea(this.currentIdea) : inMemory;
+    this.runIdeaListMutationAnimation(() => {
+      this.state.requestDeleteIdea(target);
+    });
+    this.app.nav.back(false);
+  }
+
+  @Builder
+  private buildSaveButton() {
+    Button({ type: ButtonType.Circle }) {
+      SymbolGlyph($r("sys.symbol.save"))
+        .fontSize(18)
+        .fontColor([this.app.theme.palette.surface]);
+    }
+      .width(34)
+      .height(34)
+      .backgroundColor(this.app.theme.palette.primary)
+      .enabled(this.saveEnabled)
+      .onClick(() => {
+        this.saveToRepository();
+      });
+  }
+
+  @Builder
+  private buildDeleteButton() {
+    Button({ type: ButtonType.Circle }) {
+      SymbolGlyph($r("sys.symbol.trash"))
+        .fontSize(18)
+        .fontColor([this.app.theme.palette.surface]);
+    }
+      .width(34)
+      .height(34)
+      .backgroundColor(this.app.theme.palette.danger)
+      .enabled(this.canDelete())
+      .onClick(() => {
+        this.deleteCurrentIdea();
+      });
   }
 
   build() {
     Column({ space: 16 }) {
-      if (!this.hideInnerHeader) {
-        // 顶部标题栏
-        Row() {
-          Text(this.isNew ? "新建闪记" : "编辑闪记")
-            .fontSize(16)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.app.theme.palette.textPrimary)
-          Blank()
-          // 保存按钮
-          Button(this.isSaving ? "保存中..." : "保存")
-            .fontSize(14)
-            .fontColor(this.app.theme.palette.surface)
-            .backgroundColor(this.app.theme.palette.primary)
-            .borderRadius(999)
-            .height(40)
-            .padding({ left: 16, right: 16 })
-            .enabled(
-              !this.isSaving && (this.content.trim().length > 0 || this.title.trim().length > 0),
-            )
-            .onClick(() => {
-              this.saveToRepository();
-            })
-        }
-        .width("100%")
-        .margin({ bottom: 8 })
-      } else {
-        Row() {
-          Blank()
-          Button(this.isSaving ? "保存中..." : "保存")
-            .fontSize(14)
-            .fontColor(this.app.theme.palette.surface)
-            .backgroundColor(this.app.theme.palette.primary)
-            .borderRadius(999)
-            .height(40)
-            .padding({ left: 16, right: 16 })
-            .enabled(
-              !this.isSaving && (this.content.trim().length > 0 || this.title.trim().length > 0),
-            )
-            .onClick(() => {
-              this.saveToRepository();
-            })
-        }
-        .width("100%")
-      }
+      Row({ space: 10 }) {
+        Text(this.isNew ? "新建闪记" : "编辑闪记")
+          .fontSize(FormTypography.TITLE_SIZE)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.app.theme.palette.textPrimary)
+          .layoutWeight(1)
 
-      // 标题输入
-      TextInput({ placeholder: "标题（可选）", text: this.title })
+        if (!this.isForCreate) {
+          this.buildDeleteButton();
+        }
+        this.buildSaveButton();
+      }
+      .width("100%")
+
+      TextInput({ placeholder: "标题", text: this.title })
         .width("100%")
         .height(52)
-        .fontSize(15)
+        .fontSize(FormTypography.INPUT_CONTENT_SIZE)
+        .fontWeight(FontWeight.Medium)
         .fontColor(this.app.theme.palette.textPrimary)
         .placeholderColor(this.app.theme.palette.textTertiary)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
-        .padding({ left: 16, right: 16 })
+        .padding({ left: 12, right: 12, top: 10, bottom: 10 })
         .onChange((value: string) => {
           this.title = value;
+          this.recalculateSaveEnabled();
         })
 
-      // 内容输入
       TextArea({ placeholder: "写下你的闪念...", text: this.content })
         .width("100%")
-        .layoutWeight(1)
-        .fontSize(14)
+        .height(256)
+        .fontSize(FormTypography.INPUT_CONTENT_SIZE)
         .fontColor(this.app.theme.palette.textPrimary)
         .placeholderColor(this.app.theme.palette.textTertiary)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .borderRadius(12)
-        .padding(16)
+        .padding({ left: 12, right: 12, top: 10, bottom: 10 })
         .textAlign(TextAlign.Start)
         .enterKeyType(EnterKeyType.NEW_LINE)
         .onChange((value: string) => {
           this.content = value;
+          this.recalculateSaveEnabled();
         })
     }
-    .width("100%")
-    .height("100%");
+    .width("100%");
   }
 }

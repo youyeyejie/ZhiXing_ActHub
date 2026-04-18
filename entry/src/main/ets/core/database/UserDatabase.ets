@@ -2,10 +2,6 @@ import { IBestORMInit, ORM } from '@ibestservices/ibest-orm';
 import { common } from '@kit.AbilityKit';
 import { Focus, Idea, Plan, Todo, TodoCategory, UserPreference } from '../models';
 import { HashUtils } from '../security/HashUtils';
-import { hilog } from '@kit.PerformanceAnalysisKit';
-
-const DOMAIN = 0x0000;
-const TAG = 'UserDatabase';
 
 /**
  * 类功能简介：
@@ -21,6 +17,19 @@ export class UserDatabase {
     return UserDatabase.instance;
   }
 
+  async resolveDatabaseFileName(username: string): Promise<string> {
+    const normalizedUsername: string = username.trim();
+    if (normalizedUsername.length === 0) {
+      throw new Error('Username is required for database filename.');
+    }
+    return await HashUtils.md5Hex(normalizedUsername) + '.db';
+  }
+
+  async resolveDatabaseFilePath(context: common.UIAbilityContext, username: string): Promise<string> {
+    const filename: string = await this.resolveDatabaseFileName(username);
+    return context.databaseDir + '/rdb/' + filename;
+  }
+
   async initialize(context: common.BaseContext, username: string): Promise<void> {
     const normalizedUsername: string = username.trim();
     if (normalizedUsername.length === 0) {
@@ -28,14 +37,12 @@ export class UserDatabase {
     }
 
     if (this.initialized && this.ormInstance !== null && this.currentUsername === normalizedUsername) {
-      hilog.info(DOMAIN, TAG, 'initialize skipped current=%{public}s', normalizedUsername);
       return;
     }
 
     await this.close();
 
-    const filename: string = await HashUtils.md5Hex(normalizedUsername) + '.db';
-    hilog.info(DOMAIN, TAG, 'initialize start username=%{public}s file=%{public}s', normalizedUsername, filename);
+    const filename: string = await this.resolveDatabaseFileName(normalizedUsername);
     this.ormInstance = await IBestORMInit(context, {
       name: filename,
       debug: true
@@ -43,7 +50,6 @@ export class UserDatabase {
     this.ormInstance.migrate(Plan, Todo, TodoCategory, Focus, Idea, UserPreference);
     this.initialized = true;
     this.currentUsername = normalizedUsername;
-    hilog.info(DOMAIN, TAG, 'initialize done current=%{public}s', this.currentUsername);
   }
 
   isReady(): boolean {
@@ -63,7 +69,6 @@ export class UserDatabase {
 
   async close(): Promise<void> {
     if (this.ormInstance !== null) {
-      hilog.info(DOMAIN, TAG, 'close current=%{public}s', this.currentUsername);
       await this.ormInstance.close();
     }
     this.ormInstance = null;

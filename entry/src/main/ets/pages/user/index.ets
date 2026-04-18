@@ -1,12 +1,11 @@
-import { ActivityHeatmap } from '../idea/components/ActivityHeatmap';
-import { FocusStatsChart } from './components/FocusStatsChart';
-import { SettingsPanel } from './components/SettingsPanel';
-import { MainTabPageLayout } from '../../components/layout/MainTabPageLayout';
-import { AppState, useAppState } from '../../app/AppStates';
-import { PageScrollLayout } from '../../components/layout/PageScrollLayout';
-import { ThemeMode } from '../../core/theme/ThemeManager';
-import { AppOverlayRoute } from '../../app/AppConstants';
-
+import { ActivityHeatmap } from "../idea/components/ActivityHeatmap";
+import { FocusStatsChart } from "./components/FocusStatsChart";
+import { SettingsPanel } from "./components/SettingsPanel";
+import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
+import { AppState, useAppState } from "../../app/AppStates";
+import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
+import { ThemeMode } from "../../core/theme/ThemeManager";
+import { AppOverlayRoute } from "../../app/AppConstants";
 @ComponentV2
 export struct UserPage {
   @Local private app: AppState = useAppState();
@@ -22,7 +21,7 @@ export struct UserPage {
 
   private resolveDisplayName(): string {
     const name: string = `${this.app.currentUserName}`.trim();
-    return name.length > 0 ? name : '未登录用户';
+    return name.length > 0 ? name : "未登录用户";
   }
 
   private resolveInitial(): string {
@@ -32,20 +31,38 @@ export struct UserPage {
   private resolveJoinedText(): string {
     const user = this.app.currentUser;
     if (user === null || user.createdAt <= 0) {
-      return '本地账号 | 登录状态已保持';
+      return "本地账号";
     }
-    return '加入于 ' + this.formatDate(user.createdAt) + ' | 本地账号';
+    return "加入于 " + this.formatDate(user.createdAt);
   }
 
   private formatDate(timestamp: number): string {
     const date: Date = new Date(timestamp);
-    const month: string = String(date.getMonth() + 1).padStart(2, '0');
-    const day: string = String(date.getDate()).padStart(2, '0');
+    const month: string = String(date.getMonth() + 1).padStart(2, "0");
+    const day: string = String(date.getDate()).padStart(2, "0");
     return `${date.getFullYear()}-${month}-${day}`;
   }
 
-  private async setThemeBySwitch(isDarkMode: boolean): Promise<void> {
-    await this.app.setPreferredThemeMode(isDarkMode ? ThemeMode.DARK : ThemeMode.LIGHT);
+  private resolveThemeModeIcon(): Resource {
+    const mode: ThemeMode = this.app.theme.get();
+    if (mode === ThemeMode.DARK) {
+      return $r('sys.symbol.dark_mode');
+    }
+    if (mode === ThemeMode.SYSTEM) {
+      return $r('sys.symbol.auto_mode');
+    }
+    return $r('sys.symbol.light_mode');
+  }
+
+  private async cycleThemeMode(): Promise<void> {
+    const mode: ThemeMode = this.app.theme.get();
+    let nextMode: ThemeMode = ThemeMode.LIGHT;
+    if (mode === ThemeMode.LIGHT) {
+      nextMode = ThemeMode.DARK;
+    } else if (mode === ThemeMode.DARK) {
+      nextMode = ThemeMode.SYSTEM;
+    }
+    await this.app.setPreferredThemeMode(nextMode);
   }
 
   private async handleLogout(): Promise<void> {
@@ -57,11 +74,11 @@ export struct UserPage {
     Column({ space: 4 }) {
       Text(label)
         .fontSize(12)
-        .fontColor(this.app.theme.palette.textTertiary);
+        .fontColor(this.app.theme.palette.textTertiary)
       Text(value)
         .fontSize(14)
         .fontWeight(FontWeight.Medium)
-        .fontColor(this.app.theme.palette.textPrimary);
+        .fontColor(this.app.theme.palette.textPrimary)
     }
     .layoutWeight(1)
     .padding(14)
@@ -81,48 +98,34 @@ export struct UserPage {
           .fontSize(24)
           .fontWeight(FontWeight.Bold)
           .fontColor(this.app.theme.palette.surface)
-          .textAlign(TextAlign.Center);
-
+          .textAlign(TextAlign.Center)
         Column({ space: 4 }) {
           Text(this.resolveDisplayName())
             .fontSize(22)
             .fontWeight(FontWeight.Bold)
-            .fontColor(this.app.theme.palette.textPrimary);
-
+            .fontColor(this.app.theme.palette.textPrimary)
           Text(this.resolveJoinedText())
             .fontSize(13)
-            .fontColor(this.app.theme.palette.textSecondary);
+            .fontColor(this.app.theme.palette.textSecondary)
         }
         .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start);
-
-        Column({ space: 6 }) {
-          Text('深色模式')
-            .fontSize(12)
-            .fontColor(this.app.theme.palette.textSecondary);
-
-          Toggle({ type: ToggleType.Switch, isOn: this.app.theme.isDark })
-            .onChange(async (value: boolean) => {
-              await this.setThemeBySwitch(value);
-            });
+        .alignItems(HorizontalAlign.Start)
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          SymbolGlyph(this.resolveThemeModeIcon())
+            .fontSize(28)
+            .fontColor([this.app.theme.palette.textSecondary])
         }
-        .alignItems(HorizontalAlign.End);
+        .width(42)
+        .height(42)
+        .backgroundColor(this.app.theme.palette.surfaceSecondary)
+        .onClick(async () => {
+          await this.cycleThemeMode();
+        })
       }
-      .width('100%')
-      .alignItems(VerticalAlign.Center);
-
-      Row({ space: 12 }) {
-        this.buildInfoChip('状态保持', '已开启');
-        this.buildInfoChip('当前主题', this.app.theme.isDark ? '深色' : '浅色');
-      }
-      .width('100%');
-
-      Text('这里集中展示账号状态、专注成果与常用设置，后续同步能力也会从这里继续扩展。')
-        .fontSize(13)
-        .lineHeight(20)
-        .fontColor(this.app.theme.palette.textSecondary);
+      .width("100%")
+      .alignItems(VerticalAlign.Center)
     }
-    .width('100%')
+    .width("100%")
     .padding(18)
     .borderRadius(24)
     .backgroundColor(this.app.theme.palette.surface);
@@ -130,31 +133,30 @@ export struct UserPage {
 
   build() {
     MainTabPageLayout({
-      title: '我的',
-      actionIcon: $r('sys.symbol.textstyle'),
+      title: "我的",
+      actionIcon: $r("sys.symbol.textstyle"),
       onActionTap: () => {
         this.app.nav.pushOverlayByName(AppOverlayRoute.SHARED_TEST);
-      }
+      },
     }) {
       PageScrollLayout({ space: 12, paddingTop: 12 }) {
         Row() {
-          Blank();
+          Blank()
           Column({ space: 12 }) {
-            this.buildProfileCard();
-            FocusStatsChart();
-            ActivityHeatmap();
+            this.buildProfileCard()
+            FocusStatsChart()
+            ActivityHeatmap()
             SettingsPanel({
               onLogoutTap: async () => {
                 await this.handleLogout();
-              }
-            });
+              },
+            })
           }
-          .width('100%')
-          .constraintSize({ maxWidth: 760 });
-          Blank();
-        }
-        .width('100%');
+          .width("100%")
+          .constraintSize({ maxWidth: 760 })
+          Blank()
+        }.width("100%")
       }
-    }
+    };
   }
 }

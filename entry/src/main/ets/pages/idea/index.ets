@@ -1,15 +1,18 @@
 import { Idea } from "../../core/models/Idea";
-import { IdeaCardLlist } from "./components/IdeaCardLlist";
+import { IdeaCardList } from "./components/IdeaCardList";
 import { IdeaActionSheetContent } from "./components/IdeaActionSheetContent";
 import { IdeaDetailCardContent } from "./components/IdeaDetailCardContent";
 import { HitokotoCard } from "./components/HitokotoCard";
+import { ActivityHeatmap } from "./components/ActivityHeatmap";
 import { AIInsightPanel } from "./components/AIInsightPanel";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
 import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
-import { UndoNotificationStack, UndoStackItem } from "../../components/feedback/UndoNotificationStack";
+import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
+import { UndoNotificationStack } from "../../components/feedback/UndoNotificationStack";
 import { AppOverlayRoute } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
 import { IdeaPageState, useIdeaPageState } from "./IdeaPageState";
+
 /**
  * 闪记模块主页。
  * 支持闪记列表展示、新建、编辑、删除和搜索。
@@ -40,15 +43,15 @@ export struct IdeaPage {
    */
   private openNewEditor(): void {
     this.state.openCreateIdea();
-    this.app.nav.openActionSheet(this.buildIdeaCreateContent);
+    this.app.nav.openActionSheet(this.buildIdeaCreateContent, 'auto');
   }
 
   /**
    * 打开编辑闪记。
    */
-  private openEditIdea(idea: Idea): void {
-    this.state.openIdeaDetail(idea.id);
-    this.app.nav.openDetailCard(this.buildIdeaDetailContent, '编辑闪记');
+  private openEditIdea(ideaId: number): void {
+    this.state.openIdeaDetail(ideaId);
+    this.app.nav.openDetailCard(this.buildIdeaDetailContent);
   }
 
   /**
@@ -68,77 +71,24 @@ export struct IdeaPage {
           );
         },
       }) {
-
         // 闪记列表
         PageScrollLayout({ space: 12, paddingTop: 12 }) {
-        // 一言卡片
-        HitokotoCard()
-          // 列表为空时的占位
-          if (!this.state.loading && this.state.ideas.length === 0) {
-            Column({ space: 12 }) {
-              Text("还没有闪记")
-                .fontSize(16)
-                .fontColor(this.app.theme.palette.textSecondary)
-              Text("点击右下角按钮，记录你的灵感")
-                .fontSize(14)
-                .fontColor(this.app.theme.palette.textTertiary)
-            }
-            .width("100%")
-            .padding({ top: 40, bottom: 40 })
-            .alignItems(HorizontalAlign.Center);
-          }
+          // 一言卡片
+          HitokotoCard()
 
-          // 闪记列表
-          ForEach(
-            this.state.ideas,
-            (idea: Idea) => {
-              IdeaCardLlist({
-                idea: idea,
-                refreshVersion: this.state.refreshVersion,
-                onDeleteRequest: (deleting: Idea) => {
-                  this.state.requestDeleteIdea(deleting);
-                },
-                onTap: (tapped: Idea) => {
-                  this.openEditIdea(tapped);
-                },
-              });
+          // 活动热力图
+          ActivityHeatmap()
+
+          IdeaCardList({
+            onOpenIdea: (ideaId: number) => {
+              this.openEditIdea(ideaId);
             },
-            (idea: Idea) => idea.id + '_' + this.state.refreshVersion,
-          )
+          })
 
           // 底部留白（给 FAB 留空间）
           Column().height(100)
         }
       }
-
-      // 右下角悬浮按钮组：AI 洞察 + 新建
-      Column({ space: 20 }) {
-        // AI 洞察入口
-        AIInsightPanel()
-
-        // 新建按钮
-        Button() {
-          Image($r("sys.media.ohos_ic_public_add"))
-            .width(28)
-            .height(28)
-            .fillColor(this.app.theme.palette.surface);
-        }
-        .type(ButtonType.Circle)
-        .width(56)
-        .height(56)
-        .backgroundColor(this.app.theme.palette.primary)
-        .shadow({
-          radius: 16,
-          color: this.app.theme.palette.primary + "40",
-          offsetX: 0,
-          offsetY: 4,
-        })
-        .onClick(() => {
-          this.openNewEditor();
-        })
-      }
-      .margin({ right: 20, bottom: "6%" })
-      .alignItems(HorizontalAlign.Center)
 
       UndoNotificationStack({
         tasks: this.state.buildUndoStackItems(),
@@ -153,6 +103,15 @@ export struct IdeaPage {
         },
       })
 
+      // AI 洞察入口按钮
+      AIInsightPanel()
+
+      // 新建按钮（FAB）
+      FloatingActionButton({
+        onTap: () => {
+          this.openNewEditor();
+        },
+      })
     }
     .width("100%")
     .height("100%");

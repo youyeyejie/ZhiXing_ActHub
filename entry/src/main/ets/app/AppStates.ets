@@ -3,15 +3,12 @@ import { AppNav } from './AppNav';
 import { AppFlow, AppPreferenceKey } from './AppConstants';
 import { common } from '@kit.AbilityKit';
 import { AuthService } from '../core/services/AuthService';
+import { CalendarReminderService } from '../core/services/CalendarReminderService';
 import { FocusTimerEngine } from '../core/services/FocusTimerEngine';
 import { NotificationService } from '../core/services/NotificationService';
 import { WhiteNoisePlayer } from '../core/services/WhiteNoisePlayer';
 import { User } from '../core/models/User';
 import { UserPreferenceRepository } from '../core/repositories/UserPreferenceRepository';
-import { hilog } from '@kit.PerformanceAnalysisKit';
-
-const DOMAIN = 0x0000;
-const TAG = 'AppState';
 
 
 
@@ -41,6 +38,7 @@ export class AppState {
   private focusTimerEngine: FocusTimerEngine = new FocusTimerEngine();
   private _whiteNoisePlayer: WhiteNoisePlayer = new WhiteNoisePlayer();
   private authService: AuthService = new AuthService();
+  private calendarReminderService: CalendarReminderService = new CalendarReminderService();
   private currentUserValue: User | null = null;
   private userPreferenceRepository: UserPreferenceRepository = new UserPreferenceRepository();
 
@@ -98,20 +96,15 @@ export class AppState {
 
   async bootstrap(): Promise<void> {
     this.enterSplash();
-    hilog.info(DOMAIN, TAG, 'bootstrap start');
     try {
       const restoredUser: User | null = await this.authService.restoreSession();
       if (restoredUser === null) {
-        hilog.info(DOMAIN, TAG, 'bootstrap no restored user -> AUTH');
         this.applyCurrentUser(null);
         AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, ThemeMode.SYSTEM);
         this.applyThemePreference(ThemeMode.SYSTEM, this.readSystemDarkMode());
         this.enterAuth();
         return;
       }
-
-      hilog.info(DOMAIN, TAG, 'bootstrap restored user id=%{public}s name=%{public}s',
-        restoredUser.id, restoredUser.name);
       this.applyCurrentUser(restoredUser);
       try {
         const storedThemeMode: string = await this.userPreferenceRepository.getString(
@@ -121,16 +114,13 @@ export class AppState {
         const preferredThemeMode: ThemeMode = this.normalizeThemeMode(storedThemeMode);
         AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, preferredThemeMode);
         this.applyThemePreference(preferredThemeMode, this.readSystemDarkMode());
-        hilog.info(DOMAIN, TAG, 'bootstrap theme=%{public}s', preferredThemeMode);
       } catch (_error) {
         AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, ThemeMode.SYSTEM);
         this.applyThemePreference(ThemeMode.SYSTEM, this.readSystemDarkMode());
-        hilog.info(DOMAIN, TAG, 'bootstrap theme restore failed -> SYSTEM');
       }
       this.enterMain();
-      hilog.info(DOMAIN, TAG, 'bootstrap -> MAIN');
+      await this.syncCalendarRemindersForCurrentUser();
     } catch (_error) {
-      hilog.info(DOMAIN, TAG, 'bootstrap exception -> AUTH');
       this.applyCurrentUser(null);
       AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, ThemeMode.SYSTEM);
       this.applyThemePreference(ThemeMode.SYSTEM, this.readSystemDarkMode());
@@ -139,10 +129,8 @@ export class AppState {
   }
 
   async login(account: string, password: string): Promise<AuthActionResult> {
-    hilog.info(DOMAIN, TAG, 'login start account=%{public}s', account);
     const user: User | null = await this.authService.login(account, password);
     if (user === null) {
-      hilog.info(DOMAIN, TAG, 'login failed');
       return {
         success: false,
         message: '账号或密码错误',
@@ -152,7 +140,7 @@ export class AppState {
     this.applyCurrentUser(user);
     await this.loadUserPreferences();
     this.enterMain();
-    hilog.info(DOMAIN, TAG, 'login success id=%{public}s name=%{public}s', user.id, user.name);
+    await this.syncCalendarRemindersForCurrentUser();
     return {
       success: true,
       message: '欢迎回来，' + user.name,
@@ -171,6 +159,7 @@ export class AppState {
     this.applyCurrentUser(user);
     await this.loadUserPreferences();
     this.enterMain();
+    await this.syncCalendarRemindersForCurrentUser();
     return {
       success: true,
       message: '注册成功，' + user.name,
@@ -178,13 +167,14 @@ export class AppState {
   }
 
   async logout(): Promise<void> {
-    hilog.info(DOMAIN, TAG, 'logout start');
+    if (this.isLoggedIn) {
+      await this.calendarReminderService.cancelPlanReminder();
+    }
     await this.authService.logout();
     this.applyCurrentUser(null);
     AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, ThemeMode.SYSTEM);
     this.applyThemePreference(ThemeMode.SYSTEM, this.readSystemDarkMode());
     this.enterAuth();
-    hilog.info(DOMAIN, TAG, 'logout -> AUTH');
   }
 
   async tryRequestNotificationPermissionOnLaunch(context: common.UIAbilityContext): Promise<void> {
@@ -205,6 +195,13 @@ export class AppState {
 
   enterMain(): void {
     this.flow = AppFlow.MAIN;
+  }
+
+  async syncCalendarRemindersForCurrentUser(): Promise<void> {
+    if (!this.isLoggedIn) {
+      return;
+    }
+    await this.calendarReminderService.registerPlanReminder();
   }
 
   private applyCurrentUser(user: User | null): void {

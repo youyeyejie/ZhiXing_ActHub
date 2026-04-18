@@ -20,13 +20,13 @@ export class ThemePalette {
   danger: string = '#EF4444';
   dangerSurface: string = '#FFE9E8';
   accentBlue: string = '#3B82F6';
-  accentViolet: string = '#7C3AED';
+  accentViolet: string = '#f455f7';
   accentGreen: string = '#22C55E';
   accentAmber: string = '#F59E0B';
   accentRed: string = '#EF4444';
   accentCyan: string = '#06B6D4';
-  accentPurple: string = '#A855F7';
-  accentEmerald: string = '#10B981';
+  accentPurple: string = '#6127c4';
+  accentEmerald: string = '#1aa174';
   background: string = '#F7F8FA';
   surface: string = '#FFFFFF';
   surfaceSecondary: string = '#F3F4F6';
@@ -35,7 +35,9 @@ export class ThemePalette {
   textTertiary: string = '#98A2B3';
   border: string = '#E5E7EB';
   mask: string = '#66000000';
-  logo: string = "app.media.foreground";
+  primaryShadowStrong: string = '#60004C24';
+  primaryShadowSoft: string = '#40004C24';
+  logo: string = "app.media.foreground_white";
 
   static light(): ThemePalette {
     const palette = new ThemePalette();
@@ -47,13 +49,13 @@ export class ThemePalette {
     palette.danger = '#EF4444';
     palette.dangerSurface = '#FFE9E8';
     palette.accentBlue = '#3B82F6';
-    palette.accentViolet = '#7C3AED';
+    palette.accentViolet = '#f455f7';
     palette.accentGreen = '#22C55E';
     palette.accentAmber = '#F59E0B';
     palette.accentRed = '#EF4444';
     palette.accentCyan = '#06B6D4';
-    palette.accentPurple = '#A855F7';
-    palette.accentEmerald = '#10B981';
+    palette.accentPurple = '#6127c4';
+    palette.accentEmerald = '#1aa174';
     palette.background = '#F7F8FA';
     palette.surface = '#FFFFFF';
     palette.surfaceSecondary = '#F3F4F6';
@@ -62,7 +64,9 @@ export class ThemePalette {
     palette.textTertiary = '#98A2B3';
     palette.border = '#E5E7EB';
     palette.mask = '#66000000';
-    palette.logo = "app.media.foreground";
+    palette.primaryShadowStrong = '#60004C24';
+    palette.primaryShadowSoft = '#40004C24';
+    palette.logo = "app.media.foreground_white";
     return palette;
   }
 
@@ -76,13 +80,13 @@ export class ThemePalette {
     palette.danger = '#F87171';
     palette.dangerSurface = '#4A1D1D';
     palette.accentBlue = '#60A5FA';
-    palette.accentViolet = '#A78BFA';
-    palette.accentGreen = '#4ADE80';
+    palette.accentViolet = '#e98bfa';
+    palette.accentGreen = '#4de986';
     palette.accentAmber = '#FBBF24';
     palette.accentRed = '#F87171';
     palette.accentCyan = '#22D3EE';
-    palette.accentPurple = '#C084FC';
-    palette.accentEmerald = '#34D399';
+    palette.accentPurple = '#ad6af0';
+    palette.accentEmerald = '#52c79e';
     palette.background = '#0B1220';
     palette.surface = '#111827';
     palette.surfaceSecondary = '#1F2937';
@@ -91,6 +95,8 @@ export class ThemePalette {
     palette.textTertiary = '#94A3B8';
     palette.border = '#334155';
     palette.mask = '#99000000';
+    palette.primaryShadowStrong = '#60A8CEB3';
+    palette.primaryShadowSoft = '#40A8CEB3';
     palette.logo = "app.media.foreground"
     return palette;
   }

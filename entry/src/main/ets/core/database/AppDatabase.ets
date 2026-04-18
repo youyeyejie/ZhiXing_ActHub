@@ -2,11 +2,7 @@ import { IBestORMInit, ORM } from '@ibestservices/ibest-orm';
 import { DatabaseConfig } from './DatabaseConfig';
 import { AppSchemaState, AppSession, AppSetting, User } from '../models';
 import { common } from '@kit.AbilityKit';
-import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppSettingRepository } from '../repositories/AppSettingRepository';
-
-const DOMAIN = 0x0000;
-const TAG = 'AppDatabase';
 
 /**
  * 类功能简介：
@@ -34,12 +30,10 @@ export class AppDatabase {
 
   async initialize(context: common.BaseContext): Promise<void> {
     if (this.initialized && this.ormInstance !== null) {
-      hilog.info(DOMAIN, TAG, 'initialize skipped');
       return;
     }
 
     this.context = context;
-    hilog.info(DOMAIN, TAG, 'initialize start db=%{public}s version=%{public}d', DatabaseConfig.DB_NAME, DatabaseConfig.VERSION);
     this.ormInstance = await IBestORMInit(context, {
       name: DatabaseConfig.DB_NAME,
       debug: true
@@ -47,7 +41,6 @@ export class AppDatabase {
     this.ormInstance.migrate(User, AppSetting, AppSession, AppSchemaState);
     await this.runMigrations();
     this.initialized = true;
-    hilog.info(DOMAIN, TAG, 'initialize done');
   }
 
   isReady(): boolean {
@@ -81,14 +74,12 @@ export class AppDatabase {
     const settings = new AppSettingRepository();
     const versionText: string = await settings.getString('schema.version', '0');
     const currentVersion: number = Number(versionText);
-    hilog.info(DOMAIN, TAG, 'runMigrations current=%{public}d target=%{public}d', currentVersion, DatabaseConfig.VERSION);
 
     if (currentVersion < 2) {
       await this.migrateToVersion2();
     }
 
     await settings.setString('schema.version', `${DatabaseConfig.VERSION}`);
-    hilog.info(DOMAIN, TAG, 'runMigrations saved version=%{public}d', DatabaseConfig.VERSION);
   }
 
   private async migrateToVersion2(): Promise<void> {
@@ -103,7 +94,6 @@ export class AppDatabase {
 
     const sessionQuery = orm.query(AppSession);
     const allSessions: Array<AppSession> = sessionQuery.find();
-    hilog.info(DOMAIN, TAG, 'migrateToVersion2 rows=%{public}d', allSessions.length);
     let hasLegacyLoggedIn: boolean = false;
     let latestUsername: string = '';
     if (allSessions.length > 0) {
@@ -118,7 +108,5 @@ export class AppDatabase {
     }
     await settings.setString('session.username', latestUsername);
     await settings.setBoolean('session.logged_in', hasLegacyLoggedIn);
-    hilog.info(DOMAIN, TAG, 'migrateToVersion2 migrated username=%{public}s logged=%{public}s',
-      latestUsername, hasLegacyLoggedIn ? '1' : '0');
   }
 }

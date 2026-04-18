@@ -44,9 +44,7 @@ export class WhiteNoisePlayer {
     try {
       this.avPlayer = await media.createAVPlayer();
       this.setListeners();
-      console.info('[WhiteNoisePlayer] AVPlayer 初始化成功');
-    } catch (error) {
-      console.error(`[WhiteNoisePlayer] AVPlayer 创建失败: ${(error as BusinessError).message}`);
+    } catch (_error) {
       this.state = PlayerState.ERROR;
     }
   }
@@ -55,7 +53,7 @@ export class WhiteNoisePlayer {
     if (!this.avPlayer) return;
 
     this.avPlayer.on('stateChange', async (state: string, reason: media.StateChangeReason) => {
-      console.info(`[WhiteNoisePlayer] 状态流转: ${state}`);
+      void reason;
       switch (state) {
         case 'initialized':
           this.state = PlayerState.LOADING;
@@ -85,7 +83,7 @@ export class WhiteNoisePlayer {
     });
 
     this.avPlayer.on('error', (error: BusinessError) => {
-      console.error(`[WhiteNoisePlayer] 播放错误: ${error.message}`);
+      void error;
       this.state = PlayerState.ERROR;
     });
   }
@@ -110,8 +108,7 @@ export class WhiteNoisePlayer {
       const fileDescriptor = await context.resourceManager.getRawFd(rawFilePath);
       
       this.avPlayer.fdSrc = fileDescriptor; 
-    } catch (error) {
-      console.error(`[WhiteNoisePlayer] 加载音频失败: ${(error as BusinessError).message}`);
+    } catch (_error) {
       this.state = PlayerState.ERROR;
     }
   }

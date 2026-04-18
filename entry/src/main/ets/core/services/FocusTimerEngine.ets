@@ -54,7 +54,6 @@ export class FocusTimerEngine {
   /** 启动一次专注计时。 */
   start(workDuration?: number, restDuration?: number, todoId?: number): void {
     if (this.state !== FocusState.IDLE && this.state !== FocusState.RESTING) {
-      console.warn('[TimerEngine] 警告: 无法在非空闲/休息状态下启动专注');
       return;
     }
 
@@ -69,7 +68,6 @@ export class FocusTimerEngine {
   /** 暂停当前专注计时。 */
   pause(): void {
     if (this.state !== FocusState.WORKING && this.state !== FocusState.RESTING) {
-      console.warn('[TimerEngine] 警告: 只能在工作中或休息时暂停');
       return;
     }
     this.cleanupTimer();
@@ -79,7 +77,6 @@ export class FocusTimerEngine {
   /** 恢复当前专注计时。 */
   resume(): void {
     if (this.state !== FocusState.PAUSED) {
-      console.warn('[TimerEngine] 警告: 只能在暂停状态下恢复');
       return;
     }
     
@@ -103,7 +100,6 @@ export class FocusTimerEngine {
   /** 跳过当前休息阶段，立即开始下一段专注。 */
   skipRest(): void {
     if (this.state !== FocusState.RESTING) {
-      console.warn('[TimerEngine] 警告: 只能在休息时跳过');
       return;
     }
     this.cleanupTimer();
@@ -122,12 +118,10 @@ export class FocusTimerEngine {
     
     // 只有同时满足“工作状态”且“处于后台”，才启动惩罚倒计时
     if (this.state === FocusState.WORKING && this.isAppInBackground) {
-      console.info('[TimerEngine] 处于后台且进入专注状态，启动1分钟防偷懒检查');
       this.sendCompletionNotification('专注进行中', '检测到您离开应用，请于1分钟内返回。')
       
       this.backgroundTimeoutId = setTimeout(() => {
         if (this.state === FocusState.WORKING) {
-          console.info('[TimerEngine] 离开应用超过1分钟，触发自动暂停');
           this.pause();
           this.sendCompletionNotification('专注被打断', '检测到离开应用超过1分钟，已自动暂停专注。');
         }
@@ -143,7 +137,6 @@ export class FocusTimerEngine {
   enterForeground(): void {
     this.isAppInBackground = false; // 记住回到了前台
     if (this.backgroundTimeoutId !== -1) {
-      console.info('[TimerEngine] 应用及时返回前台，取消防偷懒检查');
       this.clearBackgroundTimeout();
     }
   }
@@ -224,7 +217,6 @@ export class FocusTimerEngine {
   }
   
   private sendCompletionNotification(title: string, content: string): void {
-    console.info(`[TimerEngine] 触发系统通知：${title} - ${content}`);
     NotificationService.sendNotification(title, content);
   }
 
@@ -245,12 +237,8 @@ export class FocusTimerEngine {
       
       // 等待落库结果，如果失败抛出警告
       const success = await this.getFocusRepository().insertFocusRecord(focus);
-      if (!success) {
-        console.warn('[TimerEngine] 警告: 专注记录落库失败');
-      }
-    } catch (error) {
-      console.error('[TimerEngine] 严重错误: saveFocusRecord 执行异常:', error);
-    }
+      void success;
+    } catch (_error) {}
   }
   
   /** 获取已过去的时间（秒）*/
@@ -311,8 +299,7 @@ export class FocusTimerEngine {
   hasTodo(): boolean {
     try {
       return this.todoId > 0;
-    } catch (error) {
-      console.error('[TimerEngine] 错误: hasTodo 方法执行异常:', error);
+    } catch (_error) {
       return false;
     }
   }
@@ -343,8 +330,7 @@ export class FocusTimerEngine {
       const name = todo?.content || '';
       this.todoTitle = name;
       return name;
-    } catch (error) {
-      console.error('[TimerEngine] 错误: getTodoName 方法执行异常:', error);
+    } catch (_error) {
       return '';
     }
   }
@@ -362,7 +348,6 @@ export class FocusTimerEngine {
     }
 
     if (this.state === FocusState.WORKING) {
-      console.info(`[TimerEngine] 任务切换，正在生成新切片...`);
       this.saveCurrentSegment(); 
     }
 

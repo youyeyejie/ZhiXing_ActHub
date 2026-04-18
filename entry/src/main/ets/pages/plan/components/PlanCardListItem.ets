@@ -1,7 +1,6 @@
 import { AppState, useAppState } from "../../../app/AppStates";
-import { Plan } from "../../../core/models/Plan";
 import { InteractableCard } from "../../../components/card/InteractableCard";
-import { PlanPageState, usePlanPageState } from "../PlanPageState";
+import { PlanItem, PlanPageState, usePlanPageState } from "../PlanPageState";
 import { PlanDetailCardContent } from "./PlanDetailCardContent";
 
 /**
@@ -9,10 +8,10 @@ import { PlanDetailCardContent } from "./PlanDetailCardContent";
  * 支持类型配色、详情展开与左滑删除。
  */
 @ComponentV2
-export struct PlanCardLlist {
+export struct PlanCardListItem {
   @Local private app: AppState = useAppState();
   @Local private state: PlanPageState = usePlanPageState();
-  @Param plan: Plan = new Plan();
+  @Param plan: PlanItem = new PlanItem();
   @Local private suppressDetailOpenUntil: number = 0;
 
   private normalizeText(value: string): string {
@@ -30,7 +29,7 @@ export struct PlanCardLlist {
 
   private resolveLocation(): string {
     const location = this.normalizeText(this.plan.location);
-    return location.length > 0 ? location : "未填写地点";
+    return location;
   }
 
   private formatHourMinute(timestamp: number): string {
@@ -80,6 +79,10 @@ export struct PlanCardLlist {
     return this.plan.isCourse === 1 ? "课程" : "日程";
   }
 
+  private isReminderEnabled(): boolean {
+    return this.plan.enableRemind === 1;
+  }
+
   private markSwipeActionTriggered(): void {
     this.suppressDetailOpenUntil = Date.now() + 280;
   }
@@ -106,14 +109,16 @@ export struct PlanCardLlist {
       swipeLeftColor: this.app.theme.palette.danger,
       onSwipeLeft: () => {
         this.markSwipeActionTriggered();
-        this.state.requestDeletePlan(this.plan.id);
+        animateTo({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
+          this.state.requestDeletePlan(this.plan.id);
+        });
       },
       onCardTap: () => {
         if (!this.canOpenDetailNow()) {
           return;
         }
         this.state.openPlanDetail(this.plan.id);
-        this.app.nav.openDetailCard(this.buildPlanDetailContent, '编辑日程');
+        this.app.nav.openDetailCard(this.buildPlanDetailContent, "55%");
       },
     }) {
       Column({ space: 8 }) {
@@ -134,19 +139,27 @@ export struct PlanCardLlist {
         }
         .width("100%")
         .alignItems(VerticalAlign.Center)
+
         Row({ space: 8 }) {
+          if (this.isReminderEnabled()) {
+            SymbolGlyph($r('sys.symbol.bell_fill'))
+              .fontSize(12)
+              .fontColor([this.app.theme.palette.textSecondary]);
+          }
           Text(this.resolveDurationText())
             .fontSize(12)
             .fontColor(this.app.theme.palette.textSecondary)
-          Text("·")
-            .fontSize(12)
-            .fontColor(this.app.theme.palette.textTertiary)
-          Text(this.resolveLocation())
-            .fontSize(12)
-            .fontColor(this.app.theme.palette.textSecondary)
-            .layoutWeight(1)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
+          if (this.resolveLocation().length > 0) {
+            Text("·")
+              .fontSize(12)
+              .fontColor(this.app.theme.palette.textTertiary)
+            Text(this.resolveLocation())
+              .fontSize(12)
+              .fontColor(this.app.theme.palette.textSecondary)
+              .layoutWeight(1)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
         }
         .width("100%")
         .alignItems(VerticalAlign.Center)
@@ -156,6 +169,7 @@ export struct PlanCardLlist {
       .borderRadius(14)
       .border({ width: 1, color: this.resolveTypeColor() })
       .backgroundColor(this.resolveCardBackgroundColor())
+      .animation({ duration: 160, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
     };
   }
 }

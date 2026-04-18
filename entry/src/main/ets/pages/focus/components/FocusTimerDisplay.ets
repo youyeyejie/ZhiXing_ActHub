@@ -12,7 +12,7 @@
  * - 渲染一个固定尺寸（238x238）的环形进度条容器。内部根据状态平滑切换：非编辑状态展示剩余大字号时间和阶段文案，编辑状态展示分/秒双列滑动选择器。
  *
  * 副作用：
- * - 通过 @Monitor 监听 `isEditingTime`，在进入编辑模式时自动解析并同步外部时间到本地选择器。
+ * - 通过 @Monitor 监听 `isEditingTime` 和 `customDuration`，外部修改时间时触发滚动动画。
  * - 强依赖全局的 `app.focusEngine` 获取倒计时进度、总时间和阶段名称。
  * - 拦截了容器内部点击事件防止冒泡触发外层关闭逻辑。
  */
@@ -29,8 +29,8 @@ export struct FocusTimerDisplay {
   @Event onToggleEdit: (edit: boolean) => void = () => {};
   @Event onDurationChange: (duration: number) => void = () => {};
 
-  private pickerMin: number = 25;
-  private pickerSec: number = 0;
+  @Local private pickerMin: number = 25;
+  @Local private pickerSec: number = 0;
 
   private minutesRange: string[] = this.generateTimeRange(61);
   private secondsRange: string[] = this.generateTimeRange(60);
@@ -47,11 +47,19 @@ export struct FocusTimerDisplay {
     return this.app.focusEngine;
   }
 
-  @Monitor("isEditingTime")
-  onEditStateChange() {
+  @Monitor("isEditingTime", "customDuration")
+  onStateChange() {
     if (this.isEditingTime) {
-      this.pickerMin = Math.floor(this.customDuration / 60);
-      this.pickerSec = this.customDuration % 60;
+      const targetMin = Math.floor(this.customDuration / 60);
+      const targetSec = this.customDuration % 60;
+      
+      // 目标值不一致，触发动画
+      if (this.pickerMin !== targetMin || this.pickerSec !== targetSec) {
+        animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+          this.pickerMin = targetMin;
+          this.pickerSec = targetSec;
+        });
+      }
     } 
   }
 

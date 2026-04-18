@@ -5,15 +5,11 @@ import { UndoNotification } from '../../components/feedback/UndoNotification';
 import { AppOverlayRoute } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
 import { ThemeMode } from '../../core/theme/ThemeManager';
-import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppDatabase } from '../../core/database/AppDatabase';
 import { Todo } from '../../core/models/Todo';
 import { TodoRepository } from '../../core/repositories/TodoRepository';
 import { TodoTestDataHelper } from '../../core/services/TodoTestDataHelper';
 import promptAction from '@ohos.promptAction';
-
-const SHARED_TEST_LOG_DOMAIN: number = 0x0000;
-const SHARED_TEST_LOG_TAG: string = 'SharedTestPage';
 
 class DemoInteractableItem {
   id: string;
@@ -76,10 +72,6 @@ export struct SharedInteractionTestPage {
   @Local private undoTaskSeq: number = 0;
   private todoRepository: TodoRepository = new TodoRepository();
   private todoTestDataHelper: TodoTestDataHelper = new TodoTestDataHelper();
-
-  private logToConsole(message: string): void {
-    hilog.info(SHARED_TEST_LOG_DOMAIN, SHARED_TEST_LOG_TAG, '%{public}s', message);
-  }
 
   private removeCardById(cardId: string): void {
     let foundIndex: number = -1;
@@ -169,7 +161,6 @@ export struct SharedInteractionTestPage {
     if (!AppDatabase.getInstance().isReady()) {
       const notReadyMessage: string = 'TodoRepository CRUD 测试中止: 数据库尚未初始化';
       this.logs.push(notReadyMessage);
-      hilog.error(SHARED_TEST_LOG_DOMAIN, SHARED_TEST_LOG_TAG, '%{public}s', notReadyMessage);
       return;
     }
 
@@ -182,19 +173,16 @@ export struct SharedInteractionTestPage {
 
     const startMessage: string = `开始执行 TodoRepository CRUD 测试: ${todo.content}`;
     this.logs.push(startMessage);
-    this.logToConsole(startMessage);
 
     try {
       await this.todoRepository.save(todo);
       const persistedId: number = todo.id;
       const createMessage: string = `Create 成功: ${this.formatTodo(todo)}`;
       this.logs.push(createMessage);
-      this.logToConsole(createMessage);
 
       const createdTodo: Todo | null = await this.todoRepository.findById(persistedId);
       const readMessage: string = `Read 成功: ${this.formatTodo(createdTodo)}`;
       this.logs.push(readMessage);
-      this.logToConsole(readMessage);
       if (createdTodo === null) {
         throw new Error('Create 后 findById 返回 null');
       }
@@ -205,22 +193,18 @@ export struct SharedInteractionTestPage {
       await this.todoRepository.save(createdTodo);
       const updateMessage: string = `Update 成功: ${this.formatTodo(createdTodo)}`;
       this.logs.push(updateMessage);
-      this.logToConsole(updateMessage);
 
       const allTodos: Array<Todo> = await this.todoRepository.findAll();
       const listMessage: string = `List 成功: 当前 Todo 总数 = ${allTodos.length}`;
       this.logs.push(listMessage);
-      this.logToConsole(listMessage);
 
       await this.todoRepository.removeById(persistedId);
       const deletedTodo: Todo | null = await this.todoRepository.findById(persistedId);
       const deleteMessage: string = `Delete 成功: 删除后查询结果 = ${this.formatTodo(deletedTodo)}`;
       this.logs.push(deleteMessage);
-      this.logToConsole(deleteMessage);
     } catch (err) {
       const errorMessage: string = `TodoRepository CRUD 测试失败: ${JSON.stringify(err)}`;
       this.logs.push(errorMessage);
-      hilog.error(SHARED_TEST_LOG_DOMAIN, SHARED_TEST_LOG_TAG, '%{public}s', errorMessage);
     }
   }
 
@@ -228,7 +212,6 @@ export struct SharedInteractionTestPage {
     const inserted = await this.todoTestDataHelper.generateFocusTestData(10);
     const message = `TodoTestDataHelper 生成完成，新增 ${inserted} 条测试待办`;
     this.logs.push(message);
-    this.logToConsole(message);
   }
 
   @Builder
@@ -320,7 +303,7 @@ export struct SharedInteractionTestPage {
                 this.logs.push(item.title + ' 右滑触发');
               },
               onCardTap: () => {
-                this.app.nav.openDetailCard(this.buildDetailDialogContent, '详情预览');
+                this.app.nav.openDetailCard(this.buildDetailDialogContent);
                 this.logs.push(item.title + ' 点击打开详情卡片');
               }
             }) {
@@ -382,7 +365,7 @@ export struct SharedInteractionTestPage {
               .backgroundColor(this.app.theme.palette.primary)
               .fontColor(this.app.theme.palette.surface)
               .onClick(() => {
-                this.app.nav.openDetailCard(this.buildDetailDialogContent, '详情预览');
+                this.app.nav.openDetailCard(this.buildDetailDialogContent);
                 this.logs.push('通过 DetailCard 组件打开详情卡片');
               });
 

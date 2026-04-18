@@ -1,9 +1,5 @@
-import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppDatabase } from '../database/AppDatabase';
 import { AppSetting } from '../models/AppSetting';
-
-const DOMAIN = 0x0000;
-const TAG = 'AppSettingRepo';
 
 export class AppSettingRepository {
   private get query() {
@@ -13,10 +9,8 @@ export class AppSettingRepository {
   async getString(key: string, fallback: string = ''): Promise<string> {
     const setting: AppSetting | null = this.query.where('key', key).first();
     if (setting === null) {
-      hilog.info(DOMAIN, TAG, 'getString miss key=%{public}s', key);
       return fallback;
     }
-    hilog.info(DOMAIN, TAG, 'getString key=%{public}s value=%{public}s', key, setting.value);
     return setting.value;
   }
 
@@ -30,7 +24,6 @@ export class AppSettingRepository {
     setting.value = value;
     setting.updatedAt = now;
     AppDatabase.getInstance().getOrm().save<AppSetting>(setting);
-    hilog.info(DOMAIN, TAG, 'setString key=%{public}s value=%{public}s', key, value);
   }
 
   async getBoolean(key: string, fallback: boolean = false): Promise<boolean> {

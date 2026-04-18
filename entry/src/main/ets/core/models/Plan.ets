@@ -55,6 +55,7 @@ export class Plan extends BaseEntity {
 
   @Column({ name: 'reminder_id', type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
   @NotNull()
+  // 外部提醒记录 ID；当前实现中复用为系统日历 eventId。
   reminderId: number = 0;
 
   @Column({ name: 'enable_remind', type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })

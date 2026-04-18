@@ -1,7 +1,6 @@
 import { CategoryFilter } from "./components/CategoryFilter";
 import { TodoCardLlist } from "./components/TodoCardLlist";
 import { TodoActionSheetContent } from "./components/TodoActionSheetContent";
-import { CategoryEditorOverlay } from "./components/CategoryEditorOverlay";
 import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
 import { UndoNotificationStack } from "../../components/feedback/UndoNotificationStack";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
@@ -48,14 +47,6 @@ export struct TodoPage {
         }
       }
 
-      FloatingActionButton({
-        onTap: async () => {
-          await this.state.refreshAll();
-          this.state.openCreateTodo();
-          this.app.nav.openActionSheet(this.buildTodoEditorContent);
-        },
-      })
-
       UndoNotificationStack({
         tasks: this.state.buildUndoStackItems(),
         onUndo: (taskId: string) => {
@@ -69,9 +60,13 @@ export struct TodoPage {
         },
       })
 
-      if (this.state.isCategoryEditorVisible) {
-        CategoryEditorOverlay()
-      }
+      FloatingActionButton({
+        onTap: async () => {
+          await this.state.refreshAll();
+          this.state.openCreateTodo();
+          this.app.nav.openActionSheet(this.buildTodoEditorContent, 'auto');
+        },
+      })
     }
     .width("100%")
     .height("100%");
