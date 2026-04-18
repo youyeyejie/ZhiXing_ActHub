@@ -20,6 +20,7 @@ export class DatabaseConfig {
   static readonly TODO_CATEGORY_TABLE: string = 'todo_categories';
   static readonly FOCUS_TABLE: string = 'focus_records';
   static readonly IDEA_TABLE: string = 'ideas';
+  static readonly AI_INSIGHT_TABLE: string = 'ai_insights';
   static readonly USER_TABLE: string = 'users';
   static readonly APP_SESSION_TABLE: string = 'app_sessions';
   static readonly APP_SCHEMA_STATE_TABLE: string = 'app_schema_state';

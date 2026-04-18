@@ -7,7 +7,7 @@ import { AppState, useAppState } from "../../app/AppStates";
 @ComponentV2
 export struct FloatingActionButton {
   @Local private app: AppState = useAppState();
-  @Param content: Resource = $r("sys.media.ohos_ic_public_add");
+  @Param content: Resource = $r("sys.symbol.plus");
   @Param label: string = "";
   @Param buttonSize: number = 56;
   @Param iconSize: number = 28;
@@ -21,10 +21,9 @@ export struct FloatingActionButton {
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.surface);
       } else {
-        Image(this.content)
-          .width(this.iconSize)
-          .height(this.iconSize)
-          .fillColor(this.app.theme.palette.surface);
+        SymbolGlyph(this.content)
+          .fontSize(this.iconSize)
+          .fontColor([this.app.theme.palette.surface]);
       }
     }
     .type(ButtonType.Circle)

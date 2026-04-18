@@ -88,7 +88,7 @@ export struct MainTabPageLayout {
             .width(40)
             .height(40)
             .stateEffect(true)
-            .backgroundColor(Color.Transparent)
+            .backgroundColor(this.app.theme.palette.transparent)
             .onClick(this.onActionTap);
         }
       }

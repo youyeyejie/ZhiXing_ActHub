@@ -99,10 +99,10 @@ export struct AIInsightHistoryList {
               Row() {
                 Text(record.mode === 'global' ? '全局分析' : '精准分析')
                   .fontSize(11)
-                  .fontColor('#FFFFFF')
+                  .fontColor(this.app.theme.palette.textPrimary)
                   .padding({ left: 8, right: 8, top: 3, bottom: 3 })
                   .borderRadius(10)
-                  .backgroundColor(record.mode === 'global' ? '#004027' : this.app.theme.palette.info)
+                  .backgroundColor(record.mode === 'global' ? this.app.theme.palette.primary : this.app.theme.palette.info)
 
                 Blank()
 
@@ -145,13 +145,13 @@ export struct AIInsightHistoryList {
             }
             .width('100%')
             .padding(14)
-            .borderRadius(16)
+            .borderRadius(20)
             .backgroundColor(this.app.theme.palette.surface)
             .onClick(() => {
               this.state.openRecord(record);
             })
           },
-          (record: InsightRecord) => record.id,
+          (record: InsightRecord) => `insight_record_${record.id}`,
         )
       }
     }

@@ -30,7 +30,7 @@ export struct WhiteNoiseSelectorCard {
     }
     .width('100%')
     .padding(16)
-    .backgroundColor(this.isNoiseSelected(file) ? this.app.theme.palette.surfaceSecondary : Color.Transparent)
+    .backgroundColor(this.isNoiseSelected(file) ? this.app.theme.palette.surfaceSecondary : this.app.theme.palette.transparent)
     .borderRadius(12)
     .onClick(() => {
       if (this.isNoiseSelected(file)) return; // 必选其一，不允许取消

@@ -178,7 +178,7 @@ export struct SearchPage {
     this.app.nav.selectTab(AppTab.PLAN);
     this.app.nav.back(false);
     this.planState.openPlanDetail(recordId);
-    this.app.nav.openDetailCard(this.buildPlanDetailContent);
+    this.app.nav.openDetailCard(this.buildPlanDetailContent, "auto");
   }
 
   private openTodoDetailFromSearch(item: SearchResultItem): void {
@@ -189,7 +189,7 @@ export struct SearchPage {
     this.app.nav.selectTab(AppTab.TODO);
     this.app.nav.back(false);
     this.todoState.openTodoDetail(recordId);
-    this.app.nav.openDetailCard(this.buildTodoDetailContent);
+    this.app.nav.openDetailCard(this.buildTodoDetailContent, "auto");
   }
 
   private async openIdeaDetailFromSearch(item: SearchResultItem): Promise<void> {
@@ -204,7 +204,7 @@ export struct SearchPage {
     this.ideaState.openIdeaDetail(recordId);
     this.app.nav.selectTab(AppTab.IDEA);
     this.app.nav.back(false);
-    this.app.nav.openDetailCard(this.buildIdeaDetailContent);
+    this.app.nav.openDetailCard(this.buildIdeaDetailContent, "auto");
   }
 
   private handleSearchResultTap(item: SearchResultItem): void {

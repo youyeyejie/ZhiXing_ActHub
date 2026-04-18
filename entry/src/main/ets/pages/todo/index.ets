@@ -40,9 +40,8 @@ export struct TodoPage {
           );
         },
       }) {
-        CategoryFilter()
-        .width("90%")
-        PageScrollLayout({ space: 12, paddingTop: 12 }) {
+        CategoryFilter().width("90%")
+        PageScrollLayout({ space: 12, paddingTop: 0 }) {
           TodoCardLlist()
         }
       }

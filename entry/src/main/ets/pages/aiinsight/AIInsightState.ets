@@ -1,29 +1,33 @@
 import { Idea } from '../../core/models/Idea';
+import { AIInsight } from '../../core/models/AIInsight';
 import { AIService, useAIService } from '../../core/services/AIService';
-import { IdeaPageState, useIdeaPageState } from './IdeaPageState';
+import { AIInsightRepository } from '../../core/repositories/AIInsightRepository';
+import { IdeaPageState, useIdeaPageState } from '../idea/IdeaPageState';
 import pasteboard from '@ohos.pasteboard';
 import promptAction from '@ohos.promptAction';
 
 /**
- * 洞察记录。仅内存保留，不持久化。
+ * 洞察记录。
  */
 export class InsightRecord {
-  id: string;
+  id: number;
   mode: string; // 'global' | 'selected'
   createdAt: number;
   keywords: string[];
   summary: string;
   fullContent: string;
   noteCount: number;
+  totalLength: number;
 
   constructor(
-    id: string,
+    id: number,
     mode: string,
     createdAt: number,
     keywords: string[],
     summary: string,
     fullContent: string,
     noteCount: number,
+    totalLength: number,
   ) {
     this.id = id;
     this.mode = mode;
@@ -32,6 +36,7 @@ export class InsightRecord {
     this.summary = summary;
     this.fullContent = fullContent;
     this.noteCount = noteCount;
+    this.totalLength = totalLength;
   }
 }
 
@@ -43,6 +48,7 @@ export class InsightRecord {
 export class AIInsightState {
   private aiService: AIService = useAIService();
   private ideaState: IdeaPageState = useIdeaPageState();
+  private repository: AIInsightRepository = new AIInsightRepository();
 
   @Trace public viewMode: string = 'home'; // 'home' | 'conversation'
   @Trace public records: InsightRecord[] = [];
@@ -58,6 +64,30 @@ export class AIInsightState {
   private fullResponseText: string = '';
   private typewriterTimerId: number = -1;
   private typewriterIndex: number = 0;
+  private historyLoadingTask: Promise<void> | null = null;
+  private lastRecordId: number = 0;
+
+  async refreshRecords(): Promise<void> {
+    if (this.historyLoadingTask !== null) {
+      return this.historyLoadingTask;
+    }
+
+    this.historyLoadingTask = (async (): Promise<void> => {
+      try {
+        const entities: Array<AIInsight> = await this.repository.findLatest();
+        this.records = entities.map((entity: AIInsight) => this.fromEntity(entity));
+        if (this.records.length > 0) {
+          this.lastRecordId = this.records[0].id;
+        }
+      } catch (_error) {
+        // keep in-memory records when database load fails
+      } finally {
+        this.historyLoadingTask = null;
+      }
+    })();
+
+    return this.historyLoadingTask;
+  }
 
   // ---- 笔记选择 ----
 
@@ -95,7 +125,7 @@ export class AIInsightState {
     }
     const content = this.prepareContent(ideas);
     this.activeNoteCount = ideas.length;
-    this.activeTotalLength = ideas.reduce((sum: number, idea: Idea) => sum + (idea.length || 0), 0);
+    this.activeTotalLength = ideas.reduce((sum: number, idea: Idea) => sum + this.resolveIdeaTextLength(idea), 0);
     this.performGeneration(content, 'global', ideas.length);
   }
 
@@ -110,7 +140,7 @@ export class AIInsightState {
     }
     const content = this.prepareContent(selected);
     this.activeNoteCount = selected.length;
-    this.activeTotalLength = selected.reduce((sum: number, idea: Idea) => sum + (idea.length || 0), 0);
+    this.activeTotalLength = selected.reduce((sum: number, idea: Idea) => sum + this.resolveIdeaTextLength(idea), 0);
     this.performGeneration(content, 'selected', selected.length);
   }
 
@@ -122,7 +152,12 @@ export class AIInsightState {
     this.isGenerating = false;
     this.isTypewriting = false;
     if (this.generatingText.length > 0) {
-      this.finalizeRecord(this.generatingText, this.activeRecord?.mode ?? 'global', this.activeNoteCount);
+      this.finalizeRecord(
+        this.generatingText,
+        this.activeRecord?.mode ?? 'global',
+        this.activeNoteCount,
+        this.activeTotalLength,
+      );
     }
   }
 
@@ -133,6 +168,7 @@ export class AIInsightState {
     this.activeRecord = record;
     this.generatingText = record.fullContent;
     this.activeNoteCount = record.noteCount;
+    this.activeTotalLength = record.totalLength;
     this.isGenerating = false;
     this.isTypewriting = false;
     this.errorMessage = '';
@@ -186,6 +222,12 @@ export class AIInsightState {
     return lines.join('\n\n');
   }
 
+  private resolveIdeaTextLength(idea: Idea): number {
+    const titleLength: number = idea.title.length;
+    const contentLength: number = idea.content.length;
+    return titleLength + contentLength;
+  }
+
   private performGeneration(content: string, mode: string, noteCount: number): void {
     this.viewMode = 'conversation';
     this.isGenerating = true;
@@ -196,7 +238,7 @@ export class AIInsightState {
     this.activeRecord = null;
 
     const tempRecord = new InsightRecord(
-      Date.now().toString(), mode, Date.now(), [], '', '', noteCount,
+      this.createRecordId(), mode, Date.now(), [], '', '', noteCount, this.activeTotalLength,
     );
     this.activeRecord = tempRecord;
 
@@ -230,7 +272,12 @@ export class AIInsightState {
         this.stopTypewriter();
         this.isTypewriting = false;
         this.isGenerating = false;
-        this.finalizeRecord(this.fullResponseText, this.activeRecord?.mode ?? 'global', this.activeNoteCount);
+        this.finalizeRecord(
+          this.fullResponseText,
+          this.activeRecord?.mode ?? 'global',
+          this.activeNoteCount,
+          this.activeTotalLength,
+        );
         return;
       }
       const chunk = this.resolveNextChunk();
@@ -279,14 +326,85 @@ export class AIInsightState {
     return remaining.substring(0, chunkSize);
   }
 
-  private finalizeRecord(content: string, mode: string, noteCount: number): void {
+  private finalizeRecord(content: string, mode: string, noteCount: number, totalLength: number): void {
     const keywords = this.extractKeywords(content);
     const summary = this.extractSummary(content);
     const record = new InsightRecord(
-      Date.now().toString(), mode, Date.now(), keywords, summary, content, noteCount,
+      this.createRecordId(), mode, Date.now(), keywords, summary, content, noteCount, totalLength,
     );
     this.activeRecord = record;
     this.records = [record, ...this.records];
+    this.persistRecord(record);
+  }
+
+  private createRecordId(): number {
+    const now: number = Date.now();
+    if (now <= this.lastRecordId) {
+      this.lastRecordId += 1;
+    } else {
+      this.lastRecordId = now;
+    }
+    return this.lastRecordId;
+  }
+
+  private fromEntity(entity: AIInsight): InsightRecord {
+    return new InsightRecord(
+      entity.id,
+      entity.mode,
+      entity.createdAt,
+      this.decodeKeywords(entity.keywords),
+      entity.summary,
+      entity.fullContent,
+      entity.noteCount,
+      entity.totalLength,
+    );
+  }
+
+  private toEntity(record: InsightRecord): AIInsight {
+    const entity = new AIInsight();
+    entity.id = record.id;
+    entity.mode = record.mode;
+    entity.keywords = this.encodeKeywords(record.keywords);
+    entity.summary = record.summary;
+    entity.fullContent = record.fullContent;
+    entity.noteCount = record.noteCount;
+    entity.totalLength = record.totalLength;
+    entity.createdAt = record.createdAt;
+    entity.updatedAt = Date.now();
+    return entity;
+  }
+
+  private encodeKeywords(keywords: string[]): string {
+    if (keywords.length === 0) {
+      return '';
+    }
+    return keywords.join('\n');
+  }
+
+  private decodeKeywords(raw: string): string[] {
+    if (raw.trim().length === 0) {
+      return [];
+    }
+
+    const parts: string[] = raw.split('\n');
+    const keywords: string[] = [];
+    for (let i = 0; i < parts.length; i++) {
+      const keyword = parts[i].trim();
+      if (keyword.length > 0) {
+        keywords.push(keyword);
+      }
+      if (keywords.length >= 4) {
+        break;
+      }
+    }
+    return keywords;
+  }
+
+  private persistRecord(record: InsightRecord): void {
+    const entity = this.toEntity(record);
+    this.repository.save(entity).catch(() => {
+      // ignore persistence errors and keep in-memory record
+    });
   }
 
   private extractKeywords(markdown: string): string[] {

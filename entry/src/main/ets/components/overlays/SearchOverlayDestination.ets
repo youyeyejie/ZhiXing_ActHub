@@ -108,7 +108,7 @@ export struct SearchOverlayDestination {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(Color.Transparent)
+    .backgroundColor(this.app.theme.palette.transparent)
     .mode(NavDestinationMode.DIALOG)
     .onBackPressed(() => {
       this.requestDismiss();

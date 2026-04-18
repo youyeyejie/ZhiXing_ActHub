@@ -85,17 +85,16 @@ export struct ActivityHeatmap {
    * 0 个 = 最浅，1-2 个 = 浅，3-5 个 = 中，6+ 个 = 深
    */
   private getHeatColor(count: number): string {
-    const isDark = this.app.theme.isDark;
     if (count === 0) {
       return this.app.theme.palette.surfaceSecondary;
     }
     if (count <= 2) {
-      return isDark ? "#1E4A2D" : "#C6E5C8";
+      return this.app.theme.palette.heatmapLow;
     }
     if (count <= 5) {
-      return isDark ? "#2E6B4A" : "#7BC99A";
+      return this.app.theme.palette.heatmapMedium;
     }
-    return "#4CAF7A";
+    return this.app.theme.palette.heatmapHigh;
   }
 
   /**
@@ -206,17 +205,17 @@ export struct ActivityHeatmap {
             .width(this.CELL_WIDTH)
             .height(this.CELL_HEIGHT)
             .borderRadius(2)
-            .backgroundColor(this.app.theme.isDark ? "#1E4A2D" : "#C6E5C8")
+            .backgroundColor(this.app.theme.palette.heatmapLow)
           Column()
             .width(this.CELL_WIDTH)
             .height(this.CELL_HEIGHT)
             .borderRadius(2)
-            .backgroundColor(this.app.theme.isDark ? "#2E6B4A" : "#7BC99A")
+            .backgroundColor(this.app.theme.palette.heatmapMedium)
           Column()
             .width(this.CELL_WIDTH)
             .height(this.CELL_HEIGHT)
             .borderRadius(2)
-            .backgroundColor("#4CAF7A")
+            .backgroundColor(this.app.theme.palette.heatmapHigh)
         }
         Text("多")
           .fontSize(10)

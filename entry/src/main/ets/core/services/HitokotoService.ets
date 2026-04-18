@@ -42,7 +42,7 @@ export class HitokotoService {
   private async requestFromApi(): Promise<string> {
     const httpRequest = http.createHttp();
     try {
-      const result = await httpRequest.request("https://v1.hitokoto.cn/", {
+      const result = await httpRequest.request("https://v1.hitokoto.cn/?c=d&c=i&c=k&c=h", {
         method: http.RequestMethod.GET,
         connectTimeout: 3000,
         readTimeout: 3000,

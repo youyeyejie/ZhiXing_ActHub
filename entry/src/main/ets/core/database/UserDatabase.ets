@@ -1,6 +1,6 @@
 import { IBestORMInit, ORM } from '@ibestservices/ibest-orm';
 import { common } from '@kit.AbilityKit';
-import { Focus, Idea, Plan, Todo, TodoCategory, UserPreference } from '../models';
+import { AIInsight, Focus, Idea, Plan, Todo, TodoCategory, UserPreference } from '../models';
 import { HashUtils } from '../security/HashUtils';
 
 /**
@@ -47,7 +47,7 @@ export class UserDatabase {
       name: filename,
       debug: true
     });
-    this.ormInstance.migrate(Plan, Todo, TodoCategory, Focus, Idea, UserPreference);
+    this.ormInstance.migrate(Plan, Todo, TodoCategory, Focus, Idea, AIInsight, UserPreference);
     this.initialized = true;
     this.currentUsername = normalizedUsername;
   }

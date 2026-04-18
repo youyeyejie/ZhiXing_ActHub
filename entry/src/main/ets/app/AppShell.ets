@@ -135,7 +135,7 @@ export struct AppShell {
           .mode(NavigationMode.Stack)
           .hideNavBar(true)
           .navDestination(this.buildDestination)
-          .backgroundColor(Color.Transparent)
+          .backgroundColor(this.app.theme.palette.transparent)
           .width("100%")
           .height("100%");
       }

@@ -19,6 +19,7 @@ export { AppSetting } from './AppSetting';
 export { AppSession } from './AppSession';
 export { AppSchemaState } from './AppSchemaState';
 export { Focus } from './Focus';
+export { AIInsight } from './AIInsight';
 export { Idea } from './Idea';
 export { Plan } from './Plan';
 export { Todo } from './Todo';

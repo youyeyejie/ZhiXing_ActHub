@@ -20,12 +20,12 @@ export struct AIInsightEntryCard {
         SymbolGlyph(this.icon)
           .fontSize(24)
           .renderingStrategy(SymbolRenderingStrategy.SINGLE)
-          .fontColor(['#FFFFFF']);
+          .fontColor([this.app.theme.palette.surface]);
       }
       .width(48)
       .height(48)
       .borderRadius(24)
-      .backgroundColor('#004027')
+      .backgroundColor(this.app.theme.palette.primary)
       .justifyContent(FlexAlign.Center)
       .alignItems(HorizontalAlign.Center)
 
@@ -55,16 +55,11 @@ export struct AIInsightEntryCard {
     .width('100%')
     .padding(16)
     .borderRadius(20)
-    .backgroundColor(this.app.theme.isDark ? '#1A1A2E' : '#B3FFFFFF')
+    .backgroundColor(this.app.theme.palette.surface)
     .backdropBlur(20)
     .border({
       width: 0.5,
-      color: this.app.theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)',
-    })
-    .shadow({
-      radius: 12,
-      color: this.app.theme.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,64,39,0.08)',
-      offsetY: 4,
+      color: this.app.theme.palette.border,
     })
     .opacity(this.disabled ? 0.5 : 1.0)
     .onClick(() => {

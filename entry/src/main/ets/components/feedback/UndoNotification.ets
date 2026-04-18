@@ -95,7 +95,7 @@ export struct UndoNotification {
     }
     .width("100%")
     .padding(16)
-    .borderRadius(18)
+    .borderRadius(20)
     .backgroundColor(this.app.theme.palette.surfaceSecondary)
     .shadow({ radius: 10, color: this.app.theme.palette.mask, offsetX: 0, offsetY: 3 });
   }

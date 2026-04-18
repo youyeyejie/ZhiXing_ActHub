@@ -94,10 +94,10 @@ export default class EntryAbility extends UIAbility {
       StatusBarService.bindMainWindow(mainWindow);
       mainWindow.setWindowLayoutFullScreen(true);
       mainWindow.setWindowSystemBarProperties({
-        statusBarColor: "#00000000",
-        navigationBarColor: "#00000000",
-        statusBarContentColor: "#18222F",
-        navigationBarContentColor: "#18222F",
+        statusBarColor: this.app.theme.palette.transparent,
+        navigationBarColor: this.app.theme.palette.transparent,
+        statusBarContentColor: this.app.theme.palette.textPrimary,
+        navigationBarContentColor: this.app.theme.palette.textPrimary,
       });
     } catch (_err) {
       return;

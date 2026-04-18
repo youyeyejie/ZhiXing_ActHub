@@ -1,4 +1,5 @@
 import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
+import { AppState, useAppState } from '../../app/AppStates';
 
 /**
  * 组件功能简介：
@@ -19,12 +20,13 @@ import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
  */
 @ComponentV2
 export struct SafeAreaInsetLayout {
+  @Local private app: AppState = useAppState();
   @Param includeTop: boolean = false;
   @Param includeBottom: boolean = false;
   @Param extraTop: number = 0;
   @Param extraBottom: number = 0;
   @Param fillHeight: boolean = true;
-  @Param surfaceColor: ResourceColor = Color.Transparent;
+  @Param surfaceColor: ResourceColor = this.app.theme.palette.transparent;
   @BuilderParam content: () => void = this.emptyContent;
 
   @Builder

@@ -139,7 +139,7 @@ export struct UserPage {
         this.app.nav.pushOverlayByName(AppOverlayRoute.SHARED_TEST);
       },
     }) {
-      PageScrollLayout({ space: 12, paddingTop: 12 }) {
+      PageScrollLayout({ space: 12, paddingTop: 0 }) {
         Row() {
           Blank()
           Column({ space: 12 }) {

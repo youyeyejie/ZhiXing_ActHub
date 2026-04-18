@@ -100,7 +100,7 @@ export struct ActionSheet {
 			.width('100%')
 			.height(this.panelHeight)
 			.padding({ left: 20, right: 20, top: 12, bottom: 20 + this.keyboardOffset })
-			.borderRadius({ topLeft: 24, topRight: 24 })
+			.borderRadius(20)
 			.backgroundColor(this.app.theme.palette.surface)
 			.translate({ x: 0, y: this.panelOffsetY - this.keyboardOffset })
 			.animation({ duration: 220, curve: Curve.EaseOut, playMode: PlayMode.Normal });

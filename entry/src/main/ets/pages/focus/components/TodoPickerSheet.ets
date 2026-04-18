@@ -164,7 +164,7 @@ export struct TodoPickerSheet {
     .padding(12)
     .alignItems(VerticalAlign.Center)
     .border({ width: 1, color: this.resolveCategoryBorderColor(todo) })
-    .borderRadius(14)
+    .borderRadius(12)
     .backgroundColor(this.resolveCategoryBackgroundColor(todo))
     .onClick(() => {
       if (!isCurrent) {

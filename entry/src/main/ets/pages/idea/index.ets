@@ -2,7 +2,6 @@ import { IdeaCardList } from "./components/IdeaCardList";
 import { IdeaActionSheetContent } from "./components/IdeaActionSheetContent";
 import { IdeaDetailCardContent } from "./components/IdeaDetailCardContent";
 import { HitokotoCard } from "./components/HitokotoCard";
-import { AIInsightPanel } from "./components/AIInsightPanel";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
 import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
 import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
@@ -40,7 +39,7 @@ export struct IdeaPage {
    */
   private openNewEditor(): void {
     this.state.openCreateIdea();
-    this.app.nav.openActionSheet(this.buildIdeaCreateContent);
+    this.app.nav.openActionSheet(this.buildIdeaCreateContent, 'auto');
   }
 
   /**
@@ -48,7 +47,7 @@ export struct IdeaPage {
    */
   private openEditIdea(ideaId: number): void {
     this.state.openIdeaDetail(ideaId);
-    this.app.nav.openDetailCard(this.buildIdeaDetailContent);
+    this.app.nav.openDetailCard(this.buildIdeaDetailContent, 'auto');
   }
 
   /**
@@ -70,7 +69,7 @@ export struct IdeaPage {
       }) {
 
         // 闪记列表
-        PageScrollLayout({ space: 12, paddingTop: 12 }) {
+        PageScrollLayout({ space: 12, paddingTop: 0 }) {
           // 一言卡片
           HitokotoCard()
 
@@ -79,18 +78,17 @@ export struct IdeaPage {
               this.openEditIdea(ideaId);
             },
           })
-
-          // 底部留白（给 FAB 留空间）
-          Column().height(100)
         }
-      }
-
-      // 右下角悬浮按钮组：AI 洞察 + 新建
-      // AI 洞察按钮（在加号上方 20vp，水平对齐）
-      AIInsightPanel()
-        .margin({ right: 20, bottom: 96 }) // 76 = FAB高度56 + 间距20
+      }      
 
       // 新建按钮（FAB）
+      FloatingActionButton({
+        content: $r("sys.symbol.wand_and_stars"),
+        onTap: () => {
+          this.app.nav.pushOverlayByName(AppOverlayRoute.AI_INSIGHT, undefined);
+        },
+      })
+        .offset({ x: 0, y: -76 }) // 上移 76vp（FAB高度56 + 间距20）
       FloatingActionButton({
         onTap: () => {
           this.openNewEditor();

@@ -48,11 +48,12 @@ export struct AIInsightConversation {
           Text(`${this.state.activeNoteCount}`)
             .fontSize(22)
             .fontWeight(FontWeight.Bold)
-            .fontColor('#004027')
+            .fontColor(this.app.theme.palette.primary)
           Text('参与笔记')
             .fontSize(11)
             .fontColor(this.app.theme.palette.textTertiary)
         }
+        .width("40%")
         .alignItems(HorizontalAlign.Center)
 
         Divider()
@@ -65,14 +66,15 @@ export struct AIInsightConversation {
           Text(`${this.state.activeTotalLength}`)
             .fontSize(22)
             .fontWeight(FontWeight.Bold)
-            .fontColor('#004027')
+            .fontColor(this.app.theme.palette.primary)
           Text('总字数')
             .fontSize(11)
             .fontColor(this.app.theme.palette.textTertiary)
         }
+        .width("40%")
         .alignItems(HorizontalAlign.Center)
       }
-      .width('100%')
+      .width('90%')
       .padding(16)
       .margin({ left: 20, right: 20, top: 12, bottom: 8 })
       .borderRadius(16)
@@ -103,7 +105,7 @@ export struct AIInsightConversation {
               SymbolGlyph($r('sys.symbol.exclamationmark_triangle'))
                 .fontSize(40)
                 .renderingStrategy(SymbolRenderingStrategy.SINGLE)
-                .fontColor(['#F59E0B']);
+                .fontColor([this.app.theme.palette.warning]);
 
               Text(this.state.errorMessage)
                 .fontSize(14)
@@ -113,8 +115,8 @@ export struct AIInsightConversation {
 
               Button('重新尝试')
                 .fontSize(14)
-                .fontColor('#FFFFFF')
-                .backgroundColor('#004027')
+                .fontColor(this.app.theme.palette.surface)
+                .backgroundColor(this.app.theme.palette.primary)
                 .borderRadius(999)
                 .height(40)
                 .padding({ left: 24, right: 24 })
@@ -134,18 +136,6 @@ export struct AIInsightConversation {
             }
             .width('100%')
             .padding({ left: 20, right: 20, top: 8 })
-
-            // 打字机进行中的底部提示
-            if (this.state.isTypewriting) {
-              Row({ space: 4 }) {
-                Text('生成中')
-                  .fontSize(12)
-                  .fontColor(this.app.theme.palette.textTertiary)
-                this.buildThinkingDots()
-              }
-              .width('100%')
-              .padding({ left: 20, top: 8 })
-            }
           }
 
           // 底部留白
@@ -168,17 +158,17 @@ export struct AIInsightConversation {
     Row({ space: 4 }) {
       Text('\u25CF')
         .fontSize(8)
-        .fontColor(this.dotPhase === 0 ? '#004027' : this.app.theme.palette.textTertiary)
+        .fontColor(this.dotPhase === 0 ? this.app.theme.palette.primary : this.app.theme.palette.textTertiary)
         .scale({ x: this.dotPhase === 0 ? 1.4 : 1.0, y: this.dotPhase === 0 ? 1.4 : 1.0 })
         .animation({ duration: 300, curve: Curve.EaseInOut })
       Text('\u25CF')
         .fontSize(8)
-        .fontColor(this.dotPhase === 1 ? '#004027' : this.app.theme.palette.textTertiary)
+        .fontColor(this.dotPhase === 1 ? this.app.theme.palette.primary : this.app.theme.palette.textTertiary)
         .scale({ x: this.dotPhase === 1 ? 1.4 : 1.0, y: this.dotPhase === 1 ? 1.4 : 1.0 })
         .animation({ duration: 300, curve: Curve.EaseInOut })
       Text('\u25CF')
         .fontSize(8)
-        .fontColor(this.dotPhase === 2 ? '#004027' : this.app.theme.palette.textTertiary)
+        .fontColor(this.dotPhase === 2 ? this.app.theme.palette.primary : this.app.theme.palette.textTertiary)
         .scale({ x: this.dotPhase === 2 ? 1.4 : 1.0, y: this.dotPhase === 2 ? 1.4 : 1.0 })
         .animation({ duration: 300, curve: Curve.EaseInOut })
     }
@@ -194,16 +184,16 @@ export struct AIInsightConversation {
             SymbolGlyph($r('sys.symbol.xmark'))
               .fontSize(16)
               .renderingStrategy(SymbolRenderingStrategy.SINGLE)
-              .fontColor(['#FFFFFF']);
+              .fontColor([this.app.theme.palette.surface]);
             Text('停止生成')
               .fontSize(14)
-              .fontColor('#FFFFFF')
+              .fontColor(this.app.theme.palette.surface)
           }
         }
         .height(44)
         .padding({ left: 20, right: 20 })
         .borderRadius(999)
-        .backgroundColor('#004027')
+        .backgroundColor(this.app.theme.palette.primary)
         .onClick(() => {
           this.state.stopGeneration();
         })

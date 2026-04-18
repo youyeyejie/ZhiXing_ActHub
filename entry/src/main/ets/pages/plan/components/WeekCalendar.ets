@@ -253,7 +253,7 @@ export struct WeekCalendar {
         .textAlign(TextAlign.Center)
         .borderRadius(15)
         .backgroundColor(
-          this.isSelectedDay(dayTimestamp) ? this.app.theme.palette.primary : "transparent",
+          this.isSelectedDay(dayTimestamp) ? this.app.theme.palette.primary : this.app.theme.palette.transparent,
         )
         .animation({ duration: 340, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
     }

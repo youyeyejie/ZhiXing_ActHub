@@ -214,7 +214,7 @@ export struct CategoryFilter {
       });
     }
     .width('100%')
-    .padding(12)
+    .padding({top: 0, bottom: 12, left: 6, right: 6})
     .borderRadius(18)
     .alignItems(VerticalAlign.Center);
   }

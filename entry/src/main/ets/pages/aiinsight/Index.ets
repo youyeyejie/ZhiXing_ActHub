@@ -1,11 +1,11 @@
-import { AppState, useAppState } from '../../../app/AppStates';
-import { SafeAreaUtils } from '../../../core/theme/SafeAreaUtils';
-import { AIInsightState, useAIInsightState } from '../AIInsightState';
-import { IdeaPageState, useIdeaPageState } from '../IdeaPageState';
-import { AIInsightEntryCard } from './AIInsightEntryCard';
-import { AIInsightHistoryList } from './AIInsightHistoryList';
-import { AIInsightConversation } from './AIInsightConversation';
-import { AIInsightNoteSelector } from './AIInsightNoteSelector';
+import { AppState, useAppState } from '../../app/AppStates';
+import { SafeAreaUtils } from '../../core/theme/SafeAreaUtils';
+import { AIInsightState, useAIInsightState } from './AIInsightState';
+import { IdeaPageState, useIdeaPageState } from '../idea/IdeaPageState';
+import { AIInsightEntryCard } from './components/AIInsightEntryCard';
+import { AIInsightHistoryList } from './components/AIInsightHistoryList';
+import { AIInsightConversation } from './components/AIInsightConversation';
+import { AIInsightNoteSelector } from './components/AIInsightNoteSelector';
 
 /**
  * AI 洞察中心主页面。
@@ -21,6 +21,7 @@ export struct AIInsightPage {
   aboutToAppear(): void {
     // 每次进入重置到首页
     this.state.backToHome();
+    this.state.refreshRecords();
   }
 
   /**
@@ -39,7 +40,7 @@ export struct AIInsightPage {
    */
   private openNoteSelector(): void {
     this.state.resetSelection();
-    this.app.nav.openActionSheet(this.buildNoteSelectorContent, '70%');
+    this.app.nav.openActionSheet(this.buildNoteSelectorContent, 'auto');
   }
 
   @Builder
@@ -65,7 +66,7 @@ export struct AIInsightPage {
         .type(ButtonType.Circle)
         .width(40)
         .height(40)
-        .backgroundColor(Color.Transparent)
+        .backgroundColor(this.app.theme.palette.transparent)
         .onClick(() => {
           this.handleBack();
         })

@@ -1,6 +1,6 @@
 import display from '@ohos.display';
 import { AppState, useAppState } from '../../app/AppStates';
-import { AIInsightPage } from '../../pages/idea/components/AIInsightPage';
+import { AIInsightPage } from '../../pages/aiinsight/Index';
 
 /**
  * AI 洞察页 overlay 路由容器。
@@ -93,7 +93,7 @@ export struct AIInsightOverlayDestination {
     .width('100%')
     .height('100%')
     .hideTitleBar(true)
-    .backgroundColor(Color.Transparent)
+    .backgroundColor(this.app.theme.palette.transparent)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .mode(NavDestinationMode.STANDARD)
     .onBackPressed(() => {

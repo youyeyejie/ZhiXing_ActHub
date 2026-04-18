@@ -7,7 +7,7 @@ import { IdeaEditorContent } from "./IdeaEditorContent";
 export struct IdeaActionSheetContent {
   build() {
     IdeaEditorContent({
-      hideInnerHeader: false,
+      isForCreate: true,
     });
   }
 }

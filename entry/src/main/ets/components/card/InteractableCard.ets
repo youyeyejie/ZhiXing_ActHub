@@ -88,28 +88,28 @@ export struct InteractableCard {
 
   private resolveRightHintCenterColor(): string {
     if (!this.enableSwipeRight) {
-      return 'transparent';
+      return this.app.theme.palette.transparent;
     }
     return this.resolveTransparentHintColor(this.swipeRightColor);
   }
 
   private resolveRightHintEdgeColor(): string {
     if (!this.enableSwipeRight) {
-      return 'transparent';
+      return this.app.theme.palette.transparent;
     }
     return this.resolveVisibleHintColor(this.swipeRightColor);
   }
 
   private resolveLeftHintEdgeColor(): string {
     if (!this.enableSwipeLeft) {
-      return 'transparent';
+      return this.app.theme.palette.transparent;
     }
     return this.resolveVisibleHintColor(this.swipeLeftColor);
   }
 
   private resolveLeftHintCenterColor(): string {
     if (!this.enableSwipeLeft) {
-      return 'transparent';
+      return this.app.theme.palette.transparent;
     }
     return this.resolveTransparentHintColor(this.swipeLeftColor);
   }
