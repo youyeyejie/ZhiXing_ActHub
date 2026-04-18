@@ -82,19 +82,30 @@ export struct ActivityHeatmap {
 
   /**
    * 获取热力图颜色。
-   * 0 个 = 最浅，1-2 个 = 浅，3-5 个 = 中，6+ 个 = 深
+   * 0 个 = level_0
+   * 1 个 = level_1
+   * 2-3 个 = level_2
+   * 3-5 个 = level_3
+   * 6-10 个 = level_4
+    * 10+ 个 = level_5
    */
   private getHeatColor(count: number): string {
     if (count === 0) {
       return this.app.theme.palette.surfaceSecondary;
     }
-    if (count <= 2) {
-      return this.app.theme.palette.heatmapLow;
+    if (count === 1) {
+      return this.app.theme.palette.heatmapLevel_1;
+    }
+    if (count <= 3) {
+      return this.app.theme.palette.heatmapLevel_2;
     }
     if (count <= 5) {
-      return this.app.theme.palette.heatmapMedium;
+      return this.app.theme.palette.heatmapLevel_3;
     }
-    return this.app.theme.palette.heatmapHigh;
+    if (count <= 10) {
+      return this.app.theme.palette.heatmapLevel_4;
+    }
+    return this.app.theme.palette.heatmapLevel_5;
   }
 
   /**
@@ -205,17 +216,27 @@ export struct ActivityHeatmap {
             .width(this.CELL_WIDTH)
             .height(this.CELL_HEIGHT)
             .borderRadius(2)
-            .backgroundColor(this.app.theme.palette.heatmapLow)
+            .backgroundColor(this.app.theme.palette.heatmapLevel_1)
           Column()
             .width(this.CELL_WIDTH)
             .height(this.CELL_HEIGHT)
             .borderRadius(2)
-            .backgroundColor(this.app.theme.palette.heatmapMedium)
+            .backgroundColor(this.app.theme.palette.heatmapLevel_2)
           Column()
             .width(this.CELL_WIDTH)
             .height(this.CELL_HEIGHT)
             .borderRadius(2)
-            .backgroundColor(this.app.theme.palette.heatmapHigh)
+            .backgroundColor(this.app.theme.palette.heatmapLevel_3)
+          Column()
+            .width(this.CELL_WIDTH)
+            .height(this.CELL_HEIGHT)
+            .borderRadius(2)
+            .backgroundColor(this.app.theme.palette.heatmapLevel_4)
+          Column()
+            .width(this.CELL_WIDTH)
+            .height(this.CELL_HEIGHT)
+            .borderRadius(2)
+            .backgroundColor(this.app.theme.palette.heatmapLevel_5)
         }
         Text("多")
           .fontSize(10)

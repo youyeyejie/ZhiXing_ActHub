@@ -2,7 +2,7 @@ import { AppState, useAppState } from '../../../app/AppStates';
 import { AIInsightState, useAIInsightState } from '../AIInsightState';
 import { IdeaPageState, useIdeaPageState } from '../../idea/IdeaPageState';
 import { Idea } from '../../../core/models/Idea';
-import { FormTypography } from '../../../components/form/FormTypography';
+import { FormTypography } from '../../../core/theme/FormTypography';
 
 /**
  * 精准洞察笔记选择弹层内容。

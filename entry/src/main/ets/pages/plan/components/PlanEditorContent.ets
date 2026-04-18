@@ -1,6 +1,6 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 import { Plan } from '../../../core/models/Plan';
-import { FormTypography } from '../../../components/form/FormTypography';
+import { FormTypography } from '../../../core/theme/FormTypography';
 import { PlanPageState, usePlanPageState } from '../PlanPageState';
 import { PlanPickerStyle } from './PlanPickerStyle';
 

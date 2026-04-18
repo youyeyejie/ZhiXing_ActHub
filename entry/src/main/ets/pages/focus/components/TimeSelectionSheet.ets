@@ -2,7 +2,7 @@ import { AppState, useAppState } from '../../../app/AppStates';
 import promptAction from '@ohos.promptAction';
 import { common } from '@kit.AbilityKit'; 
 import { PlayerState } from '../../../core/services/WhiteNoisePlayer'; 
-import { FormTypography } from '../../../components/form/FormTypography';
+import { FormTypography } from '../../../core/theme/FormTypography';
 
 /**
  * 组件功能简介：

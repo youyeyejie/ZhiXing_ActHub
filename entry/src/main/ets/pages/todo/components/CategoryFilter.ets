@@ -192,7 +192,6 @@ export struct CategoryFilter {
                 `${this.resolveNormalizedId(item.id)}_${item.category}_${this.resolveCurrentMainSelectionId()}`,
           );
         }
-        .width('100%')
         .justifyContent(FlexAlign.Start)
         .padding({ top: 2, bottom: 2 });
       }

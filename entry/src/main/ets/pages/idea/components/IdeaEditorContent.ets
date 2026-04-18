@@ -1,7 +1,7 @@
 import { Idea } from "../../../core/models/Idea";
 import { IdeaRepository } from "../../../core/repositories/IdeaRepository";
 import { AppState, useAppState } from "../../../app/AppStates";
-import { FormTypography } from "../../../components/form/FormTypography";
+import { FormTypography } from "../../../core/theme/FormTypography";
 import { IdeaPageState, useIdeaPageState } from "../IdeaPageState";
 
 /**

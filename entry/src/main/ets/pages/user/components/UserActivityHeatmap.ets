@@ -92,13 +92,19 @@ export struct UserActivityHeatmap {
     if (count === 0) {
       return this.app.theme.palette.surfaceSecondary;
     }
-    if (count <= 2) {
-      return this.app.theme.isDark ? '#1E4A2D' : '#C6E5C8';
+    if (count === 1) {
+      return this.app.theme.palette.heatmapLevel_1;
+    }
+    if (count <= 3) {
+      return this.app.theme.palette.heatmapLevel_2;
     }
     if (count <= 5) {
-      return this.app.theme.isDark ? '#2E6B4A' : '#7BC99A';
+      return this.app.theme.palette.heatmapLevel_3;
     }
-    return '#4CAF7A';
+    if (count <= 10) {
+      return this.app.theme.palette.heatmapLevel_4;
+    }
+    return this.app.theme.palette.heatmapLevel_5;
   }
 
   @Builder
@@ -201,17 +207,27 @@ export struct UserActivityHeatmap {
             .width(12)
             .height(12)
             .borderRadius(3)
-            .backgroundColor(this.app.theme.isDark ? '#1E4A2D' : '#C6E5C8');
+            .backgroundColor(this.app.theme.palette.heatmapLevel_1);
           Column()
             .width(12)
             .height(12)
             .borderRadius(3)
-            .backgroundColor(this.app.theme.isDark ? '#2E6B4A' : '#7BC99A');
+            .backgroundColor(this.app.theme.palette.heatmapLevel_2);
           Column()
             .width(12)
             .height(12)
             .borderRadius(3)
-            .backgroundColor('#4CAF7A');
+            .backgroundColor(this.app.theme.palette.heatmapLevel_3);
+          Column()
+            .width(12)
+            .height(12)
+            .borderRadius(3)
+            .backgroundColor(this.app.theme.palette.heatmapLevel_4);
+          Column()
+            .width(12)
+            .height(12)
+            .borderRadius(3)
+            .backgroundColor(this.app.theme.palette.heatmapLevel_5);
         }
         Text('多')
           .fontSize(10)

@@ -1,6 +1,6 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 import { TodoCategory } from '../../../core/models/TodoCategory';
-import { FormTypography } from '../../../components/form/FormTypography';
+import { FormTypography } from '../../../core/theme/FormTypography';
 import { useTodoPageState, TodoPageState } from '../TodoPageState';
 import promptAction from '@ohos.promptAction';
 

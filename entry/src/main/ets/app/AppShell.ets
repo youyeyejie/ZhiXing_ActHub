@@ -3,12 +3,12 @@ import { AppState, useAppState } from "./AppStates";
 import { MainShell } from "./MainShell";
 import { SplashPage } from "../pages/splash";
 import { LoginPage } from "../pages/login";
-import { SharedTestDestinationPage } from "../pages/sharedtest/SharedTestDestinationPage";
 import { FocusOverlayDestination } from "../components/overlays/FocusOverlayDestination";
 import { SearchOverlayDestination } from "../components/overlays/SearchOverlayDestination";
 import { ActionSheetOverlayDestination } from "../components/overlays/ActionSheetOverlayDestination";
 import { DetailCardOverlayDestination } from "../components/overlays/DetailCardOverlayDestination";
 import { AIInsightOverlayDestination } from "../components/overlays/AIInsightOverlayDestination";
+import { SharedTestOverlayDestination } from "../components/overlays/SharedTestOverlayDestination";
 import { SearchRouteParam } from "./AppConstants";
 import { ThemeMode } from "../core/theme/ThemeManager";
 
@@ -113,7 +113,7 @@ export struct AppShell {
     } else if (name === AppOverlayRoute.DETAIL_CARD) {
       DetailCardOverlayDestination({ content: this.app.nav.detailCardContentBuilder });
     } else if (name === AppOverlayRoute.SHARED_TEST) {
-      SharedTestDestinationPage();
+      SharedTestOverlayDestination();
     } else if (name === AppOverlayRoute.AI_INSIGHT) {
       AIInsightOverlayDestination();
     } else {

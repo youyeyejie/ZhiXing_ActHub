@@ -38,9 +38,11 @@ export class ThemePalette {
   mask: string = '#66000000';
   primaryShadowStrong: string = '#60004C24';
   primaryShadowSoft: string = '#40004C24';
-  heatmapLow: string = '#C6E5C8';
-  heatmapMedium: string = '#7BC99A';
-  heatmapHigh: string = '#4CAF7A';
+  heatmapLevel_1: string = '#C6E5C8';
+  heatmapLevel_2: string = '#7BC99A';
+  heatmapLevel_3: string = '#4CAF7A';
+  heatmapLevel_4: string = '#2E6B4A';
+  heatmapLevel_5: string = '#1E4A2D';
   logo: string = "app.media.foreground_white";
 
   static light(): ThemePalette {
@@ -71,9 +73,11 @@ export class ThemePalette {
     palette.mask = '#66000000';
     palette.primaryShadowStrong = '#60004C24';
     palette.primaryShadowSoft = '#40004C24';
-    palette.heatmapLow = '#C6E5C8';
-    palette.heatmapMedium = '#7BC99A';
-    palette.heatmapHigh = '#4CAF7A';
+    palette.heatmapLevel_1 = '#C6E5C8';
+    palette.heatmapLevel_2 = '#7BC99A';
+    palette.heatmapLevel_3 = '#4CAF7A';
+    palette.heatmapLevel_4 = '#2E6B4A';
+    palette.heatmapLevel_5 = '#1E4A2D';
     palette.logo = "app.media.foreground_white";
     return palette;
   }
@@ -106,9 +110,11 @@ export class ThemePalette {
     palette.mask = '#99000000';
     palette.primaryShadowStrong = '#60A8CEB3';
     palette.primaryShadowSoft = '#40A8CEB3';
-    palette.heatmapLow = '#1E4A2D';
-    palette.heatmapMedium = '#2E6B4A';
-    palette.heatmapHigh = '#4CAF7A';
+    palette.heatmapLevel_1 = '#1E4A2D';
+    palette.heatmapLevel_2 = '#2E6B4A';
+    palette.heatmapLevel_3 = '#4CAF7A';
+    palette.heatmapLevel_4 = '#7BC99A';
+    palette.heatmapLevel_5 = '#C6E5C8';
     palette.logo = "app.media.foreground"
     return palette;
   }

@@ -2,7 +2,7 @@ import { AppState, useAppState } from '../../../app/AppStates';
 import { Todo } from '../../../core/models/Todo';
 import { TodoRepository } from '../../../core/repositories/TodoRepository';
 import { TodoPageState, useTodoPageState } from '../../todo/TodoPageState';
-import { FormTypography } from '../../../components/form/FormTypography';
+import { FormTypography } from '../../../core/theme/FormTypography';
 
 /**
  * 组件功能简介：

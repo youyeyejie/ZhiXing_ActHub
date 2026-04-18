@@ -3,7 +3,7 @@ import { Todo } from '../../../core/models/Todo';
 import { TodoCategory } from '../../../core/models/TodoCategory';
 import { useTodoPageState, TodoPageState } from '../TodoPageState';
 import { CategoryCreateContent } from './CategoryCreateContent';
-import { FormTypography } from '../../../components/form/FormTypography';
+import { FormTypography } from '../../../core/theme/FormTypography';
 import promptAction from '@ohos.promptAction';
 
 /**

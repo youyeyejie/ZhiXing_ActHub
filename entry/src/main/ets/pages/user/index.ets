@@ -5,6 +5,7 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { UserActivityHeatmap } from './components/UserActivityHeatmap';
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
 import { AppState, useAppState } from "../../app/AppStates";
+import { AppOverlayRoute } from '../../app/AppConstants';
 import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
 import { ThemeMode } from "../../core/theme/ThemeManager";
 
@@ -94,23 +95,9 @@ export struct UserPage {
     }
   }
 
-  @Builder
-  private buildInfoChip(label: string, value: string) {
-    Column({ space: 4 }) {
-      Text(label)
-        .fontSize(12)
-        .fontColor(this.app.theme.palette.textTertiary)
-      Text(value)
-        .fontSize(14)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.app.theme.palette.textPrimary)
-    }
-    .layoutWeight(1)
-    .padding(14)
-    .borderRadius(16)
-    .backgroundColor(this.app.theme.palette.surfaceSecondary);
+  private openSharedTestOverlay(): void {
+    this.app.nav.pushOverlayByName(AppOverlayRoute.SHARED_TEST, undefined, false);
   }
-
   @Builder
   private buildProfileCard() {
     Column({ space: 16 }) {
@@ -124,6 +111,9 @@ export struct UserPage {
           .fontWeight(FontWeight.Bold)
           .fontColor(this.app.theme.palette.surface)
           .textAlign(TextAlign.Center)
+          .onClick(() => {
+            this.openSharedTestOverlay();
+          })
         Column({ space: 4 }) {
           Text(this.resolveDisplayName())
             .fontSize(22)
