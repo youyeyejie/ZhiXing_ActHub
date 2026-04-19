@@ -11,7 +11,6 @@ import { UserDatabase } from "../core/database/UserDatabase";
 import { AppSettingRepository } from "../core/repositories/AppSettingRepository";
 import { UserPreferenceRepository } from "../core/repositories/UserPreferenceRepository";
 import { UserRepository } from "../core/repositories/UserRepository";
-import { CalendarReminderService } from "../core/services/CalendarReminderService";
 import { StatusBarService } from "../core/services/StatusBarService";
 import { ThemeMode } from "../core/theme/ThemeManager";
 import { useAppState } from "./AppStates";
@@ -110,15 +109,15 @@ export default class EntryAbility extends UIAbility {
         AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, preferredThemeMode);
         this.syncTheme(this.context.config.colorMode);
 
-        const calendarReminderService = new CalendarReminderService();
-        calendarReminderService.registerPlanReminder();
-
         windowStage.loadContent("app/App", (err) => {
           if (err.code) {
             return;
           }
           this.app
             .tryRequestNotificationPermissionOnLaunch(this.context)
+            .catch((_requestError: Error) => {});
+          this.app
+            .tryRequestCalendarPermissionOnLaunch(this.context)
             .catch((_requestError: Error) => {});
         });
       })

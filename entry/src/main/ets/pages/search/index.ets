@@ -249,7 +249,15 @@ export struct SearchPage {
   }
 
   private resolvePlanSecondaryText(item: SearchResultItem): string {
-    return this.joinDisplayParts(item.timeText, item.locationText);
+    return this.normalizeText(item.timeText);
+  }
+
+  private resolvePlanLocationText(item: SearchResultItem): string {
+    const locationText = this.normalizeText(item.locationText);
+    if (locationText.length === 0) {
+      return '';
+    }
+    return `地点: ${locationText}`;
   }
 
   private resolveTodoSecondaryText(item: SearchResultItem): string {
@@ -317,6 +325,7 @@ export struct SearchPage {
     Column({ space: 4 }) {
       this.buildTitleLineIfPresent(item.title)
       this.buildSecondaryLine(this.resolvePlanSecondaryText(item))
+      this.buildSecondaryLine(this.resolvePlanLocationText(item))
       this.buildDescriptionLine(item.descriptionText)
     }.width("100%");
   }

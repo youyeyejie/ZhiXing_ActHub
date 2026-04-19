@@ -65,7 +65,7 @@ export struct PlanCardListItem {
     if (this.plan.isCourse === 1) {
       return this.app.theme.palette.warning;
     }
-    return this.app.theme.palette.primary;
+    return this.app.theme.palette.info;
   }
 
   private resolveCardBackgroundColor(): string {

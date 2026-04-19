@@ -140,6 +140,8 @@ export class PlanPageState {
     plan.loopRule = source.loopRule;
     plan.reminderId = source.reminderId;
     plan.enableRemind = source.enableRemind;
+    plan.version = source.version;
+    plan.notifyVersion = source.notifyVersion;
     plan.createdAt = source.createdAt;
     plan.updatedAt = source.updatedAt;
     return plan;
@@ -194,11 +196,6 @@ export class PlanPageState {
     const list: Array<Plan> = await this.planRepository.findAll();
     this.plans = this.sortPlansByStartTime(list);
     this.syncVisiblePlans();
-    this.syncPlanReminder();
-  }
-
-  private syncPlanReminder(): void {
-    this.calendarReminderService.registerPlanReminder();
   }
 
   private sortVisiblePlanList(list: Array<Plan>): Array<Plan> {
@@ -306,6 +303,9 @@ export class PlanPageState {
     if (plan.reminderId < 0) {
       plan.reminderId = 0;
     }
+    if (plan.notifyVersion < 0) {
+      plan.notifyVersion = 0;
+    }
     plan.duration = plan.endTime > plan.startTime ? plan.endTime - plan.startTime : 0;
     if (plan.timestamp <= 0) {
       plan.timestamp = plan.startTime > 0 ? plan.startTime : Date.now();
@@ -330,6 +330,34 @@ export class PlanPageState {
     }
     this.plans = this.sortPlansByStartTime(nextList);
     this.syncVisiblePlans();
+  }
+
+  private resolvePersistedCreatedPlan(snapshot: Plan): Plan | null {
+    for (let index = 0; index < this.plans.length; index++) {
+      const current = this.plans[index];
+      if (current.createdAt !== snapshot.createdAt) {
+        continue;
+      }
+      if (current.updatedAt !== snapshot.updatedAt) {
+        continue;
+      }
+      if (current.startTime !== snapshot.startTime || current.endTime !== snapshot.endTime) {
+        continue;
+      }
+      if (current.content !== snapshot.content) {
+        continue;
+      }
+      return this.copyPlan(current);
+    }
+    return null;
+  }
+
+  private shouldBumpReminderVersion(previousPlan: Plan, nextPlan: Plan): boolean {
+    return previousPlan.content !== nextPlan.content
+      || previousPlan.startTime !== nextPlan.startTime
+      || previousPlan.endTime !== nextPlan.endTime
+      || previousPlan.description !== nextPlan.description
+      || this.normalizeSwitchFlag(previousPlan.enableRemind) !== this.normalizeSwitchFlag(nextPlan.enableRemind);
   }
 
   async createPlan(
@@ -360,6 +388,8 @@ export class PlanPageState {
     plan.loopRule = "";
     plan.reminderId = 0;
     plan.enableRemind = remindEnabled ? 1 : 0;
+    plan.version = 1;
+    plan.notifyVersion = 0;
     plan.timestamp = now;
     plan.createdAt = now;
     plan.updatedAt = now;
@@ -370,8 +400,17 @@ export class PlanPageState {
       return false;
     }
     await this.refreshAll();
+    const persistedPlan = this.resolvePersistedCreatedPlan(plan);
+    if (persistedPlan === null) {
+      this.selectDate(startTime);
+      return true;
+    }
+    const reminderChanged = await this.calendarReminderService.syncPlanReminderRecord(persistedPlan);
+    if (reminderChanged) {
+      await this.planRepository.save(persistedPlan);
+      this.applyLocalPlanUpdate(persistedPlan);
+    }
     this.selectDate(startTime);
-    this.syncPlanReminder();
     return true;
   }
 
@@ -396,6 +435,11 @@ export class PlanPageState {
       return false;
     }
     working.updatedAt = Date.now();
+    if (this.shouldBumpReminderVersion(target, working)) {
+      working.version = target.version > 0 ? target.version + 1 : 1;
+    } else {
+      working.version = target.version > 0 ? target.version : 0;
+    }
     this.fillComputedFields(working);
     await this.planRepository.save(working);
     const reminderChanged = await this.calendarReminderService.syncPlanReminderRecord(working);
@@ -508,7 +552,6 @@ export class PlanPageState {
       this.closePlanDetail();
     }
     this.syncVisiblePlans();
-    this.syncPlanReminder();
   }
 
   undoDelete(taskId: string): void {
@@ -529,7 +572,6 @@ export class PlanPageState {
       }
     }
     this.syncVisiblePlans();
-    this.syncPlanReminder();
   }
 
   async commitDeletePlan(taskId: string): Promise<void> {

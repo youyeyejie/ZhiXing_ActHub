@@ -47,6 +47,7 @@ export class AppState {
   @Trace public currentUserName: string = '';
   @Trace public currentUserAvatar: string = '';
   @Trace public hasRequestedNotificationPermissionOnLaunch: boolean = false;
+  @Trace public hasRequestedCalendarPermissionOnLaunch: boolean = false;
 
   get theme(): ThemeManager {
     return this.themeManager;
@@ -183,6 +184,17 @@ export class AppState {
     }
     this.hasRequestedNotificationPermissionOnLaunch = true;
     await NotificationService.requestNotificationPermission(context);
+  }
+
+  async tryRequestCalendarPermissionOnLaunch(context: common.UIAbilityContext): Promise<void> {
+    if (this.hasRequestedCalendarPermissionOnLaunch) {
+      return;
+    }
+    this.hasRequestedCalendarPermissionOnLaunch = true;
+    const granted = await this.calendarReminderService.requestCalendarPermission(context);
+    if (granted && this.isLoggedIn) {
+      await this.syncCalendarRemindersForCurrentUser();
+    }
   }
 
   enterSplash(): void {

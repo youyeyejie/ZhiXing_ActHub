@@ -1,6 +1,9 @@
 import { IBestORMInit, ORM } from '@ibestservices/ibest-orm';
 import { common } from '@kit.AbilityKit';
+import { DatabaseConfig } from './DatabaseConfig';
 import { AIInsight, Focus, Idea, Plan, Todo, TodoCategory, UserPreference } from '../models';
+import { PlanRepository } from '../repositories/PlanRepository';
+import { UserPreferenceRepository } from '../repositories/UserPreferenceRepository';
 import { HashUtils } from '../security/HashUtils';
 
 /**
@@ -9,6 +12,7 @@ import { HashUtils } from '../security/HashUtils';
  */
 export class UserDatabase {
   private static instance: UserDatabase = new UserDatabase();
+  private static readonly SCHEMA_VERSION_KEY: string = 'schema.user_version';
   private ormInstance: ORM | null = null;
   private initialized: boolean = false;
   private currentUsername: string = '';
@@ -48,6 +52,7 @@ export class UserDatabase {
       debug: true
     });
     this.ormInstance.migrate(Plan, Todo, TodoCategory, Focus, Idea, AIInsight, UserPreference);
+    await this.runMigrations();
     this.initialized = true;
     this.currentUsername = normalizedUsername;
   }
@@ -74,5 +79,40 @@ export class UserDatabase {
     this.ormInstance = null;
     this.initialized = false;
     this.currentUsername = '';
+  }
+
+  private async runMigrations(): Promise<void> {
+    const preferences = new UserPreferenceRepository();
+    const versionText: string = await preferences.getString(UserDatabase.SCHEMA_VERSION_KEY, '0');
+    const currentVersion: number = Number(versionText);
+
+    if (currentVersion < 1) {
+      await this.migrateToVersion1();
+    }
+
+    await preferences.setString(UserDatabase.SCHEMA_VERSION_KEY, `${DatabaseConfig.USER_SCHEMA_VERSION}`);
+  }
+
+  private async migrateToVersion1(): Promise<void> {
+    const planRepository = new PlanRepository();
+    const plans: Array<Plan> = await planRepository.findAll();
+    for (let index = 0; index < plans.length; index++) {
+      const plan = plans[index];
+      let changed: boolean = false;
+
+      if (plan.version <= 0) {
+        plan.version = 1;
+        changed = true;
+      }
+
+      if (plan.notifyVersion < 0) {
+        plan.notifyVersion = 0;
+        changed = true;
+      }
+
+      if (changed) {
+        await planRepository.save(plan);
+      }
+    }
   }
 }

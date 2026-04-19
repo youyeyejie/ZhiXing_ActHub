@@ -343,7 +343,7 @@ export struct PlanEditorContent {
   }
 
   private resolveTypeChipColor(type: number): string {
-    return type === 1 ? this.app.theme.palette.warning : this.app.theme.palette.primary;
+    return type === 1 ? this.app.theme.palette.warning : this.app.theme.palette.info;
   }
 
   private resolveTypeRenderToken(type: number): string {

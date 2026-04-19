@@ -15,6 +15,7 @@
 export class DatabaseConfig {
   static readonly DB_NAME: string = 'acthub.db';
   static readonly VERSION: number = 2;
+  static readonly USER_SCHEMA_VERSION: number = 1;
   static readonly PLAN_TABLE: string = 'plans';
   static readonly TODO_TABLE: string = 'todos';
   static readonly TODO_CATEGORY_TABLE: string = 'todo_categories';

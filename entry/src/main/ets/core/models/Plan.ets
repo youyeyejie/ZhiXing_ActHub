@@ -62,6 +62,14 @@ export class Plan extends BaseEntity {
   @NotNull()
   enableRemind: number = 0;
 
+  @Column({ type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
+  @NotNull()
+  version: number = 0;
+
+  @Column({ name: 'notify_version', type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
+  @NotNull()
+  notifyVersion: number = 0;
+
   @Column({ name: 'created_at', type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
   @NotNull()
   createdAt: number = 0;

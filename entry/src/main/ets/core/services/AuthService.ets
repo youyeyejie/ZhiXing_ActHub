@@ -105,7 +105,7 @@ export class AuthService {
       '',
     );
     if (reminderFlag.length === 0) {
-      reminderFlag = '0';
+      reminderFlag = '1';
     }
     await this.userPreferenceRepository.setBoolean(
       AppPreferenceKey.PLAN_REMINDER_ENABLED,

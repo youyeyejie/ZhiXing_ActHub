@@ -190,7 +190,13 @@ export class SearchService {
 
   private formatMonthDay(timestamp: number): string {
     const date = new Date(timestamp);
-    return `${date.getMonth() + 1}/${date.getDate()}`;
+    const currentYear = new Date().getFullYear();
+    const year = date.getFullYear();
+    const monthDay = `${date.getMonth() + 1}/${date.getDate()}`;
+    if (year !== currentYear) {
+      return `${year}/${monthDay}`;
+    }
+    return monthDay;
   }
 
   private isSameDay(startTime: number, endTime: number): boolean {
@@ -213,7 +219,7 @@ export class SearchService {
     if (!this.isSameDay(startTime, endTime)) {
       return `${this.formatMonthDay(startTime)} ${this.formatHourMinute(startTime)} - ${this.formatMonthDay(endTime)} ${this.formatHourMinute(endTime)}`;
     }
-    return `${this.formatHourMinute(startTime)} - ${this.formatHourMinute(endTime)}`;
+    return `${this.formatMonthDay(startTime)} ${this.formatHourMinute(startTime)} - ${this.formatHourMinute(endTime)}`;
   }
 
   private joinDisplayParts(first: string, second: string): string {
