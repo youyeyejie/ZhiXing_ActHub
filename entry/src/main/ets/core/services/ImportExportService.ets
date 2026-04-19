@@ -23,6 +23,14 @@ export class ImportExportResult {
   }
 }
 
+class IcsRecurrenceRule {
+  freq: string = '';
+  until: string = '';
+  count: number = 0;
+  interval: number = 1;
+  byDay: string[] = [];
+}
+
 export class ImportExportService {
   private icsService: IcsService = new IcsService();
   private planRepository: PlanRepository = new PlanRepository();
@@ -114,17 +122,17 @@ export class ImportExportService {
 
       let importedCount: number = 0;
       for (let index = 0; index < icsFile.items.length; index++) {
-        const plan: Plan | null = this.mapIcsItemToCoursePlan(icsFile.items[index]);
-        if (plan === null) {
-          continue;
+        const plans: Array<Plan> = this.mapIcsItemToCoursePlans(icsFile.items[index]);
+        for (let planIndex = 0; planIndex < plans.length; planIndex++) {
+          const plan: Plan = plans[planIndex];
+          const key: string = this.buildPlanDuplicateKey(plan);
+          if (existingKeys.indexOf(key) >= 0) {
+            continue;
+          }
+          await this.planRepository.insert(plan);
+          existingKeys.push(key);
+          importedCount += 1;
         }
-        const key: string = this.buildPlanDuplicateKey(plan);
-        if (existingKeys.indexOf(key) >= 0) {
-          continue;
-        }
-        await this.planRepository.insert(plan);
-        existingKeys.push(key);
-        importedCount += 1;
       }
 
       await usePlanPageState().refreshAll();
@@ -272,10 +280,10 @@ export class ImportExportService {
     return totalBytes;
   }
 
-  private mapIcsItemToCoursePlan(item: IcsItem): Plan | null {
+  private mapIcsItemToCoursePlans(item: IcsItem): Array<Plan> {
     const startTime: number = this.parseIcsDateTime(item.dtStart);
     if (startTime <= 0) {
-      return null;
+      return [];
     }
 
     let endTime: number = this.parseIcsDateTime(item.dtEnd);
@@ -283,22 +291,308 @@ export class ImportExportService {
       endTime = startTime + 60 * 60 * 1000;
     }
 
+    const recurrenceRule: IcsRecurrenceRule | null = this.parseIcsRecurrenceRule(item);
+    const occurrences: Array<number> = recurrenceRule === null
+      ? [startTime]
+      : this.expandRecurrenceStarts(startTime, recurrenceRule);
+    if (occurrences.length === 0) {
+      occurrences.push(startTime);
+    }
+
+    const duration: number = endTime - startTime;
     const now: number = Date.now();
-    const plan = new Plan();
-    plan.content = item.summary.trim().length > 0 ? item.summary.trim() : '未命名课程';
-    plan.timestamp = startTime;
-    plan.startTime = startTime;
-    plan.endTime = endTime;
-    plan.duration = endTime - startTime;
-    plan.location = item.location.trim();
-    plan.isCourse = 1;
-    plan.description = item.description.trim();
-    plan.loopRule = '';
-    plan.reminderId = 0;
-    plan.enableRemind = 0;
-    plan.createdAt = now;
-    plan.updatedAt = now;
-    return plan;
+    const plans: Array<Plan> = [];
+    for (let index = 0; index < occurrences.length; index++) {
+      const occurrenceStart: number = occurrences[index];
+      const plan = new Plan();
+      plan.content = item.summary.trim().length > 0 ? item.summary.trim() : '未命名课程';
+      plan.timestamp = occurrenceStart;
+      plan.startTime = occurrenceStart;
+      plan.endTime = occurrenceStart + duration;
+      plan.duration = duration;
+      plan.location = item.location.trim();
+      plan.isCourse = 1;
+      plan.description = item.description.trim();
+      plan.loopRule = recurrenceRule === null ? '' : this.buildPlanLoopRule(recurrenceRule);
+      plan.reminderId = 0;
+      plan.enableRemind = 0;
+      plan.createdAt = now;
+      plan.updatedAt = now;
+      plans.push(plan);
+    }
+    return plans;
+  }
+
+  private parseIcsRecurrenceRule(item: IcsItem): IcsRecurrenceRule | null {
+    for (let index = 0; index < item.properties.length; index++) {
+      const property = item.properties[index];
+      if (property.name !== 'RRULE') {
+        continue;
+      }
+      const rule = new IcsRecurrenceRule();
+      const parts: string[] = property.value.split(';');
+      for (let partIndex = 0; partIndex < parts.length; partIndex++) {
+        const segment: string = parts[partIndex].trim();
+        const equalIndex: number = segment.indexOf('=');
+        if (equalIndex <= 0) {
+          continue;
+        }
+        const key: string = segment.substring(0, equalIndex).trim().toUpperCase();
+        const value: string = segment.substring(equalIndex + 1).trim();
+        switch (key) {
+          case 'FREQ':
+            rule.freq = value.toUpperCase();
+            break;
+          case 'UNTIL':
+            rule.until = value;
+            break;
+          case 'COUNT':
+            const countValue: number = Number(value);
+            rule.count = countValue > 0 ? countValue : 0;
+            break;
+          case 'INTERVAL':
+            const intervalValue: number = Number(value);
+            rule.interval = intervalValue > 0 ? intervalValue : 1;
+            break;
+          case 'BYDAY':
+            rule.byDay = this.parseByDayCodes(value);
+            break;
+          default:
+            break;
+        }
+      }
+      return rule.freq.length > 0 ? rule : null;
+    }
+    return null;
+  }
+
+  private expandRecurrenceStarts(startTime: number, rule: IcsRecurrenceRule): Array<number> {
+    switch (rule.freq) {
+      case 'DAILY':
+        return this.expandDailyStarts(startTime, rule);
+      case 'WEEKLY':
+        return this.expandWeeklyStarts(startTime, rule);
+      case 'MONTHLY':
+        return this.expandMonthlyStarts(startTime, rule);
+      case 'YEARLY':
+        return this.expandYearlyStarts(startTime, rule);
+      default:
+        return [startTime];
+    }
+  }
+
+  private expandDailyStarts(startTime: number, rule: IcsRecurrenceRule): Array<number> {
+    const results: Array<number> = [];
+    const untilTime: number = this.resolveRecurrenceUntilTime(rule.until, startTime);
+    const maxCount: number = this.resolveRecurrenceCountLimit(rule.count);
+    const stepMs: number = rule.interval * 24 * 60 * 60 * 1000;
+    let currentTime: number = startTime;
+    while (results.length < maxCount && currentTime <= untilTime) {
+      results.push(currentTime);
+      currentTime += stepMs;
+    }
+    return results;
+  }
+
+  private expandWeeklyStarts(startTime: number, rule: IcsRecurrenceRule): Array<number> {
+    const results: Array<number> = [];
+    const untilTime: number = this.resolveRecurrenceUntilTime(rule.until, startTime);
+    const maxCount: number = this.resolveRecurrenceCountLimit(rule.count);
+    const byDayCodes: string[] = rule.byDay.length > 0 ? rule.byDay : [this.toIcsWeekdayCode(startTime)];
+    const weekdayOffsets: number[] = this.resolveWeeklyOffsets(startTime, byDayCodes);
+    const startDate: Date = new Date(startTime);
+    const startWeekBaseTime: number = this.resolveWeekBaseTime(startDate);
+
+    let weekIndex: number = 0;
+    while (results.length < maxCount) {
+      const weekBaseTime: number = startWeekBaseTime + weekIndex * rule.interval * 7 * 24 * 60 * 60 * 1000;
+      let reachedBoundary: boolean = false;
+      for (let offsetIndex = 0; offsetIndex < weekdayOffsets.length; offsetIndex++) {
+        const occurrenceTime: number = weekBaseTime + weekdayOffsets[offsetIndex] * 24 * 60 * 60 * 1000 +
+          this.resolveTimeOfDayOffset(startDate);
+        if (occurrenceTime < startTime) {
+          continue;
+        }
+        if (occurrenceTime > untilTime) {
+          reachedBoundary = true;
+          continue;
+        }
+        results.push(occurrenceTime);
+        if (results.length >= maxCount) {
+          return results;
+        }
+      }
+      if (reachedBoundary && weekBaseTime > untilTime) {
+        break;
+      }
+      if (weekBaseTime > untilTime) {
+        break;
+      }
+      weekIndex += 1;
+    }
+    return results;
+  }
+
+  private expandMonthlyStarts(startTime: number, rule: IcsRecurrenceRule): Array<number> {
+    const results: Array<number> = [];
+    const untilTime: number = this.resolveRecurrenceUntilTime(rule.until, startTime);
+    const maxCount: number = this.resolveRecurrenceCountLimit(rule.count);
+    let occurrenceIndex: number = 0;
+    while (results.length < maxCount) {
+      const currentDate: Date = new Date(startTime);
+      currentDate.setMonth(currentDate.getMonth() + occurrenceIndex * rule.interval);
+      const occurrenceTime: number = currentDate.getTime();
+      if (occurrenceTime > untilTime) {
+        break;
+      }
+      results.push(occurrenceTime);
+      occurrenceIndex += 1;
+    }
+    return results;
+  }
+
+  private expandYearlyStarts(startTime: number, rule: IcsRecurrenceRule): Array<number> {
+    const results: Array<number> = [];
+    const untilTime: number = this.resolveRecurrenceUntilTime(rule.until, startTime);
+    const maxCount: number = this.resolveRecurrenceCountLimit(rule.count);
+    let occurrenceIndex: number = 0;
+    while (results.length < maxCount) {
+      const currentDate: Date = new Date(startTime);
+      currentDate.setFullYear(currentDate.getFullYear() + occurrenceIndex * rule.interval);
+      const occurrenceTime: number = currentDate.getTime();
+      if (occurrenceTime > untilTime) {
+        break;
+      }
+      results.push(occurrenceTime);
+      occurrenceIndex += 1;
+    }
+    return results;
+  }
+
+  private resolveRecurrenceUntilTime(until: string, fallbackStartTime: number): number {
+    if (until.trim().length === 0) {
+      return Number.MAX_SAFE_INTEGER;
+    }
+
+    const normalized: string = until.trim();
+    if (normalized.length === 8) {
+      const dayEndTime: number = this.parseIcsDateTime(`${normalized}T235959`);
+      return dayEndTime > 0 ? dayEndTime : fallbackStartTime;
+    }
+
+    const parsedTime: number = this.parseIcsDateTime(normalized);
+    return parsedTime > 0 ? parsedTime : fallbackStartTime;
+  }
+
+  private resolveRecurrenceCountLimit(count: number): number {
+    if (count > 0) {
+      return count;
+    }
+    return 1000;
+  }
+
+  private resolveWeeklyOffsets(startTime: number, byDayCodes: string[]): Array<number> {
+    const offsets: Array<number> = [];
+    for (let index = 0; index < byDayCodes.length; index++) {
+      const offset: number = this.toWeekOffset(byDayCodes[index]);
+      if (offset < 0 || offsets.indexOf(offset) >= 0) {
+        continue;
+      }
+      offsets.push(offset);
+    }
+    if (offsets.length === 0) {
+      offsets.push(this.toWeekOffset(this.toIcsWeekdayCode(startTime)));
+    }
+    offsets.sort((left: number, right: number) => left - right);
+    return offsets;
+  }
+
+  private resolveWeekBaseTime(date: Date): number {
+    const normalized: Date = new Date(date.getTime());
+    const weekday: number = normalized.getDay();
+    const sundayOffset: number = weekday === 0 ? 0 : weekday;
+    normalized.setDate(normalized.getDate() - sundayOffset);
+    normalized.setHours(0, 0, 0, 0);
+    return normalized.getTime();
+  }
+
+  private resolveTimeOfDayOffset(date: Date): number {
+    return date.getHours() * 60 * 60 * 1000 +
+      date.getMinutes() * 60 * 1000 +
+      date.getSeconds() * 1000 +
+      date.getMilliseconds();
+  }
+
+  private toWeekOffset(byDayCode: string): number {
+    switch (byDayCode) {
+      case 'SU':
+        return 0;
+      case 'MO':
+        return 1;
+      case 'TU':
+        return 2;
+      case 'WE':
+        return 3;
+      case 'TH':
+        return 4;
+      case 'FR':
+        return 5;
+      case 'SA':
+        return 6;
+      default:
+        return -1;
+    }
+  }
+
+  private toIcsWeekdayCode(timestamp: number): string {
+    switch (new Date(timestamp).getDay()) {
+      case 0:
+        return 'SU';
+      case 1:
+        return 'MO';
+      case 2:
+        return 'TU';
+      case 3:
+        return 'WE';
+      case 4:
+        return 'TH';
+      case 5:
+        return 'FR';
+      case 6:
+        return 'SA';
+      default:
+        return 'MO';
+    }
+  }
+
+  private buildPlanLoopRule(rule: IcsRecurrenceRule): string {
+    const parts: string[] = [`FREQ=${rule.freq}`];
+    if (rule.interval > 1) {
+      parts.push(`INTERVAL=${rule.interval}`);
+    }
+    if (rule.byDay.length > 0) {
+      parts.push(`BYDAY=${rule.byDay.join(',')}`);
+    }
+    if (rule.until.length > 0) {
+      parts.push(`UNTIL=${rule.until}`);
+    }
+    if (rule.count > 0) {
+      parts.push(`COUNT=${rule.count}`);
+    }
+    return parts.join(';');
+  }
+
+  private parseByDayCodes(value: string): Array<string> {
+    const result: Array<string> = [];
+    const rawValues: Array<string> = value.split(',');
+    for (let index = 0; index < rawValues.length; index++) {
+      const dayCode: string = rawValues[index].trim().toUpperCase();
+      if (dayCode.length === 0) {
+        continue;
+      }
+      result.push(dayCode);
+    }
+    return result;
   }
 
   private mapPlanToIcsItem(plan: Plan): IcsItem {
