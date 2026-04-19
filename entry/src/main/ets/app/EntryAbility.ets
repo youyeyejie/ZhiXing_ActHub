@@ -16,9 +16,35 @@ import { ThemeMode } from "../core/theme/ThemeManager";
 import { useAppState } from "./AppStates";
 import { AppPreferenceKey } from "./AppConstants";
 
+/**
+ * 组件功能简介：
+ * - 应用主 Ability 入口，负责窗口创建、数据库初始化与启动流程协调。
+ *
+ * 可传入项：
+ * - 系统生命周期回调参数（如 `Want`、`WindowStage`、`Configuration`）。
+ *
+ * 返回行为：
+ * - 在生命周期中完成主题同步、页面加载与前后台状态切换。
+ *
+ * 副作用：
+ * - 会写入 AppStorage、初始化数据库、请求权限并触发页面加载。
+ */
 export default class EntryAbility extends UIAbility {
   private app = useAppState();
 
+  /**
+   * 组件功能简介：
+   * - 根据系统色彩模式判断是否为深色主题。
+   *
+   * 可传入项：
+   * - `colorMode`: 系统配置中的颜色模式。
+   *
+   * 返回行为：
+   * - 返回是否深色模式。
+   *
+   * 副作用：
+   * - 无。
+   */
   private isSystemDarkMode(colorMode: ConfigurationConstant.ColorMode | undefined): boolean {
     return colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK;
   }

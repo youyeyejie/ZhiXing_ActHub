@@ -143,9 +143,10 @@ export struct AIInsightConversation {
           Column().height(100)
         }
         .width('100%')
+        .alignItems(HorizontalAlign.Start)
       }
       .layoutWeight(1)
-      .scrollBar(BarState.Auto)
+      .scrollBar(BarState.Off)
       .align(Alignment.Top)
 
       // 底部操作栏

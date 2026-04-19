@@ -3,7 +3,7 @@ import { DatabaseConfig } from '../database/DatabaseConfig';
 import { BaseEntity } from './BaseEntity';
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 用户实体模型，对应 `users` 表。
  *
  * 可传入项：

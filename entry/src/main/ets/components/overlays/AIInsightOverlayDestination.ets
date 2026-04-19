@@ -4,8 +4,17 @@ import { AIInsightPage } from '../../pages/aiinsight/Index';
 import { AIInsightState, useAIInsightState } from '../../pages/aiinsight/AIInsightState';
 
 /**
- * AI 洞察页 overlay 路由容器。
- * 承载全屏 AIInsightPage 并处理底部弹起入场动画。
+ * 组件功能简介：
+ * - AI 洞察页 Overlay 路由容器，承载洞察页面并控制入场/退场动画。
+ *
+ * 可传入项：
+ * - 无（通过全局 `AppState` 与 `AIInsightState` 协同）。
+ *
+ * 返回行为：
+ * - 渲染全屏 `AIInsightPage`，并接管返回键与关闭行为。
+ *
+ * 副作用：
+ * - 会更新导航 Overlay 状态并触发路由返回。
  */
 @ComponentV2
 export struct AIInsightOverlayDestination {

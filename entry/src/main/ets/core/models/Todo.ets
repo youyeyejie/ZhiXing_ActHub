@@ -3,8 +3,17 @@ import { DatabaseConfig } from "../database/DatabaseConfig";
 import { BaseEntity } from "./BaseEntity";
 
 /**
- * 待办实体定义。
- * 对齐待办模块 MVP 所需字段：标题（content）+ 详情（detail）+ 分类/状态信息。
+ * 组件功能简介：
+ * - 待办实体模型，对应 `todos` 表，承载待办标题、详情、分类与完成状态。
+ *
+ * 可传入项：
+ * - 通过实例字段写入 `content/detail/categoryId/isDone/inFocus` 等业务数据。
+ *
+ * 返回行为：
+ * - 作为 ORM 实体参与待办模块持久化与查询映射。
+ *
+ * 副作用：
+ * - 无（数据承载类）。
  */
 @Table({ name: DatabaseConfig.TODO_TABLE })
 export class Todo extends BaseEntity {

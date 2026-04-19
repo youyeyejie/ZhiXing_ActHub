@@ -1,7 +1,7 @@
 import { AppState, useAppState } from '../../app/AppStates';
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - ActionSheet 外部控制器，提供主动关闭能力。
  *
  * 可传入项：

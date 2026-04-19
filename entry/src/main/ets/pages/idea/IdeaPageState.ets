@@ -2,6 +2,19 @@ import { Idea } from '../../core/models/Idea';
 import { IdeaRepository } from '../../core/repositories/IdeaRepository';
 import { UndoStackItem } from '../../components/feedback/UndoNotificationStack';
 
+/**
+ * 组件功能简介：
+ * - 闪记页面撤销任务对象，保存待恢复数据与时限信息。
+ *
+ * 可传入项：
+ * - 构造参数包含任务 ID、闪记快照、原始索引与截止时间。
+ *
+ * 返回行为：
+ * - 创建撤销任务实例供状态层暂存。
+ *
+ * 副作用：
+ * - 无。
+ */
 class IdeaUndoTask {
   taskId: string;
   idea: Idea;
@@ -16,6 +29,19 @@ class IdeaUndoTask {
   }
 }
 
+/**
+ * 组件功能简介：
+ * - 闪记卡片视图模型，承载列表渲染所需追踪字段。
+ *
+ * 可传入项：
+ * - `applyFrom(idea)` 传入闪记实体。
+ *
+ * 返回行为：
+ * - 同步并暴露用于 UI 的闪记字段。
+ *
+ * 副作用：
+ * - 更新追踪字段后会触发相关 UI 刷新。
+ */
 @ObservedV2
 export class IdeaItem {
   @Trace id: number = 0;
@@ -35,6 +61,19 @@ export class IdeaItem {
   }
 }
 
+/**
+ * 组件功能简介：
+ * - 闪记页面状态容器，管理闪记列表、编辑态与撤销队列。
+ *
+ * 可传入项：
+ * - 通过公开方法接收新增、更新、删除和筛选操作参数。
+ *
+ * 返回行为：
+ * - 输出页面渲染所需的可见列表、卡片模型和交互状态。
+ *
+ * 副作用：
+ * - 会读写闪记仓储并更新本地响应式状态。
+ */
 @ObservedV2
 export class IdeaPageState {
   private repository: IdeaRepository = new IdeaRepository();

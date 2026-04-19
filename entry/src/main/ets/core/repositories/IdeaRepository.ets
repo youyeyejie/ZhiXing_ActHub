@@ -3,8 +3,17 @@ import { BaseRepository } from "./BaseRepository";
 import { RepositoryScope } from "../database/RepositoryScope";
 
 /**
- * 闪记仓储。
- * 提供闪记的 CRUD、搜索和热力图统计能力。
+ * 组件功能简介：
+ * - 闪记仓储实现，负责闪记记录查询与热力图统计聚合。
+ *
+ * 可传入项：
+ * - 统计方法接收统计天数参数 `days`。
+ *
+ * 返回行为：
+ * - 返回每日记录数量映射、总记录数与总字数。
+ *
+ * 副作用：
+ * - 读取用户数据库中的 `ideas` 数据。
  */
 export class IdeaRepository extends BaseRepository<Idea> {
   constructor() {

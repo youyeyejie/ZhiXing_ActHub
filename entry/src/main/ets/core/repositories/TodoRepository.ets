@@ -3,7 +3,7 @@ import { BaseRepository } from './BaseRepository';
 import { RepositoryScope } from '../database/RepositoryScope';
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 待办仓储实现，承载 Todo 实体的数据访问。
  * - 提供按完成状态筛选的能力。
  *

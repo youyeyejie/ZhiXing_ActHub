@@ -5,7 +5,7 @@ import { common } from '@kit.AbilityKit';
 import { AppSettingRepository } from '../repositories/AppSettingRepository';
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 应用数据库入口单例，负责 ORM 初始化、迁移和关闭。
  *
  * 可传入项：

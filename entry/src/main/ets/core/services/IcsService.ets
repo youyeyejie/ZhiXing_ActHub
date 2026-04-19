@@ -90,7 +90,7 @@ class ParsedContentLine {
 }
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 提供最小可用的 iCalendar(ICS) 文件读写能力。
  * - 当前聚焦 `VCALENDAR` / `VEVENT`，并保留其他组件原始属性，便于后续扩展 `VTODO`、`VTIMEZONE`。
  *

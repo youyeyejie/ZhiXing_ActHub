@@ -3,8 +3,17 @@ import { AppState, useAppState } from '../../app/AppStates';
 import { SharedInteractionTestPage } from '../../pages/sharedtest';
 
 /**
- * sharedtest overlay 容器。
- * 与 focus/aiinsight 一致：由底部上滑进入、下滑退出。
+ * 组件功能简介：
+ * - 共享交互测试页 Overlay 路由容器，负责测试页的弹入弹出转场。
+ *
+ * 可传入项：
+ * - 无（使用全局导航状态与内部关闭流程）。
+ *
+ * 返回行为：
+ * - 渲染 `SharedInteractionTestPage` 并提供统一的关闭入口。
+ *
+ * 副作用：
+ * - 会更新 Overlay 路由标记并触发导航返回。
  */
 @ComponentV2
 export struct SharedTestOverlayDestination {

@@ -7,7 +7,7 @@ import { UserPreferenceRepository } from '../repositories/UserPreferenceReposito
 const NOTIFICATION_PERMISSION_REFUSED_CODE: number = 1600004;
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 系统通知服务封装。
  * - 当前仅承载专注模块完成通知，日程提醒已改由 Calendar Kit 承载。
  */

@@ -4,6 +4,21 @@ import { PlayerState } from '../../../core/services/WhiteNoisePlayer';
 import { common } from '@kit.AbilityKit'; 
 import { WhiteNoiseSelectorCard } from './WhiteNoiseSelectorCard';
 
+/**
+ * 组件功能简介：
+ * - 专注页控制按钮组件，负责白噪音、开始/暂停与停止三类核心操作。
+ *
+ * 可传入项：
+ * - `customDuration`：自定义专注时长（秒）。
+ * - `customRestDuration`：自定义休息时长（秒）。
+ * - `goBackIndex`：开始后返回主视图的回调。
+ *
+ * 返回行为：
+ * - 渲染控制按钮区域并驱动专注引擎状态流转。
+ *
+ * 副作用：
+ * - 会调用专注引擎与白噪音播放器，并可能打开详情弹层。
+ */
 @ComponentV2
 export struct FocusControlButtons {
   @Local private app: AppState = useAppState();

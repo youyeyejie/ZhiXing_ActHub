@@ -9,6 +9,19 @@ import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
 import { ThemeMode } from "../../core/theme/ThemeManager";
 import { UserShareService } from './UserShareService';
 
+/**
+ * 组件功能简介：
+ * - 我的页面主组件，负责用户资料展示、统计入口、设置入口与分享行为。
+ *
+ * 可传入项：
+ * - `onBottomBarVisibleChange`：通知底部栏显示状态的回调。
+ *
+ * 返回行为：
+ * - 渲染“我的”页面内容并响应主题切换、分享和登出交互。
+ *
+ * 副作用：
+ * - 会触发主题设置更新、页面分享与退出登录操作。
+ */
 @ComponentV2
 export struct UserPage {
   @Local private app: AppState = useAppState();
@@ -91,9 +104,6 @@ export struct UserPage {
     );
   }
 
-  private openSharedTestOverlay(): void {
-    this.app.nav.pushOverlayByName(AppOverlayRoute.SHARED_TEST, undefined, false);
-  }
   @Builder
   private buildProfileCard(showThemeToggle: boolean) {
     Column({ space: 16 }) {
@@ -107,9 +117,6 @@ export struct UserPage {
           .fontWeight(FontWeight.Bold)
           .fontColor(this.app.theme.palette.surface)
           .textAlign(TextAlign.Center)
-          .onClick(() => {
-            this.openSharedTestOverlay();
-          })
         Column({ space: 4 }) {
           Text(this.resolveDisplayName())
             .fontSize(22)

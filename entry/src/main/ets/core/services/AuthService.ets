@@ -7,6 +7,20 @@ import { UserPreferenceRepository } from '../repositories/UserPreferenceReposito
 import { AppPreferenceKey } from '../../app/AppConstants';
 import { ThemeMode } from '../theme/ThemeManager';
 
+/**
+ * 组件功能简介：
+ * - 认证服务，封装登录、注册、会话恢复与退出流程。
+ *
+ * 可传入项：
+ * - `login/register` 接收账号与密码。
+ * - 其它方法使用数据库中已保存的会话信息。
+ *
+ * 返回行为：
+ * - 返回当前用户对象或 `null`，并维护会话状态。
+ *
+ * 副作用：
+ * - 会写入会话设置、初始化用户数据库并更新用户默认偏好。
+ */
 export class AuthService {
   private currentUser: User | null = null;
 

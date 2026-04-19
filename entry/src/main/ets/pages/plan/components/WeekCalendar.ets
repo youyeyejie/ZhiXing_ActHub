@@ -13,15 +13,9 @@ export struct WeekCalendar {
   @Local private lastTapEventAt: number = 0;
   @Local private swiperIndex: number = 2;
   @Local private ignoreNextSwiperChange: boolean = false;
-  @Local private isReturningToToday: boolean = false;
-  @Local private pendingReturnWeekOffset: number = 0;
-  @Local private returnTargetDayStart: number = 0;
-  private returnTodayTimerId: number = -1;
   private readonly dayMs: number = 24 * 60 * 60 * 1000;
   private readonly centerSwiperIndex: number = 2;
   private readonly weekOffsets: Array<number> = [-2, -1, 0, 1, 2];
-  private readonly returnStepDurationShort: number = 500;
-  private readonly returnStepDurationLong: number = 300;
 
   private resolveWeekDays(weekOffset: number): Array<number> {
     const list: Array<number> = [];
@@ -83,98 +77,14 @@ export struct WeekCalendar {
   }
 
   aboutToDisappear(): void {
-    this.stopReturnToTodayAnimation();
-  }
-
-  private clearReturnTodayTimer(): void {
-    if (this.returnTodayTimerId >= 0) {
-      clearTimeout(this.returnTodayTimerId);
-      this.returnTodayTimerId = -1;
-    }
-  }
-
-  private stopReturnToTodayAnimation(): void {
-    this.clearReturnTodayTimer();
-    this.isReturningToToday = false;
-    this.pendingReturnWeekOffset = 0;
-  }
-
-  private resolveReturnWeekOffset(todayDayStart: number): number {
-    const currentWeekBase = this.resolveWeekStart(this.toDayStart(this.state.selectedDate));
-    const todayWeekBase = this.resolveWeekStart(todayDayStart);
-    return Math.round((todayWeekBase - currentWeekBase) / (7 * this.dayMs));
-  }
-
-  private resolveReturnStepWeekOffset(remainingWeekOffset: number): number {
-    if (remainingWeekOffset > 0) {
-      return remainingWeekOffset >= 2 ? 2 : 1;
-    }
-    if (remainingWeekOffset < 0) {
-      return remainingWeekOffset <= -2 ? -2 : -1;
-    }
-    return 0;
-  }
-
-  private resolveReturnStepDuration(stepWeekOffset: number): number {
-    return Math.abs(stepWeekOffset) === 2
-      ? this.returnStepDurationLong
-      : this.returnStepDurationShort;
-  }
-
-  private finishReturnToTodayAnimation(): void {
-    const targetDayStart = this.returnTargetDayStart > 0
-      ? this.returnTargetDayStart
-      : this.toDayStart(Date.now());
-    this.stopReturnToTodayAnimation();
-    this.state.selectDate(targetDayStart);
-    this.resetSwiperToCenter();
-  }
-
-  private runReturnToTodayStep(): void {
-    if (!this.isReturningToToday) {
-      return;
-    }
-    if (this.pendingReturnWeekOffset === 0) {
-      this.finishReturnToTodayAnimation();
-      return;
-    }
-    const stepWeekOffset = this.resolveReturnStepWeekOffset(this.pendingReturnWeekOffset);
-    const targetIndex = this.centerSwiperIndex + stepWeekOffset;
-    if (targetIndex < 0 || targetIndex >= this.weekOffsets.length) {
-      this.finishReturnToTodayAnimation();
-      return;
-    }
-    const stepDuration = this.resolveReturnStepDuration(stepWeekOffset);
-    animateTo({ duration: stepDuration, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
-      this.swiperIndex = targetIndex;
-    });
-    this.pendingReturnWeekOffset = this.pendingReturnWeekOffset - stepWeekOffset;
-    this.clearReturnTodayTimer();
-    this.returnTodayTimerId = setTimeout(() => {
-      this.returnTodayTimerId = -1;
-      this.runReturnToTodayStep();
-    }, stepDuration + 40);
+    this.lastTapAt = 0;
+    this.lastTapEventAt = 0;
   }
 
   private startReturnToTodayAnimation(): void {
-    if (this.isReturningToToday) {
-      return;
-    }
     const todayDayStart = this.toDayStart(Date.now());
-    if (this.toDayStart(this.state.selectedDate) === todayDayStart) {
-      this.state.jumpToToday();
-      this.resetSwiperToCenter();
-      return;
-    }
-    this.returnTargetDayStart = todayDayStart;
-    this.pendingReturnWeekOffset = this.resolveReturnWeekOffset(todayDayStart);
-    if (this.pendingReturnWeekOffset === 0) {
-      this.state.selectDate(todayDayStart);
-      this.resetSwiperToCenter();
-      return;
-    }
-    this.isReturningToToday = true;
-    this.runReturnToTodayStep();
+    this.state.selectDate(todayDayStart);
+    this.resetSwiperToCenter();
   }
 
   private handleTapReturnToday(): boolean {
@@ -212,6 +122,13 @@ export struct WeekCalendar {
     }
     this.state.shiftWeek(deltaWeek);
     this.resetSwiperToCenter();
+  }
+
+  private resolveDayBackgroundColor(dayTimestamp: number): string {
+    if (!this.isSelectedDay(dayTimestamp)) {
+      return this.app.theme.palette.transparent;
+    }
+    return this.app.theme.palette.primary;
   }
 
   @Builder
@@ -252,10 +169,8 @@ export struct WeekCalendar {
         .height(30)
         .textAlign(TextAlign.Center)
         .borderRadius(15)
-        .backgroundColor(
-          this.isSelectedDay(dayTimestamp) ? this.app.theme.palette.primary : this.app.theme.palette.transparent,
-        )
-        .animation({ duration: 340, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
+        .backgroundColor(this.resolveDayBackgroundColor(dayTimestamp))
+        .animation({ duration: 380, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
     }
     .width(40)
     .padding({ top: 4, bottom: 4 })
@@ -264,7 +179,6 @@ export struct WeekCalendar {
       if (this.handleTapReturnToday()) {
         return;
       }
-      this.stopReturnToTodayAnimation();
       this.state.selectDate(dayTimestamp);
     });
   }

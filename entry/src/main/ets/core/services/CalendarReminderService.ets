@@ -13,7 +13,7 @@ const CALENDAR_PERMISSIONS: Array<Permissions> = [
 ];
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 通过 Calendar Kit 为日程注册系统日历事件，借助系统日历完成提醒。
  * - `Plan.reminderId` 当前复用为系统日历 `eventId`。
  *

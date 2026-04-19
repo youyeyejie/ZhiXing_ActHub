@@ -1,18 +1,57 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 import { FocusRepository } from '../../../core/repositories/FocusRepository';
 
+/**
+ * 组件功能简介：
+ * - 专注统计日维度柱状数据结构，描述单日标签与时长信息。
+ *
+ * 可传入项：
+ * - `dateKey`、`label`、`duration`。
+ *
+ * 返回行为：
+ * - 作为统计图计算与渲染的数据单元。
+ *
+ * 副作用：
+ * - 无。
+ */
 interface FocusDayBar {
   dateKey: string;
   label: string;
   duration: number;
 }
 
+/**
+ * 组件功能简介：
+ * - 专注统计分页数据结构，封装一页区间标签与日柱集合。
+ *
+ * 可传入项：
+ * - `anchorDateKey`、`rangeLabel`、`bars`。
+ *
+ * 返回行为：
+ * - 作为图表分页切换的数据载体。
+ *
+ * 副作用：
+ * - 无。
+ */
 interface FocusBarPage {
   anchorDateKey: string;
   rangeLabel: string;
   bars: Array<FocusDayBar>;
 }
 
+/**
+ * 组件功能简介：
+ * - 专注统计图组件，按周分页展示专注时长并汇总总时长/次数。
+ *
+ * 可传入项：
+ * - 无（通过仓储读取统计数据并监听全局刷新版本）。
+ *
+ * 返回行为：
+ * - 渲染可滑动的专注统计图与汇总指标。
+ *
+ * 副作用：
+ * - 页面出现或刷新信号变化时会发起仓储查询。
+ */
 @ComponentV2
 export struct FocusStatsChart {
   @Local private app: AppState = useAppState();

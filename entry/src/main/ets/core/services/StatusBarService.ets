@@ -2,7 +2,7 @@ import { window } from '@kit.ArkUI';
 import { ThemePalette } from '../theme/ThemePalette';
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 状态栏显隐服务，统一管理主窗口状态栏开关。
  *
  * 可传入项：

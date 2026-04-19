@@ -3,7 +3,7 @@ import { DatabaseConfig } from '../database/DatabaseConfig';
 import { BaseEntity } from './BaseEntity';
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 日程实体模型，对应 `plans` 表。
  *
  * 可传入项：

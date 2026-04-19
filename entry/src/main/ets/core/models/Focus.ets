@@ -3,7 +3,7 @@ import { DatabaseConfig } from '../database/DatabaseConfig';
 import { BaseEntity } from './BaseEntity';
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 专注记录实体模型，对应 `focus_records` 表。
  *
  * 可传入项：

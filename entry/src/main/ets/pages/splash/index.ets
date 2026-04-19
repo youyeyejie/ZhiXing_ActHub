@@ -1,6 +1,19 @@
 import { AppConstants } from '../../app/AppConstants';
 import { AppState, useAppState } from '../../app/AppStates';
 
+/**
+ * 组件功能简介：
+ * - 启动页组件，负责展示品牌信息与引导应用启动初始化流程。
+ *
+ * 可传入项：
+ * - 无（通过 `AppState` 执行 `bootstrap`）。
+ *
+ * 返回行为：
+ * - 渲染启动态 UI，并在初始化完成后驱动流程跳转。
+ *
+ * 副作用：
+ * - 会触发应用启动初始化与状态切换。
+ */
 @ComponentV2
 export struct SplashPage {
   @Local private app: AppState = useAppState();

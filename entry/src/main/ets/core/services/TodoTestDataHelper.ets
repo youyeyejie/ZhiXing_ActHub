@@ -2,7 +2,17 @@ import { Todo } from '../models/Todo';
 import { TodoRepository } from '../repositories/TodoRepository';
 
 /**
- * 运行时测试数据助手：用于在共享测试页快速生成待办数据。
+ * 组件功能简介：
+ * - 运行时测试数据助手，用于批量生成专注场景待办样本。
+ *
+ * 可传入项：
+ * - `generateFocusTestData(count)` 的 `count` 为生成条数。
+ *
+ * 返回行为：
+ * - 返回实际成功插入的数据条数。
+ *
+ * 副作用：
+ * - 会写入用户数据库中的待办记录。
  */
 export class TodoTestDataHelper {
   private repository: TodoRepository = new TodoRepository();

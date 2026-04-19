@@ -1,8 +1,20 @@
 import { AppState, useAppState } from "../../app/AppStates";
 
 /**
- * 通用右下角悬浮新增按钮。
- * 统一用于主页面的新建入口，避免各页重复维护样式和定位。
+ * 组件功能简介：
+ * - 通用悬浮操作按钮组件，用于页面右下角新增入口与快捷操作触发。
+ *
+ * 可传入项：
+ * - `content`：图标资源。
+ * - `label`：按钮文本。
+ * - `buttonSize`、`iconSize`：尺寸配置。
+ * - `onTap`：点击回调。
+ *
+ * 返回行为：
+ * - 渲染圆形悬浮按钮，并在点击时触发回调。
+ *
+ * 副作用：
+ * - 会触发 `onTap` 事件。
  */
 @ComponentV2
 export struct FloatingActionButton {

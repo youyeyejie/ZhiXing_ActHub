@@ -7,7 +7,7 @@ import { UserPreferenceRepository } from '../repositories/UserPreferenceReposito
 import { HashUtils } from '../security/HashUtils';
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 当前登录用户数据库入口，负责按用户名哈希创建独立数据库并维护连接生命周期。
  */
 export class UserDatabase {

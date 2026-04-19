@@ -9,6 +9,19 @@ import { UndoStackItem } from '../../components/feedback/UndoNotificationStack';
 import pasteboard from '@ohos.pasteboard';
 import promptAction from '@ohos.promptAction';
 
+/**
+ * 组件功能简介：
+ * - AI 洞察撤销任务结构，保存删除记录恢复所需上下文。
+ *
+ * 可传入项：
+ * - 构造参数包含任务 ID、洞察记录快照、原始索引与截止时间。
+ *
+ * 返回行为：
+ * - 创建撤销任务实例供状态层管理。
+ *
+ * 副作用：
+ * - 无。
+ */
 class AIInsightUndoTask {
   taskId: string;
   record: InsightRecord;
@@ -24,7 +37,17 @@ class AIInsightUndoTask {
 }
 
 /**
- * 洞察记录。
+ * 组件功能简介：
+ * - AI 洞察记录视图模型，承载历史记录列表展示字段。
+ *
+ * 可传入项：
+ * - 构造参数包含记录 ID、模式、时间、关键词、摘要与全文等信息。
+ *
+ * 返回行为：
+ * - 生成可用于页面展示与持久化映射的记录对象。
+ *
+ * 副作用：
+ * - 无。
  */
 export class InsightRecord {
   id: number;
@@ -61,8 +84,17 @@ export class InsightRecord {
 }
 
 /**
- * AI 洞察中心状态管理。
- * 管理历史记录、当前对话、流式生成、笔记选择等状态。
+ * 组件功能简介：
+ * - AI 洞察页面状态容器，管理历史记录、流式生成与笔记选择流程。
+ *
+ * 可传入项：
+ * - 通过公开方法接收洞察生成、记录删除/恢复、复制与视图切换等操作参数。
+ *
+ * 返回行为：
+ * - 输出洞察页面渲染所需状态，如历史记录、生成文本与当前视图模式。
+ *
+ * 副作用：
+ * - 会调用 AI 服务发起网络请求、读写仓储并更新全局会话状态。
  */
 @ObservedV2
 export class AIInsightState {

@@ -13,11 +13,38 @@ import { UserPreferenceRepository } from '../core/repositories/UserPreferenceRep
 
 
 
+/**
+ * 组件功能简介：
+ * - 认证动作返回结构，统一封装认证是否成功与提示消息。
+ *
+ * 可传入项：
+ * - `success`: 认证结果。
+ * - `message`: 反馈文案。
+ *
+ * 返回行为：
+ * - 作为登录/注册方法返回值类型。
+ *
+ * 副作用：
+ * - 无。
+ */
 export interface AuthActionResult {
   success: boolean;
   message: string;
 }
 
+/**
+ * 组件功能简介：
+ * - AI 洞察单条会话记录状态对象。
+ *
+ * 可传入项：
+ * - 通过字段写入 `id/mode/keywords/summary/fullContent` 等状态。
+ *
+ * 返回行为：
+ * - 提供 `reset()` 清空当前记录状态。
+ *
+ * 副作用：
+ * - `reset()` 会重置全部追踪字段。
+ */
 @ObservedV2
 export class AIInsightSessionRecordState {
   @Trace public id: number = 0;
@@ -43,6 +70,19 @@ export class AIInsightSessionRecordState {
   }
 }
 
+/**
+ * 组件功能简介：
+ * - AI 洞察会话聚合状态，维护生成过程与当前记录。
+ *
+ * 可传入项：
+ * - 通过字段写入 `isGenerating/generatingText/errorMessage`。
+ *
+ * 返回行为：
+ * - 通过 `activeRecord` 提供当前记录对象访问。
+ *
+ * 副作用：
+ * - `reset()` 会清空会话生成态与记录态。
+ */
 @ObservedV2
 export class AIInsightSessionState {
   private activeRecordState: AIInsightSessionRecordState = new AIInsightSessionRecordState();
@@ -63,7 +103,7 @@ export class AIInsightSessionState {
 }
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 应用运行态单例，统一管理主题、导航与流程状态。
  *
  * 可传入项：
@@ -326,6 +366,19 @@ export class AppState {
 
 const APP_STATE: AppState = new AppState();
 
+/**
+ * 组件功能简介：
+ * - 获取应用运行态单例。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 返回全局唯一 `AppState` 实例。
+ *
+ * 副作用：
+ * - 无。
+ */
 export function useAppState(): AppState {
   return APP_STATE;
 }

@@ -1,6 +1,19 @@
 import promptAction from '@ohos.promptAction';
 import { AppState, useAppState } from '../../app/AppStates';
 
+/**
+ * 组件功能简介：
+ * - 登录/注册页面组件，负责账号密码输入、模式切换与认证提交。
+ *
+ * 可传入项：
+ * - 无（通过 `AppState` 调用全局认证能力）。
+ *
+ * 返回行为：
+ * - 渲染认证表单并在提交后反馈认证结果。
+ *
+ * 副作用：
+ * - 会触发登录/注册请求并弹出 Toast 提示。
+ */
 @ComponentV2
 export struct LoginPage {
   @Local private app: AppState = useAppState();
@@ -94,8 +107,8 @@ export struct LoginPage {
         Column({ space: 12 }) {
           Column() {
             Image($r('app.media.foreground'))
-              .width(72)
-              .height(72)
+              .width(96)
+              .height(96)
               .objectFit(ImageFit.Contain);
           }
           .width(108)

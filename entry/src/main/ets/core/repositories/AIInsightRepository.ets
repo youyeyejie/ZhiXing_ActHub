@@ -3,7 +3,18 @@ import { AIInsight } from '../models/AIInsight';
 import { UserDatabase } from '../database/UserDatabase';
 
 /**
- * AI 洞察历史仓储。
+ * 组件功能简介：
+ * - AI 洞察历史仓储，负责洞察记录的增删查。
+ *
+ * 可传入项：
+ * - `save(record)` 传入待保存的洞察记录。
+ * - `removeById(id)` 传入目标记录主键。
+ *
+ * 返回行为：
+ * - 提供洞察记录保存、按时间倒序查询与删除能力。
+ *
+ * 副作用：
+ * - 会直接写入或删除用户数据库中的 `ai_insights` 记录。
  */
 export class AIInsightRepository {
   private get orm(): ORM {

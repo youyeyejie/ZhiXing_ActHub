@@ -5,7 +5,7 @@ import { AppDatabase } from "../database/AppDatabase";
 import { UserDatabase } from "../database/UserDatabase";
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 通用仓储基类，封装 IBest-ORM 的基础 CRUD 能力。
  *
  * 可传入项：

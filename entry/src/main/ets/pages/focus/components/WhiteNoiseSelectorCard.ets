@@ -2,6 +2,19 @@ import { AppState, useAppState } from '../../../app/AppStates';
 import { common } from '@kit.AbilityKit';
 import { PlayerState } from '../../../core/services/WhiteNoisePlayer';
 
+/**
+ * 组件功能简介：
+ * - 白噪音选择卡片组件，提供曲目切换与播放中无缝换曲能力。
+ *
+ * 可传入项：
+ * - 无（通过 `AppState` 读取与更新播放器状态）。
+ *
+ * 返回行为：
+ * - 渲染白噪音列表并高亮当前选中项。
+ *
+ * 副作用：
+ * - 点击会更新选中曲目，播放中会触发重新播放。
+ */
 @ComponentV2
 export struct WhiteNoiseSelectorCard {
   @Local private app: AppState = useAppState();

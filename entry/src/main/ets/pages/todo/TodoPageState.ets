@@ -5,6 +5,19 @@ import { TodoCategoryRepository } from "../../core/repositories/TodoCategoryRepo
 import { UndoStackItem } from "../../components/feedback/UndoNotificationStack";
 import { AppState, useAppState } from "../../app/AppStates";
 
+/**
+ * 组件功能简介：
+ * - 待办页面撤销任务对象，保存删除回滚所需上下文。
+ *
+ * 可传入项：
+ * - 构造参数包含任务 ID、待办快照、原始索引、计时器 ID 与截止时间。
+ *
+ * 返回行为：
+ * - 创建撤销任务实例供状态层管理。
+ *
+ * 副作用：
+ * - 无。
+ */
 class TodoUndoTask {
   taskId: string;
   todo: Todo;
@@ -27,6 +40,19 @@ class TodoUndoTask {
   }
 }
 
+/**
+ * 组件功能简介：
+ * - 待办卡片视图模型，聚合标题、分类和完成态等展示字段。
+ *
+ * 可传入项：
+ * - `applyFrom(todo, title, categoryName, categoryColor)` 传入待办及展示字段。
+ *
+ * 返回行为：
+ * - 同步并输出用于列表渲染的追踪字段。
+ *
+ * 副作用：
+ * - 更新追踪字段后会触发列表 UI 刷新。
+ */
 @ObservedV2
 export class TodoItem {
   @Trace id: number = 0;
@@ -54,6 +80,19 @@ export class TodoItem {
   }
 }
 
+/**
+ * 组件功能简介：
+ * - 待办页面状态容器，管理分类、待办列表、编辑态与撤销逻辑。
+ *
+ * 可传入项：
+ * - 通过公开方法接收待办与分类的新增、更新、删除和筛选参数。
+ *
+ * 返回行为：
+ * - 提供页面渲染所需可见列表、卡片模型和交互状态。
+ *
+ * 副作用：
+ * - 会读写待办与分类仓储并更新响应式状态。
+ */
 @ObservedV2
 export class TodoPageState {
   private app: AppState = useAppState();

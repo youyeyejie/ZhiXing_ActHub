@@ -3,6 +3,19 @@ import { PlanRepository } from "../../core/repositories/PlanRepository";
 import { CalendarReminderService } from "../../core/services/CalendarReminderService";
 import { UndoStackItem } from "../../components/feedback/UndoNotificationStack";
 
+/**
+ * 组件功能简介：
+ * - 日程页面撤销任务对象，保存删除回滚所需的日程快照与时间窗口。
+ *
+ * 可传入项：
+ * - 构造参数包含任务 ID、日程快照、原始索引、计时器 ID 与截止时间。
+ *
+ * 返回行为：
+ * - 创建撤销任务实例供状态层维护。
+ *
+ * 副作用：
+ * - 无。
+ */
 class PlanUndoTask {
   taskId: string;
   plan: Plan;
@@ -25,6 +38,19 @@ class PlanUndoTask {
   }
 }
 
+/**
+ * 组件功能简介：
+ * - 日程卡片视图模型，承载列表渲染所需追踪字段。
+ *
+ * 可传入项：
+ * - `applyFrom(plan)` 传入日程实体。
+ *
+ * 返回行为：
+ * - 同步并输出用于渲染的日程字段。
+ *
+ * 副作用：
+ * - 更新追踪字段后会触发对应 UI 刷新。
+ */
 @ObservedV2
 export class PlanItem {
   @Trace id: number = 0;
@@ -50,6 +76,19 @@ export class PlanItem {
   }
 }
 
+/**
+ * 组件功能简介：
+ * - 日程页面状态容器，管理日期范围、日程列表、编辑态与撤销逻辑。
+ *
+ * 可传入项：
+ * - 通过公开方法接收日程新增、编辑、删除及日期切换参数。
+ *
+ * 返回行为：
+ * - 输出页面渲染所需的可见日程、卡片模型和交互状态。
+ *
+ * 副作用：
+ * - 会读写日程仓储并根据设置触发提醒服务。
+ */
 @ObservedV2
 export class PlanPageState {
   private readonly dayMs: number = 24 * 60 * 60 * 1000;
@@ -248,6 +287,14 @@ export class PlanPageState {
       return;
     }
     this.selectDate(this.selectedDate + weekOffset * 7 * this.dayMs);
+  }
+
+  shiftWeekBase(weekOffset: number): void {
+    if (weekOffset === 0) {
+      return;
+    }
+    const nextWeekBase = this.currentWeekBase + weekOffset * 7 * this.dayMs;
+    this.currentWeekBase = this.resolveWeekStart(nextWeekBase);
   }
 
   jumpToToday(): void {

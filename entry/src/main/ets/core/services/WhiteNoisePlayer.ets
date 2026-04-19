@@ -3,7 +3,7 @@ import { BusinessError } from '@kit.BasicServicesKit';
 import { common } from '@kit.AbilityKit';
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 白噪音播放引擎服务类，基于底层 AVPlayer 提供状态完整的本地音频循环播放控制。
  *
  * 可传入项：

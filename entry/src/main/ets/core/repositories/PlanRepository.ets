@@ -3,7 +3,7 @@ import { BaseRepository } from './BaseRepository';
 import { RepositoryScope } from '../database/RepositoryScope';
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 日程仓储实现，承载 Plan 实体的数据访问。
  * - TODO: 尚未补充日期范围与类型维度查询能力。
  *

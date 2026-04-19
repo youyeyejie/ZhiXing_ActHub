@@ -15,6 +15,19 @@ import { TodoRepository } from '../../core/repositories/TodoRepository';
 import { IdeaRepository } from '../../core/repositories/IdeaRepository';
 import { FocusRepository } from '../../core/repositories/FocusRepository';
 
+/**
+ * 组件功能简介：
+ * - 共享交互测试卡片数据结构，定义测试卡片的展示文本。
+ *
+ * 可传入项：
+ * - 构造参数包含 `id`、`title`、`subtitle`。
+ *
+ * 返回行为：
+ * - 创建用于交互测试列表的数据项。
+ *
+ * 副作用：
+ * - 无。
+ */
 class DemoInteractableItem {
   id: string;
   title: string;
@@ -27,6 +40,19 @@ class DemoInteractableItem {
   }
 }
 
+/**
+ * 组件功能简介：
+ * - 测试页撤销删除任务结构，保存回滚所需上下文。
+ *
+ * 可传入项：
+ * - 构造参数包含任务 ID、删除项快照与原始索引。
+ *
+ * 返回行为：
+ * - 创建撤销任务实例用于栈式管理。
+ *
+ * 副作用：
+ * - 无。
+ */
 class UndoDeleteTask {
   taskId: string;
   item: DemoInteractableItem | null;
@@ -39,6 +65,19 @@ class UndoDeleteTask {
   }
 }
 
+/**
+ * 组件功能简介：
+ * - 共享交互测试页面，用于验证卡片手势、撤销通知与测试数据构造流程。
+ *
+ * 可传入项：
+ * - `onRequestDismiss`：请求关闭测试页时的回调。
+ *
+ * 返回行为：
+ * - 渲染测试入口、日志与交互示例区域。
+ *
+ * 副作用：
+ * - 会写入测试数据、触发仓储操作并弹出提示。
+ */
 @ComponentV2
 export struct SharedInteractionTestPage {
   @Local private app: AppState = useAppState();

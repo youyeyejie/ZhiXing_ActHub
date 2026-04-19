@@ -4,7 +4,17 @@ import { common } from "@kit.AbilityKit";
 import { AppDatabase } from "../database/AppDatabase";
 
 /**
- * AI 服务配置。
+ * 组件功能简介：
+ * - AI 服务配置结构，定义访问模型 API 所需关键参数。
+ *
+ * 可传入项：
+ * - `apiKey`、`baseUrl`、`model`。
+ *
+ * 返回行为：
+ * - 作为 `AIService` 的配置输入与持有结构。
+ *
+ * 副作用：
+ * - 无。
  */
 interface AIConfig {
   apiKey: string;
@@ -13,7 +23,17 @@ interface AIConfig {
 }
 
 /**
- * AI 聊天消息。
+ * 组件功能简介：
+ * - AI 对话消息结构，描述一次聊天消息的角色和正文。
+ *
+ * 可传入项：
+ * - `role`、`content`。
+ *
+ * 返回行为：
+ * - 作为聊天请求消息数组中的标准元素。
+ *
+ * 副作用：
+ * - 无。
  */
 interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -21,8 +41,17 @@ interface ChatMessage {
 }
 
 /**
- * AI 服务。
- * 提供与 DeepSeek API 的交互能力。
+ * 组件功能简介：
+ * - AI 服务封装，提供配置加载、连通性测试与流式洞察生成能力。
+ *
+ * 可传入项：
+ * - 构造参数 `apiKey`，以及各公开方法传入的消息/回调参数。
+ *
+ * 返回行为：
+ * - 输出流式请求句柄、测试结果和 AI 文本增量回调。
+ *
+ * 副作用：
+ * - 会读取本地配置并发起网络请求。
  */
 export class AIService {
   private static readonly DEFAULT_CONFIG: AIConfig = {

@@ -1,7 +1,7 @@
 import { AppOverlayRoute, AppRoute, AppTab, FocusRouteParam, SearchRouteParam } from './AppConstants';
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 应用主导航状态管理器，封装主页面切换与 overlay 路由操作。
  *
  * 可传入项：

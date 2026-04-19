@@ -3,7 +3,7 @@ import { BaseRepository } from "./BaseRepository";
 import { RepositoryScope } from "../database/RepositoryScope";
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 用户仓储实现，封装本地注册、登录与用户资料更新能力。
  *
  * 可传入项：

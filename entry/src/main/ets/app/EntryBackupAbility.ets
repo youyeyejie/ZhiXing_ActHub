@@ -1,7 +1,7 @@
 import { BackupExtensionAbility, BundleVersion } from '@kit.CoreFileKit';
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 应用备份扩展入口，预留备份与恢复流程。
  * - TODO: 尚未接入实际数据清单与版本迁移策略。
  *

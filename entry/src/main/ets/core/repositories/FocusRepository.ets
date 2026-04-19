@@ -2,6 +2,20 @@ import { Focus } from '../models/Focus';
 import { BaseRepository } from './BaseRepository';
 import { RepositoryScope } from '../database/RepositoryScope';
 
+/**
+ * 组件功能简介：
+ * - 专注仓储实现，负责专注记录写入与统计聚合查询。
+ *
+ * 可传入项：
+ * - `insertFocusRecord(focus)` 传入待保存专注记录。
+ * - 统计方法接收统计天数参数 `days`。
+ *
+ * 返回行为：
+ * - 返回写入结果、按日时长聚合、总次数与总时长统计。
+ *
+ * 副作用：
+ * - 写操作会更新用户数据库中的 `focus_records` 数据。
+ */
 export class FocusRepository extends BaseRepository<Focus> {
   constructor() {
     super(Focus, RepositoryScope.USER);

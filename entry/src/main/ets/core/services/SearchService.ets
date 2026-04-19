@@ -11,6 +11,19 @@ import { TodoRepository } from '../repositories/TodoRepository';
 import { TodoCategoryRepository } from '../repositories/TodoCategoryRepository';
 import { UserRepository } from '../repositories/UserRepository';
 
+/**
+ * 组件功能简介：
+ * - 搜索范围枚举，标识当前检索所属业务模块。
+ *
+ * 可传入项：
+ * - 无。
+ *
+ * 返回行为：
+ * - 提供计划、待办、闪记、专注、用户五类范围值。
+ *
+ * 副作用：
+ * - 无。
+ */
 export enum SearchScope {
   Plan = 'plan',
   Todo = 'todo',
@@ -20,7 +33,7 @@ export enum SearchScope {
 }
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 统一搜索结果数据结构。
  *
  * 可传入项：
@@ -45,7 +58,7 @@ export class SearchResultItem {
 }
 
 /**
- * 类功能简介：
+ * 组件功能简介：
  * - 统一搜索服务，按模块范围查询本地仓储并返回标准结果。
  *
  * 可传入项：

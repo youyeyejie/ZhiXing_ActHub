@@ -5,10 +5,22 @@ import { AppPreferenceKey } from "../../../app/AppConstants";
 import { CalendarReminderService } from "../../../core/services/CalendarReminderService";
 import { NotificationService } from "../../../core/services/NotificationService";
 import { UserPreferenceRepository } from "../../../core/repositories/UserPreferenceRepository";
-import {
-  ImportExportResult,
-  ImportExportService,
-} from "../../../core/services/ImportExportService";
+import { ImportExportResult, ImportExportService} from "../../../core/services/ImportExportService";
+import { AppOverlayRoute } from "../../../app/AppConstants";
+
+/**
+ * 组件功能简介：
+ * - 用户设置面板组件，管理提醒、通知、导入导出及登出操作。
+ *
+ * 可传入项：
+ * - `onLogoutTap`：点击退出登录时触发的回调。
+ *
+ * 返回行为：
+ * - 渲染设置项并响应开关、菜单与操作点击。
+ *
+ * 副作用：
+ * - 会请求权限、持久化设置、触发导入导出及提醒/通知服务。
+ */
 @ComponentV2
 export struct SettingsPanel {
   @Local private app: AppState = useAppState();
@@ -295,8 +307,13 @@ export struct SettingsPanel {
         .backgroundColor(this.app.theme.palette.primary)
         .borderRadius(16)
         .onClick(() => {
-          this.onLogoutTap();
+          this.onLogoutTap()
         })
+        .gesture(
+          LongPressGesture({ repeat: false, duration: 1000 }).onAction(() => {
+            this.app.nav.pushOverlayByName(AppOverlayRoute.SHARED_TEST, undefined, false);
+          }),
+        );
     }
     .width("100%")
     .padding(16)

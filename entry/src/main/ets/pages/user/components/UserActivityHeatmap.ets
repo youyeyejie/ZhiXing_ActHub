@@ -1,12 +1,38 @@
 import { AppState, useAppState } from '../../../app/AppStates';
 import { IdeaRepository } from '../../../core/repositories/IdeaRepository';
 
+/**
+ * 组件功能简介：
+ * - 用户活跃热力图单元数据结构，描述某天的活跃计数与未来态。
+ *
+ * 可传入项：
+ * - `dateKey`、`count`、`isFuture`。
+ *
+ * 返回行为：
+ * - 作为热力图网格渲染的数据单元。
+ *
+ * 副作用：
+ * - 无。
+ */
 interface UserHeatmapDay {
   dateKey: string;
   count: number;
   isFuture: boolean;
 }
 
+/**
+ * 组件功能简介：
+ * - 用户活跃热力图组件，展示近多周闪记活跃分布与累计统计。
+ *
+ * 可传入项：
+ * - 无（通过仓储加载统计并读取主题色）。
+ *
+ * 返回行为：
+ * - 渲染热力网格及总条数/总字数指标。
+ *
+ * 副作用：
+ * - 页面出现时会触发统计查询。
+ */
 @ComponentV2
 export struct UserActivityHeatmap {
   @Local private app: AppState = useAppState();
