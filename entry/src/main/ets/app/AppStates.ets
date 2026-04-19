@@ -48,6 +48,8 @@ export class AppState {
   @Trace public currentUserAvatar: string = '';
   @Trace public hasRequestedNotificationPermissionOnLaunch: boolean = false;
   @Trace public hasRequestedCalendarPermissionOnLaunch: boolean = false;
+  @Trace public hasGrantedCalendarPermissionOnLaunch: boolean = false;
+  @Trace public hasSyncedCalendarRemindersOnLaunch: boolean = false;
 
   get theme(): ThemeManager {
     return this.themeManager;
@@ -120,7 +122,7 @@ export class AppState {
         this.applyThemePreference(ThemeMode.SYSTEM, this.readSystemDarkMode());
       }
       this.enterMain();
-      await this.syncCalendarRemindersForCurrentUser();
+      await this.syncCalendarRemindersAfterLaunchIfReady();
     } catch (_error) {
       this.applyCurrentUser(null);
       AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, ThemeMode.SYSTEM);
@@ -192,9 +194,8 @@ export class AppState {
     }
     this.hasRequestedCalendarPermissionOnLaunch = true;
     const granted = await this.calendarReminderService.requestCalendarPermission(context);
-    if (granted && this.isLoggedIn) {
-      await this.syncCalendarRemindersForCurrentUser();
-    }
+    this.hasGrantedCalendarPermissionOnLaunch = granted;
+    await this.syncCalendarRemindersAfterLaunchIfReady();
   }
 
   enterSplash(): void {
@@ -214,6 +215,20 @@ export class AppState {
       return;
     }
     await this.calendarReminderService.registerPlanReminder();
+  }
+
+  private async syncCalendarRemindersAfterLaunchIfReady(): Promise<void> {
+    if (this.hasSyncedCalendarRemindersOnLaunch) {
+      return;
+    }
+    if (!this.hasGrantedCalendarPermissionOnLaunch) {
+      return;
+    }
+    if (!this.isLoggedIn) {
+      return;
+    }
+    this.hasSyncedCalendarRemindersOnLaunch = true;
+    await this.syncCalendarRemindersForCurrentUser();
   }
 
   private applyCurrentUser(user: User | null): void {

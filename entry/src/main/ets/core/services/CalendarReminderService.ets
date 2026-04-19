@@ -20,15 +20,17 @@ const CALENDAR_PERMISSIONS: Array<Permissions> = [
  * 提醒生命周期说明：
  * - 用户登录、注册、恢复会话时，认证链路会确保 `planReminderEnabled` 默认值存在；当前默认策略为“缺省即开启”。
  * - 应用启动完成后，应用层会自动请求一次日历权限；若授权成功且当前用户已登录，会立即触发一次全量对账。
- * - 创建日程时，页面层先写入 Plan，再调用 `syncPlanReminderRecord(plan)`；若符合提醒条件则创建系统日历事件，并把 `notifyVersion` 追平到 `version`。
- * - 编辑日程时，页面层先保存 Plan；只有标题、开始/结束时间、描述、提醒开关这些会影响通知的字段变更时，才会递增 `version`，再调用 `syncPlanReminderRecord(plan)`。
+ * - `ensureCalendar()` 会先尝试获取已有本地 calendar；只有在 `createCalendar()` 新建成功后，才会执行 `setConfig()` 初始化提醒配置与颜色，不会对已有 calendar 重复改配置。
+ * - 创建日程时，页面层先写入 Plan，再调用 `syncPlanReminderRecord(plan)`；只要日程提醒开关和用户总开关都开启，就创建系统日历事件，不额外拦截开始时间。
+ * - 编辑日程时，页面层先保存 Plan；只有标题、开始/结束时间、描述、提醒开关这些会影响通知的字段变更时，才会递增 `version`，再调用 `syncPlanReminderRecord(plan)` 更新系统日历事件，不额外拦截开始时间或提醒窗口。
  * - 地点、日程类型等不影响通知的字段变更，不会递增 `version`，也不会更新系统日历事件。
  * - 删除日程时，页面层在真正提交删除的那一刻调用 `clearPlanReminderRecord(plan)` 删除系统日历事件；进入撤销等待态不会改动提醒。
  * - 开关“日历提醒”时，设置页调用 `registerPlanReminder()` 或 `cancelPlanReminder()` 进行全量补建/清理。
- * - 冷启动恢复登录后，应用层调用 `registerPlanReminder()` 做一次全量对账；这里只补缺失事件和清理失效事件，不会更新已有事件，避免重复触发系统提醒。
+ * - 冷启动恢复登录后，应用层只恢复用户态，不立即触发提醒对账；等待启动阶段的日历权限请求返回成功后，再统一做一次全量对账。
+ * - 全量对账当前只补建缺失事件和对齐版本：若已有 `reminderId`，只对齐 `notifyVersion`；若缺失 `reminderId` 且提醒仍开启，则补建系统日历事件；不会因为日程已经过期就自动删除对应系统日历事件。
  *
  * 当前调用处：
- * - `AppStates.syncCalendarRemindersForCurrentUser()`：登录、注册、恢复会话后的全量对账。
+ * - `AppStates.syncCalendarRemindersForCurrentUser()`：登录、注册后的全量对账。
  * - `AppStates.tryRequestCalendarPermissionOnLaunch()`：启动时自动申请日历权限，授权成功后触发一次全量对账。
  * - `SettingsPanel.handleReminderToggle()`：总开关开启/关闭时的全量补建或清理。
  * - `PlanPageState.createPlan()`：新建日程后的单条注册。
@@ -39,7 +41,6 @@ export class CalendarReminderService {
   private static readonly CALENDAR_NAME: string = 'ZhixingActHub';
   private static readonly CALENDAR_DISPLAY_NAME: string = '知行日程提醒';
   private static readonly REMINDER_MINUTES: number = 10;
-  private static readonly MINUTE_MS: number = 60 * 1000;
 
   private static calendar: calendarManager.Calendar | null = null;
 
@@ -83,14 +84,6 @@ export class CalendarReminderService {
     return event;
   }
 
-  private getReminderTriggerTime(plan: Plan): number {
-    return plan.startTime - CalendarReminderService.REMINDER_MINUTES * CalendarReminderService.MINUTE_MS;
-  }
-
-  private hasReminderWindowStarted(plan: Plan, now: number): boolean {
-    return this.getReminderTriggerTime(plan) <= now;
-  }
-
   private normalizeVersion(value: number): number {
     return value > 0 ? value : 0;
   }
@@ -121,12 +114,12 @@ export class CalendarReminderService {
         calendar = await manager.getCalendar(account);
       } catch (_getError) {
         calendar = await manager.createCalendar(account);
+        const config: calendarManager.CalendarConfig = {
+          enableReminder: true,
+          color: '#2B7FFF',
+        };
+        await calendar.setConfig(config);
       }
-      const config: calendarManager.CalendarConfig = {
-        enableReminder: true,
-        color: '#2B7FFF',
-      };
-      await calendar.setConfig(config);
       CalendarReminderService.calendar = calendar;
       return calendar;
     } catch (_error) {
@@ -211,19 +204,14 @@ export class CalendarReminderService {
   /**
    * 单条提醒最小更新入口。
    * - 页面层的创建/编辑只调用这里。
-   * - 若已进入提醒窗口，则不再改写已有事件，避免重进应用或临近开始时重复通知。
+   * - 当前以“完整性优先”为准：只要提醒开关开启，就尽量同步到系统日历，不额外拦截开始时间或提醒窗口。
    */
   async syncPlanReminderRecord(plan: Plan): Promise<boolean> {
     const remindEnabled = this.normalizeReminderFlag(plan.enableRemind) === 1;
     const switchEnabled = await this.isPlanReminderSwitchEnabled();
-    const now = Date.now();
 
-    if (!remindEnabled || !switchEnabled || plan.startTime <= now) {
+    if (!remindEnabled || !switchEnabled) {
       return this.clearPlanReminderRecord(plan);
-    }
-
-    if (this.hasReminderWindowStarted(plan, now)) {
-      return false;
     }
 
     if (this.isValidEventId(plan.reminderId)) {
@@ -277,8 +265,9 @@ export class CalendarReminderService {
 
   /**
    * 全量对账入口。
-   * - 只做“补漏”和“清理”。
-   * - 对已有 reminderId 的记录，不主动 updateEvent，避免应用重进时重复触发系统提醒。
+   * - 只做“补漏”和版本对齐。
+   * - 对已有 reminderId 的记录，不主动 updateEvent。
+   * - 对已经过期的日程，不因为过期自动删除系统日历事件。
    */
   async registerPlanReminder(): Promise<void> {
     if (!UserDatabase.getInstance().isReady()) {
@@ -319,9 +308,8 @@ export class CalendarReminderService {
   private async reconcilePlanReminderRecord(plan: Plan): Promise<boolean> {
     const remindEnabled = this.normalizeReminderFlag(plan.enableRemind) === 1;
     const switchEnabled = await this.isPlanReminderSwitchEnabled();
-    const now = Date.now();
 
-    if (!remindEnabled || !switchEnabled || plan.startTime <= now) {
+    if (!remindEnabled || !switchEnabled) {
       return this.clearPlanReminderRecord(plan);
     }
 
@@ -330,10 +318,6 @@ export class CalendarReminderService {
         plan.notifyVersion = plan.version;
         return true;
       }
-      return false;
-    }
-
-    if (this.hasReminderWindowStarted(plan, now)) {
       return false;
     }
 
