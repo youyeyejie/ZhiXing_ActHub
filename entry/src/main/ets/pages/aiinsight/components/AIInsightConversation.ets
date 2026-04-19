@@ -145,6 +145,7 @@ export struct AIInsightConversation {
       }
       .layoutWeight(1)
       .scrollBar(BarState.Auto)
+      .align(Alignment.Top)
 
       // 底部操作栏
       this.buildBottomBar()
