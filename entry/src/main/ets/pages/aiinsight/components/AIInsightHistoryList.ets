@@ -1,4 +1,5 @@
 import { AppState, useAppState } from '../../../app/AppStates';
+import { InteractableCard } from '../../../components/card/InteractableCard';
 import { AIInsightState, InsightRecord, useAIInsightState } from '../AIInsightState';
 
 /**
@@ -10,12 +11,21 @@ export struct AIInsightHistoryList {
   @Local private app: AppState = useAppState();
   @Local private state: AIInsightState = useAIInsightState();
   @Local private breathScale: number = 1.0;
+  @Local private suppressDetailOpenUntil: number = 0;
   private breathTimerId: number = -1;
 
   aboutToAppear(): void {
     this.breathTimerId = setInterval(() => {
       this.breathScale = this.breathScale > 1.0 ? 0.95 : 1.05;
     }, 1800);
+  }
+
+  private markSwipeActionTriggered(): void {
+    this.suppressDetailOpenUntil = Date.now() + 280;
+  }
+
+  private canOpenDetailNow(): boolean {
+    return Date.now() >= this.suppressDetailOpenUntil;
   }
 
   aboutToDisappear(): void {
@@ -94,62 +104,101 @@ export struct AIInsightHistoryList {
         ForEach(
           this.state.records,
           (record: InsightRecord) => {
-            Column({ space: 8 }) {
-              // 顶部：模式标签 + 时间
-              Row() {
-                Text(record.mode === 'global' ? '全局分析' : '精准分析')
-                  .fontSize(11)
-                  .fontColor(this.app.theme.palette.textPrimary)
-                  .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-                  .borderRadius(10)
-                  .backgroundColor(record.mode === 'global' ? this.app.theme.palette.primary : this.app.theme.palette.info)
+            InteractableCard({
+              leftHint: '删除',
+              enableSwipeLeft: true,
+              enableSwipeRight: false,
+              cornerRadius: 20,
+              contentPadding: 0,
+              outerPaddingVertical: 0,
+              shadowRadius: 10,
+              shadowOffsetY: 3,
+              swipeLeftColor: this.app.theme.palette.danger,
+              onSwipeLeft: () => {
+                this.markSwipeActionTriggered();
+                animateTo({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
+                  this.state.requestDeleteRecord(record.id);
+                });
+              },
+              onCardTap: () => {
+                if (!this.canOpenDetailNow()) {
+                  return;
+                }
+                this.state.openRecord(record);
+              },
+            }) {
+              Column({ space: 8 }) {
+                // 顶部：模式标签 + 时间
+                Row() {
+                  Text(record.mode === 'global' ? '全局分析' : '精准分析')
+                    .fontSize(11)
+                    .fontColor(this.app.theme.palette.textPrimary)
+                    .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+                    .borderRadius(10)
+                    .backgroundColor(record.mode === 'global' ? this.app.theme.palette.primary : this.app.theme.palette.info)
 
-                Blank()
+                  Blank()
 
-                Text(this.formatTime(record.createdAt))
-                  .fontSize(12)
-                  .fontColor(this.app.theme.palette.textTertiary)
-              }
-              .width('100%')
-
-              // 关键词标签
-              if (record.keywords.length > 0) {
-                Flex({ wrap: FlexWrap.Wrap }) {
-                  ForEach(
-                    record.keywords,
-                    (keyword: string, kwIdx: number) => {
-                      Text(keyword)
-                        .fontSize(12)
-                        .fontColor(this.app.theme.palette.textSecondary)
-                        .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-                        .borderRadius(8)
-                        .backgroundColor(this.app.theme.palette.surfaceSecondary)
-                        .margin({ right: 6, bottom: 4 })
-                    },
-                    (keyword: string, kwIdx: number) => `kw_${record.id}_${kwIdx}`,
-                  )
+                  Text(this.formatTime(record.createdAt))
+                    .fontSize(12)
+                    .fontColor(this.app.theme.palette.textTertiary)
                 }
                 .width('100%')
-              }
 
-              // 摘要
-              if (record.summary.length > 0) {
-                Text(record.summary)
-                  .fontSize(13)
-                  .fontColor(this.app.theme.palette.textSecondary)
-                  .maxLines(2)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+                if (record.pending) {
+                  Row({ space: 6 }) {
+                    SymbolGlyph($r('sys.symbol.lightbulb'))
+                      .fontSize(14)
+                      .renderingStrategy(SymbolRenderingStrategy.SINGLE)
+                      .fontColor([this.app.theme.palette.primary])
+                    Text('正在生成')
+                      .fontSize(13)
+                      .fontWeight(FontWeight.Medium)
+                      .fontColor(this.app.theme.palette.primary)
+                  }
                   .width('100%')
-                  .lineHeight(20)
+                }
+
+                if (record.keywords.length > 0) {
+                  Flex({ wrap: FlexWrap.Wrap }) {
+                    ForEach(
+                      record.keywords,
+                      (keyword: string, kwIdx: number) => {
+                        Text(keyword)
+                          .fontSize(12)
+                          .fontColor(this.app.theme.palette.textSecondary)
+                          .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+                          .borderRadius(8)
+                          .backgroundColor(this.app.theme.palette.surfaceSecondary)
+                          .margin({ right: 6, bottom: 4 })
+                      },
+                      (keyword: string, kwIdx: number) => `kw_${record.id}_${kwIdx}`,
+                    )
+                  }
+                  .width('100%')
+                }
+
+                if (record.pending) {
+                  Text('已转入后台继续生成，完成后会自动更新到历史。')
+                    .fontSize(13)
+                    .fontColor(this.app.theme.palette.textSecondary)
+                    .width('100%')
+                    .lineHeight(20)
+                } else if (record.summary.length > 0) {
+                  Text(record.summary)
+                    .fontSize(13)
+                    .fontColor(this.app.theme.palette.textSecondary)
+                    .maxLines(2)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    .width('100%')
+                    .lineHeight(20)
+                }
               }
+              .width('100%')
+              .padding(14)
+              .borderRadius(20)
+              .backgroundColor(this.app.theme.palette.surface)
             }
-            .width('100%')
-            .padding(14)
-            .borderRadius(20)
-            .backgroundColor(this.app.theme.palette.surface)
-            .onClick(() => {
-              this.state.openRecord(record);
-            })
           },
           (record: InsightRecord) => `insight_record_${record.id}`,
         )

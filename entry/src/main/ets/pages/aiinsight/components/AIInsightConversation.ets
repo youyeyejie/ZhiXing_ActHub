@@ -1,4 +1,5 @@
 import { AppState, useAppState } from '../../../app/AppStates';
+import { SafeAreaUtils } from '../../../core/theme/SafeAreaUtils';
 import { AIInsightState, useAIInsightState } from '../AIInsightState';
 import { MarkdownRenderer } from './MarkdownRenderer';
 
@@ -181,18 +182,13 @@ export struct AIInsightConversation {
       if (this.state.isGenerating) {
         // 停止生成按钮
         Button() {
-          Row({ space: 6 }) {
-            SymbolGlyph($r('sys.symbol.xmark'))
-              .fontSize(16)
-              .renderingStrategy(SymbolRenderingStrategy.SINGLE)
-              .fontColor([this.app.theme.palette.surface]);
-            Text('停止生成')
-              .fontSize(14)
-              .fontColor(this.app.theme.palette.surface)
-          }
+          SymbolGlyph($r('sys.symbol.xmark'))
+            .fontSize(16)
+            .renderingStrategy(SymbolRenderingStrategy.SINGLE)
+            .fontColor([this.app.theme.palette.surface]);
         }
         .height(44)
-        .padding({ left: 20, right: 20 })
+        .width(44)
         .borderRadius(999)
         .backgroundColor(this.app.theme.palette.primary)
         .onClick(() => {
@@ -200,11 +196,14 @@ export struct AIInsightConversation {
         })
       } else if (this.state.generatingText.length > 0) {
         // 复制按钮
-        Button('复制报告')
-          .fontSize(14)
-          .fontColor(this.app.theme.palette.textSecondary)
+        Button() {
+          SymbolGlyph($r('sys.symbol.text_clipboard'))
+            .fontSize(18)
+            .renderingStrategy(SymbolRenderingStrategy.SINGLE)
+            .fontColor([this.app.theme.palette.textSecondary]);
+        }
         .height(44)
-        .padding({ left: 20, right: 20 })
+        .width(44)
         .borderRadius(999)
         .backgroundColor(this.app.theme.palette.surfaceSecondary)
         .onClick(() => {
@@ -213,7 +212,8 @@ export struct AIInsightConversation {
       }
     }
     .width('100%')
-    .height(64)
+    .height(64 + SafeAreaUtils.getBottomInset())
+    .padding({ bottom: SafeAreaUtils.getBottomInset() })
     .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)
     .backgroundColor(this.app.theme.palette.background)

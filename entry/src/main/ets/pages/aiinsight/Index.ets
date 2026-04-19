@@ -6,6 +6,7 @@ import { AIInsightEntryCard } from './components/AIInsightEntryCard';
 import { AIInsightHistoryList } from './components/AIInsightHistoryList';
 import { AIInsightConversation } from './components/AIInsightConversation';
 import { AIInsightNoteSelector } from './components/AIInsightNoteSelector';
+import { UndoNotificationStack } from '../../components/feedback/UndoNotificationStack';
 
 /**
  * AI 洞察中心主页面。
@@ -19,8 +20,8 @@ export struct AIInsightPage {
   @Param onRequestDismiss: () => void = () => {};
 
   aboutToAppear(): void {
-    // 每次进入重置到首页
-    this.state.backToHome();
+    // 每次进入回到首页视图，但不打断后台生成
+    this.state.viewMode = 'home';
     this.state.refreshRecords();
   }
 
@@ -39,6 +40,10 @@ export struct AIInsightPage {
    * 打开笔记选择弹层。
    */
   private openNoteSelector(): void {
+    if (this.state.isGenerating) {
+      this.state.notifyGeneratingLocked();
+      return;
+    }
     this.state.resetSelection();
     this.app.nav.openActionSheet(this.buildNoteSelectorContent, 'auto');
   }
@@ -49,54 +54,71 @@ export struct AIInsightPage {
   }
 
   build() {
-    Column({ space: 0 }) {
-      // 顶部安全区占位
-      Row()
-        .width('100%')
-        .height(SafeAreaUtils.getTopInset())
+    Stack({ alignContent: Alignment.Bottom }) {
+      Column({ space: 0 }) {
+        // 顶部安全区占位
+        Row()
+          .width('100%')
+          .height(SafeAreaUtils.getTopInset())
 
-      // 顶部导航栏
-      Row() {
-        Button() {
-          SymbolGlyph($r('sys.symbol.chevron_left'))
-            .fontSize(20)
-            .renderingStrategy(SymbolRenderingStrategy.SINGLE)
-            .fontColor([this.app.theme.palette.textPrimary]);
+        // 顶部导航栏
+        Row() {
+          Button() {
+            SymbolGlyph($r('sys.symbol.chevron_left'))
+              .fontSize(20)
+              .renderingStrategy(SymbolRenderingStrategy.SINGLE)
+              .fontColor([this.app.theme.palette.textPrimary]);
+          }
+          .type(ButtonType.Circle)
+          .width(40)
+          .height(40)
+          .backgroundColor(this.app.theme.palette.transparent)
+          .onClick(() => {
+            this.handleBack();
+          })
+
+          Text(this.state.viewMode === 'conversation' ? 'AI 洞察' : 'AI 洞察中心')
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(this.app.theme.palette.textPrimary)
+
+          Blank()
         }
-        .type(ButtonType.Circle)
-        .width(40)
-        .height(40)
-        .backgroundColor(this.app.theme.palette.transparent)
-        .onClick(() => {
-          this.handleBack();
-        })
+        .width('100%')
+        .height(56)
+        .padding({ left: 8, right: 8 })
 
-        Text(this.state.viewMode === 'conversation' ? 'AI 洞察' : 'AI 洞察中心')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.app.theme.palette.textPrimary)
+        Divider()
+          .strokeWidth(0.5)
+          .color(this.app.theme.palette.border)
 
-        Blank()
+        if (this.state.viewMode === 'home') {
+          this.buildHomePage()
+        } else {
+          AIInsightConversation()
+            .layoutWeight(1)
+            .width('100%')
+        }
       }
       .width('100%')
-      .height(56)
-      .padding({ left: 8, right: 8 })
+      .height('100%')
+      .backgroundColor(this.app.theme.palette.background)
 
-      // 分隔线
-      Divider()
-        .strokeWidth(0.5)
-        .color(this.app.theme.palette.border)
-
-      // 内容区
-      if (this.state.viewMode === 'home') {
-        this.buildHomePage()
-      } else {
-        AIInsightConversation()
-      }
+      UndoNotificationStack({
+        tasks: this.state.buildUndoStackItems(),
+        onUndo: (taskId: string) => {
+          this.state.undoDelete(taskId);
+        },
+        onTimeout: (taskId: string) => {
+          this.state.commitDeleteRecord(taskId);
+        },
+        onClose: (taskId: string) => {
+          this.state.closeUndo(taskId);
+        },
+      })
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.app.theme.palette.background)
   }
 
   @Builder

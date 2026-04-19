@@ -1,6 +1,7 @@
 import display from '@ohos.display';
 import { AppState, useAppState } from '../../app/AppStates';
 import { AIInsightPage } from '../../pages/aiinsight/Index';
+import { AIInsightState, useAIInsightState } from '../../pages/aiinsight/AIInsightState';
 
 /**
  * AI 洞察页 overlay 路由容器。
@@ -9,6 +10,7 @@ import { AIInsightPage } from '../../pages/aiinsight/Index';
 @ComponentV2
 export struct AIInsightOverlayDestination {
   @Local private app: AppState = useAppState();
+  @Local private insightState: AIInsightState = useAIInsightState();
   @Local private panelOffsetY: number = 1200;
   @Local private panelTravelY: number = 1200;
   @Local private closing: boolean = false;
@@ -97,7 +99,11 @@ export struct AIInsightOverlayDestination {
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .mode(NavDestinationMode.STANDARD)
     .onBackPressed(() => {
-      this.requestDismiss();
+      if (this.insightState.viewMode === 'conversation') {
+        this.insightState.backToHome();
+      } else {
+        this.requestDismiss();
+      }
       return true;
     });
   }

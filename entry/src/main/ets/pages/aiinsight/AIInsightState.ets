@@ -1,11 +1,27 @@
 import { http } from '@kit.NetworkKit';
+import { AppState, useAppState } from '../../app/AppStates';
 import { Idea } from '../../core/models/Idea';
 import { AIInsight } from '../../core/models/AIInsight';
 import { AIService, useAIService } from '../../core/services/AIService';
 import { AIInsightRepository } from '../../core/repositories/AIInsightRepository';
 import { IdeaPageState, useIdeaPageState } from '../idea/IdeaPageState';
+import { UndoStackItem } from '../../components/feedback/UndoNotificationStack';
 import pasteboard from '@ohos.pasteboard';
 import promptAction from '@ohos.promptAction';
+
+class AIInsightUndoTask {
+  taskId: string;
+  record: InsightRecord;
+  originalIndex: number;
+  deadlineMs: number;
+
+  constructor(taskId: string, record: InsightRecord, originalIndex: number, deadlineMs: number) {
+    this.taskId = taskId;
+    this.record = record;
+    this.originalIndex = originalIndex;
+    this.deadlineMs = deadlineMs;
+  }
+}
 
 /**
  * 洞察记录。
@@ -19,6 +35,7 @@ export class InsightRecord {
   fullContent: string;
   noteCount: number;
   totalLength: number;
+  pending: boolean;
 
   constructor(
     id: number,
@@ -29,6 +46,7 @@ export class InsightRecord {
     fullContent: string,
     noteCount: number,
     totalLength: number,
+    pending: boolean = false,
   ) {
     this.id = id;
     this.mode = mode;
@@ -38,6 +56,7 @@ export class InsightRecord {
     this.fullContent = fullContent;
     this.noteCount = noteCount;
     this.totalLength = totalLength;
+    this.pending = pending;
   }
 }
 
@@ -47,23 +66,99 @@ export class InsightRecord {
  */
 @ObservedV2
 export class AIInsightState {
+  private app: AppState = useAppState();
   private aiService: AIService = useAIService();
   private ideaState: IdeaPageState = useIdeaPageState();
   private repository: AIInsightRepository = new AIInsightRepository();
 
   @Trace public viewMode: string = 'home'; // 'home' | 'conversation'
   @Trace public records: InsightRecord[] = [];
-  @Trace public activeRecord: InsightRecord | null = null;
   @Trace public selectedNoteIds: number[] = [];
-  @Trace public isGenerating: boolean = false;
-  @Trace public generatingText: string = '';
-  @Trace public errorMessage: string = '';
-  @Trace public activeNoteCount: number = 0;
-  @Trace public activeTotalLength: number = 0;
+  @Trace public undoTasks: Array<AIInsightUndoTask> = [];
 
   private streamRequest: http.HttpRequest | null = null;
   private historyLoadingTask: Promise<void> | null = null;
   private lastRecordId: number = 0;
+  private undoTaskSeq: number = 0;
+
+  get isGenerating(): boolean {
+    return this.app.aiInsightSession.isGenerating;
+  }
+
+  set isGenerating(value: boolean) {
+    this.app.aiInsightSession.isGenerating = value;
+  }
+
+  get generatingText(): string {
+    return this.app.aiInsightSession.generatingText;
+  }
+
+  set generatingText(value: string) {
+    this.app.aiInsightSession.generatingText = value;
+  }
+
+  get errorMessage(): string {
+    return this.app.aiInsightSession.errorMessage;
+  }
+
+  set errorMessage(value: string) {
+    this.app.aiInsightSession.errorMessage = value;
+  }
+
+  get activeRecord(): InsightRecord | null {
+    const record = this.app.aiInsightSession.activeRecord;
+    if (record.id <= 0) {
+      return null;
+    }
+    return new InsightRecord(
+      record.id,
+      record.mode,
+      record.createdAt,
+      record.keywords.slice(),
+      record.summary,
+      record.fullContent,
+      record.noteCount,
+      record.totalLength,
+      record.pending,
+    );
+  }
+
+  set activeRecord(value: InsightRecord | null) {
+    const target = this.app.aiInsightSession.activeRecord;
+    if (value === null) {
+      target.reset();
+      return;
+    }
+    target.id = value.id;
+    target.mode = value.mode;
+    target.createdAt = value.createdAt;
+    target.keywords = value.keywords.slice();
+    target.summary = value.summary;
+    target.fullContent = value.fullContent;
+    target.noteCount = value.noteCount;
+    target.totalLength = value.totalLength;
+    target.pending = value.pending;
+  }
+
+  get activeNoteCount(): number {
+    if (this.activeRecord !== null) {
+      return this.activeRecord.noteCount;
+    }
+    if (this.app.aiInsightSession.isGenerating) {
+      return this.app.aiInsightSession.activeRecord.noteCount;
+    }
+    return 0;
+  }
+
+  get activeTotalLength(): number {
+    if (this.activeRecord !== null) {
+      return this.activeRecord.totalLength;
+    }
+    if (this.app.aiInsightSession.isGenerating) {
+      return this.app.aiInsightSession.activeRecord.totalLength;
+    }
+    return 0;
+  }
 
   async refreshRecords(): Promise<void> {
     if (this.historyLoadingTask !== null) {
@@ -73,7 +168,8 @@ export class AIInsightState {
     this.historyLoadingTask = (async (): Promise<void> => {
       try {
         const entities: Array<AIInsight> = await this.repository.findLatest();
-        this.records = entities.map((entity: AIInsight) => this.fromEntity(entity));
+        const loadedRecords = entities.map((entity: AIInsight) => this.fromEntity(entity));
+        this.records = this.resolveVisibleRecords(this.mergeGeneratingRecord(loadedRecords));
         if (this.records.length > 0) {
           this.lastRecordId = this.records[0].id;
         }
@@ -117,55 +213,69 @@ export class AIInsightState {
    * 全量思维分析：取所有笔记内容。
    */
   startGlobalInsight(): void {
+    if (this.isGenerating) {
+      this.notifyGeneratingLocked();
+      return;
+    }
     const ideas = this.ideaState.ideas;
     if (ideas.length === 0) {
       return;
     }
     const content = this.prepareContent(ideas);
-    this.activeNoteCount = ideas.length;
-    this.activeTotalLength = ideas.reduce((sum: number, idea: Idea) => sum + this.resolveIdeaTextLength(idea), 0);
-    this.performGeneration(content, 'global', ideas.length);
+    const totalLength = ideas.reduce((sum: number, idea: Idea) => sum + this.resolveIdeaTextLength(idea), 0);
+    this.performGeneration(content, 'global', ideas.length, totalLength);
   }
 
   /**
    * 精准洞察：只取选中笔记。
    */
   startSelectedInsight(): void {
+    if (this.isGenerating) {
+      this.notifyGeneratingLocked();
+      return;
+    }
     const allIdeas = this.ideaState.ideas;
     const selected = allIdeas.filter((idea: Idea) => this.selectedNoteIds.includes(idea.id));
     if (selected.length === 0) {
       return;
     }
     const content = this.prepareContent(selected);
-    this.activeNoteCount = selected.length;
-    this.activeTotalLength = selected.reduce((sum: number, idea: Idea) => sum + this.resolveIdeaTextLength(idea), 0);
-    this.performGeneration(content, 'selected', selected.length);
+    const totalLength = selected.reduce((sum: number, idea: Idea) => sum + this.resolveIdeaTextLength(idea), 0);
+    this.performGeneration(content, 'selected', selected.length, totalLength);
   }
 
   /**
-   * 停止流式生成，以当前已显示文本作为最终结果。
+   * 停止流式生成，不将未完成内容写入历史。
    */
   stopGeneration(): void {
     this.cancelStream();
     this.isGenerating = false;
-    if (this.generatingText.length > 0) {
-      this.finalizeRecord(
-        this.generatingText,
-        this.activeRecord?.mode ?? 'global',
-        this.activeNoteCount,
-        this.activeTotalLength,
-      );
+    if (this.activeRecord !== null) {
+      const activeId = this.activeRecord.id;
+      this.records = this.records.filter((item: InsightRecord) => item.id !== activeId);
     }
+    this.generatingText = '';
+    this.errorMessage = '';
+    this.activeRecord = null;
+    this.app.aiInsightSession.reset();
+    this.viewMode = 'home';
   }
 
   /**
    * 查看历史记录（直接显示完整 Markdown）。
    */
   openRecord(record: InsightRecord): void {
+    if (record.pending) {
+      const generatingRecord = this.resolveGeneratingRecord();
+      if (generatingRecord !== null && generatingRecord.id === record.id) {
+        this.activeRecord = generatingRecord;
+        this.errorMessage = '';
+        this.viewMode = 'conversation';
+        return;
+      }
+    }
     this.activeRecord = record;
     this.generatingText = record.fullContent;
-    this.activeNoteCount = record.noteCount;
-    this.activeTotalLength = record.totalLength;
     this.isGenerating = false;
     this.errorMessage = '';
     this.viewMode = 'conversation';
@@ -175,11 +285,7 @@ export class AIInsightState {
    * 从对话流返回首页。
    */
   backToHome(): void {
-    this.cancelStream();
-    this.isGenerating = false;
-    this.generatingText = '';
     this.errorMessage = '';
-    this.activeRecord = null;
     this.viewMode = 'home';
   }
 
@@ -204,6 +310,73 @@ export class AIInsightState {
     }
   }
 
+  notifyGeneratingLocked(): void {
+    this.safeToast('当前已有洞察正在生成，请稍候');
+  }
+
+  requestDeleteRecord(recordId: number): void {
+    const normalizedId = recordId > 0 ? recordId : 0;
+    if (normalizedId <= 0) {
+      return;
+    }
+    const index = this.records.findIndex((item: InsightRecord) => item.id === normalizedId);
+    if (index < 0 || this.hasUndoTaskForRecord(normalizedId)) {
+      return;
+    }
+
+    const snapshot = this.copyRecord(this.records[index]);
+    const taskId = `ai_insight_delete_${this.undoTaskSeq}`;
+    this.undoTaskSeq += 1;
+    const deadlineMs = Date.now() + 5000;
+    this.records = this.records.filter((item: InsightRecord) => item.id !== normalizedId);
+    this.undoTasks = [...this.undoTasks, new AIInsightUndoTask(taskId, snapshot, index, deadlineMs)];
+
+    if (this.activeRecord !== null && this.activeRecord.id === normalizedId) {
+      this.activeRecord = null;
+      this.generatingText = '';
+      this.viewMode = 'home';
+    }
+  }
+
+  buildUndoStackItems(): Array<UndoStackItem> {
+    const items: Array<UndoStackItem> = [];
+    for (let i = 0; i < this.undoTasks.length; i++) {
+      const task = this.undoTasks[i];
+      const label = task.record.mode === 'global' ? '全局分析' : '精准分析';
+      items.push(new UndoStackItem(task.taskId, `${label}记录已删除`, '撤销', 5000, task.deadlineMs));
+    }
+    return items;
+  }
+
+  undoDelete(taskId: string): void {
+    const task = this.findUndoTask(taskId);
+    if (task === null) {
+      return;
+    }
+    this.closeUndo(taskId);
+
+    const exists = this.records.some((item: InsightRecord) => item.id === task.record.id);
+    if (!exists) {
+      const insertIndex = Math.max(0, Math.min(task.originalIndex, this.records.length));
+      const before = this.records.slice(0, insertIndex);
+      const after = this.records.slice(insertIndex);
+      this.records = [...before, this.copyRecord(task.record), ...after];
+    }
+  }
+
+  async commitDeleteRecord(taskId: string): Promise<void> {
+    const task = this.findUndoTask(taskId);
+    if (task === null) {
+      return;
+    }
+    this.closeUndo(taskId);
+    await this.repository.removeById(task.record.id);
+  }
+
+  closeUndo(taskId: string): void {
+    this.undoTasks = this.undoTasks.filter((task: AIInsightUndoTask) => task.taskId !== taskId);
+  }
+
   // ---- 私有方法 ----
 
   private prepareContent(ideas: Idea[]): string {
@@ -223,7 +396,7 @@ export class AIInsightState {
     return titleLength + contentLength;
   }
 
-  private performGeneration(content: string, mode: string, noteCount: number): void {
+  private performGeneration(content: string, mode: string, noteCount: number, totalLength: number): void {
     this.cancelStream();
     this.viewMode = 'conversation';
     this.isGenerating = true;
@@ -232,9 +405,10 @@ export class AIInsightState {
     this.activeRecord = null;
 
     const tempRecord = new InsightRecord(
-      this.createRecordId(), mode, Date.now(), [], '', '', noteCount, this.activeTotalLength,
+      this.createRecordId(), mode, Date.now(), [], '', '', noteCount, totalLength, true,
     );
     this.activeRecord = tempRecord;
+    this.records = this.resolveVisibleRecords([tempRecord, ...this.records.filter((item: InsightRecord) => item.id !== tempRecord.id)]);
 
     const onChunk = (text: string): void => {
       if (this.isGenerating) {
@@ -251,8 +425,8 @@ export class AIInsightState {
       this.finalizeRecord(
         this.generatingText,
         this.activeRecord?.mode ?? 'global',
-        this.activeNoteCount,
-        this.activeTotalLength,
+        this.activeRecord?.noteCount ?? 0,
+        this.activeRecord?.totalLength ?? 0,
       );
     };
 
@@ -260,6 +434,12 @@ export class AIInsightState {
       this.streamRequest = null;
       this.errorMessage = error;
       this.isGenerating = false;
+      if (this.activeRecord !== null) {
+        const activeId = this.activeRecord.id;
+        this.records = this.records.filter((item: InsightRecord) => item.id !== activeId);
+      }
+      this.activeRecord = null;
+      this.app.aiInsightSession.reset();
     };
 
     this.streamRequest = this.aiService.generateInsightStream(content, onChunk, onDone, onError);
@@ -276,14 +456,43 @@ export class AIInsightState {
   }
 
   private finalizeRecord(content: string, mode: string, noteCount: number, totalLength: number): void {
-    const keywords = this.extractKeywords(content);
-    const summary = this.extractSummary(content);
+    const normalizedContent = content.trim();
+    if (normalizedContent.length === 0) {
+      this.activeRecord = null;
+      return;
+    }
+    const keywords = this.extractKeywords(normalizedContent);
+    const summary = this.extractSummary(normalizedContent);
+    const recordId = this.activeRecord !== null ? this.activeRecord.id : this.createRecordId();
+    const createdAt = this.activeRecord !== null ? this.activeRecord.createdAt : Date.now();
     const record = new InsightRecord(
-      this.createRecordId(), mode, Date.now(), keywords, summary, content, noteCount, totalLength,
+      recordId, mode, createdAt, keywords, summary, normalizedContent, noteCount, totalLength, false,
     );
     this.activeRecord = record;
-    this.records = [record, ...this.records];
-    this.persistRecord(record);
+    this.generatingText = normalizedContent;
+    this.errorMessage = '';
+    this.records = this.resolveVisibleRecords([record, ...this.records.filter((item: InsightRecord) => item.id !== record.id)]);
+    this.persistRecord(record).then(() => {
+      this.isGenerating = false;
+      this.historyLoadingTask = null;
+      this.refreshRecords();
+    }).catch(() => {
+      // keep optimistic in-memory record when refresh fails
+    });
+  }
+
+  private copyRecord(source: InsightRecord): InsightRecord {
+    return new InsightRecord(
+      source.id,
+      source.mode,
+      source.createdAt,
+      source.keywords.slice(),
+      source.summary,
+      source.fullContent,
+      source.noteCount,
+      source.totalLength,
+      source.pending,
+    );
   }
 
   private createRecordId(): number {
@@ -306,6 +515,7 @@ export class AIInsightState {
       entity.fullContent,
       entity.noteCount,
       entity.totalLength,
+      false,
     );
   }
 
@@ -349,11 +559,52 @@ export class AIInsightState {
     return keywords;
   }
 
-  private persistRecord(record: InsightRecord): void {
+  private persistRecord(record: InsightRecord): Promise<void> {
     const entity = this.toEntity(record);
-    this.repository.save(entity).catch(() => {
-      // ignore persistence errors and keep in-memory record
-    });
+    return this.repository.save(entity);
+  }
+
+  private findUndoTask(taskId: string): AIInsightUndoTask | null {
+    for (let i = 0; i < this.undoTasks.length; i++) {
+      if (this.undoTasks[i].taskId === taskId) {
+        return this.undoTasks[i];
+      }
+    }
+    return null;
+  }
+
+  private hasUndoTaskForRecord(recordId: number): boolean {
+    return this.undoTasks.some((task: AIInsightUndoTask) => task.record.id === recordId);
+  }
+
+  private resolveVisibleRecords(records: InsightRecord[]): InsightRecord[] {
+    if (this.undoTasks.length === 0) {
+      return records;
+    }
+    return records.filter((record: InsightRecord) => !this.hasUndoTaskForRecord(record.id));
+  }
+
+  private mergeGeneratingRecord(records: InsightRecord[]): InsightRecord[] {
+    if (!this.isGenerating) {
+      return records;
+    }
+    const sourceRecord = this.resolveGeneratingRecord();
+    if (sourceRecord === null) {
+      return records;
+    }
+    const merged = records.filter((record: InsightRecord) => record.id !== sourceRecord.id);
+    return [sourceRecord, ...merged];
+  }
+
+  private resolveGeneratingRecord(): InsightRecord | null {
+    const activeRecord = this.activeRecord;
+    if (activeRecord !== null && activeRecord.pending) {
+      return this.copyRecord(activeRecord);
+    }
+    if (!this.app.aiInsightSession.isGenerating) {
+      return null;
+    }
+    return activeRecord;
   }
 
   private extractKeywords(markdown: string): string[] {

@@ -17,6 +17,50 @@ export interface AuthActionResult {
   message: string;
 }
 
+@ObservedV2
+export class AIInsightSessionRecordState {
+  @Trace public id: number = 0;
+  @Trace public mode: string = 'global';
+  @Trace public createdAt: number = 0;
+  @Trace public keywords: string[] = [];
+  @Trace public summary: string = '';
+  @Trace public fullContent: string = '';
+  @Trace public noteCount: number = 0;
+  @Trace public totalLength: number = 0;
+  @Trace public pending: boolean = false;
+
+  reset(): void {
+    this.id = 0;
+    this.mode = 'global';
+    this.createdAt = 0;
+    this.keywords = [];
+    this.summary = '';
+    this.fullContent = '';
+    this.noteCount = 0;
+    this.totalLength = 0;
+    this.pending = false;
+  }
+}
+
+@ObservedV2
+export class AIInsightSessionState {
+  private activeRecordState: AIInsightSessionRecordState = new AIInsightSessionRecordState();
+  @Trace public isGenerating: boolean = false;
+  @Trace public generatingText: string = '';
+  @Trace public errorMessage: string = '';
+
+  get activeRecord(): AIInsightSessionRecordState {
+    return this.activeRecordState;
+  }
+
+  reset(): void {
+    this.activeRecordState.reset();
+    this.isGenerating = false;
+    this.generatingText = '';
+    this.errorMessage = '';
+  }
+}
+
 /**
  * 类功能简介：
  * - 应用运行态单例，统一管理主题、导航与流程状态。
@@ -37,6 +81,7 @@ export class AppState {
   private navState: AppNav = new AppNav();
   private focusTimerEngine: FocusTimerEngine = new FocusTimerEngine();
   private _whiteNoisePlayer: WhiteNoisePlayer = new WhiteNoisePlayer();
+  private aiInsightSessionState: AIInsightSessionState = new AIInsightSessionState();
   private authService: AuthService = new AuthService();
   private calendarReminderService: CalendarReminderService = new CalendarReminderService();
   private currentUserValue: User | null = null;
@@ -68,6 +113,10 @@ export class AppState {
    */
   get whiteNoisePlayer(): WhiteNoisePlayer {
     return this._whiteNoisePlayer;
+  }
+
+  get aiInsightSession(): AIInsightSessionState {
+    return this.aiInsightSessionState;
   }
   /**
    * 应用主题偏好。

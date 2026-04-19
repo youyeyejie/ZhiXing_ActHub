@@ -33,4 +33,12 @@ export class AIInsightRepository {
       .find();
     return Promise.resolve(records);
   }
+
+  removeById(id: number): Promise<void> {
+    const record: AIInsight | null = this.orm.query(AIInsight).where('id', id).first();
+    if (record !== null) {
+      this.orm.delete(record);
+    }
+    return Promise.resolve();
+  }
 }
