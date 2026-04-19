@@ -4,6 +4,7 @@ import { IdeaRepository } from '../../../core/repositories/IdeaRepository';
 interface UserHeatmapDay {
   dateKey: string;
   count: number;
+  isFuture: boolean;
 }
 
 @ComponentV2
@@ -15,8 +16,9 @@ export struct UserActivityHeatmap {
   @Local private loading: boolean = false;
 
   private repository: IdeaRepository = new IdeaRepository();
-  private readonly WEEK_COUNT: number = 6;
-  private readonly CELL_GAP: number = 6;
+  private readonly WEEK_COUNT: number = 14;
+  private readonly CELL_GAP: number = 4;
+  private readonly CELL_SIZE: number = 16;
   private readonly WEEKDAY_LABELS: Array<string> = ['一', '二', '三', '四', '五', '六', '日'];
 
   aboutToAppear(): void {
@@ -42,19 +44,21 @@ export struct UserActivityHeatmap {
   private buildWeeks(countMap: Record<string, number>): Array<Array<UserHeatmapDay>> {
     const result: Array<Array<UserHeatmapDay>> = [];
     const gridStart: Date = this.resolveGridStart(new Date());
+    const today: Date = this.resolveDayStart(new Date());
 
     for (let weekIndex = 0; weekIndex < this.WEEK_COUNT; weekIndex++) {
-      const row: Array<UserHeatmapDay> = [];
+      const column: Array<UserHeatmapDay> = [];
       for (let dayIndex = 0; dayIndex < this.WEEKDAY_LABELS.length; dayIndex++) {
         const currentDate: Date = new Date(gridStart);
         currentDate.setDate(gridStart.getDate() + weekIndex * 7 + dayIndex);
         const dateKey: string = this.formatDateKey(currentDate);
-        row.push({
+        column.push({
           dateKey,
           count: countMap[dateKey] ? countMap[dateKey] : 0,
+          isFuture: currentDate.getTime() > today.getTime(),
         });
       }
-      result.push(row);
+      result.push(column);
     }
 
     return result;
@@ -67,11 +71,16 @@ export struct UserActivityHeatmap {
   }
 
   private resolveWeekStart(date: Date): Date {
-    const result: Date = new Date(date);
-    result.setHours(0, 0, 0, 0);
+    const result: Date = this.resolveDayStart(date);
     const weekDay: number = result.getDay();
     const offset: number = weekDay === 0 ? 6 : weekDay - 1;
     result.setDate(result.getDate() - offset);
+    return result;
+  }
+
+  private resolveDayStart(date: Date): Date {
+    const result: Date = new Date(date);
+    result.setHours(0, 0, 0, 0);
     return result;
   }
 
@@ -86,6 +95,17 @@ export struct UserActivityHeatmap {
       return (num / 10000).toFixed(1) + ' 万';
     }
     return num.toString();
+  }
+
+  private formatMonthDay(date: Date): string {
+    return `${date.getMonth() + 1}.${date.getDate()}`;
+  }
+
+  private resolveRangeText(): string {
+    const startDate: Date = this.resolveGridStart(new Date());
+    const endDate: Date = new Date(startDate);
+    endDate.setDate(startDate.getDate() + this.WEEK_COUNT * 7 - 1);
+    return `${this.formatMonthDay(startDate)} - ${this.formatMonthDay(endDate)}`;
   }
 
   private getHeatColor(count: number): string {
@@ -110,15 +130,15 @@ export struct UserActivityHeatmap {
   @Builder
   private buildHeatCell(day: UserHeatmapDay) {
     Column()
-      .layoutWeight(1)
-      .height(20)
-      .borderRadius(6)
-      .backgroundColor(this.getHeatColor(day.count));
+      .width(this.CELL_SIZE)
+      .height(this.CELL_SIZE)
+      .borderRadius(4)
+      .backgroundColor(day.isFuture ? Color.Transparent : this.getHeatColor(day.count));
   }
 
   @Builder
-  private buildWeekRow(week: Array<UserHeatmapDay>, weekIndex: number) {
-    Row({ space: this.CELL_GAP }) {
+  private buildWeekColumn(week: Array<UserHeatmapDay>, weekIndex: number) {
+    Column({ space: this.CELL_GAP }) {
       ForEach(
         week,
         (day: UserHeatmapDay) => {
@@ -127,7 +147,28 @@ export struct UserActivityHeatmap {
         (day: UserHeatmapDay) => `${weekIndex}-${day.dateKey}`,
       );
     }
-    .width('100%');
+    .width(this.CELL_SIZE);
+  }
+
+  @Builder
+  private buildWeekdayLabels() {
+    Column({ space: this.CELL_GAP }) {
+      ForEach(
+        this.WEEKDAY_LABELS,
+        (label: string) => {
+          Row() {
+            Text(label)
+              .fontSize(11)
+              .fontColor(this.app.theme.palette.textTertiary);
+          }
+          .width(16)
+          .height(this.CELL_SIZE)
+          .justifyContent(FlexAlign.Center);
+        },
+        (label: string) => label,
+      );
+    }
+    .width(16);
   }
 
   build() {
@@ -147,27 +188,12 @@ export struct UserActivityHeatmap {
 
         Blank();
 
-        Text(`近 ${this.WEEK_COUNT} 周`)
+        Text(this.resolveRangeText())
           .fontSize(12)
           .fontColor(this.app.theme.palette.textTertiary);
       }
       .width('100%')
       .alignItems(VerticalAlign.Top);
-
-      Row({ space: this.CELL_GAP }) {
-        ForEach(
-          this.WEEKDAY_LABELS,
-          (label: string) => {
-            Text(label)
-              .layoutWeight(1)
-              .fontSize(11)
-              .textAlign(TextAlign.Center)
-              .fontColor(this.app.theme.palette.textTertiary);
-          },
-          (label: string) => label,
-        );
-      }
-      .width('100%');
 
       if (this.loading) {
         Row() {
@@ -179,18 +205,25 @@ export struct UserActivityHeatmap {
           Blank();
         }
         .width('100%')
-        .height(144);
+        .height(140);
       } else {
-        Column({ space: this.CELL_GAP }) {
-          ForEach(
-            this.weeks,
-            (week: Array<UserHeatmapDay>, weekIndex: number) => {
-              this.buildWeekRow(week, weekIndex);
-            },
-            (_week: Array<UserHeatmapDay>, weekIndex: number) => weekIndex.toString(),
-          );
+        Row({ space: this.CELL_GAP }) {
+          this.buildWeekdayLabels();
+
+          Row({ space: this.CELL_GAP }) {
+            ForEach(
+              this.weeks,
+              (week: Array<UserHeatmapDay>, weekIndex: number) => {
+                this.buildWeekColumn(week, weekIndex);
+              },
+              (_week: Array<UserHeatmapDay>, weekIndex: number) => weekIndex.toString(),
+            );
+          }
+          .layoutWeight(1)
+          .justifyContent(FlexAlign.SpaceBetween);
         }
-        .width('100%');
+        .width('100%')
+        .alignItems(VerticalAlign.Top);
       }
 
       Row({ space: 8 }) {
@@ -235,7 +268,7 @@ export struct UserActivityHeatmap {
       }
 
       if (!this.loading && this.totalCount <= 0) {
-        Text('还没有闪记记录，开始记录后会在这里逐周点亮。')
+        Text('还没有闪记记录，开始记录后会在这里按周点亮。')
           .fontSize(12)
           .lineHeight(18)
           .fontColor(this.app.theme.palette.textTertiary);
