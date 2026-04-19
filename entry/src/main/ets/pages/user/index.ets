@@ -1,5 +1,4 @@
 import promptAction from '@ohos.promptAction';
-import pasteboard from '@ohos.pasteboard';
 import { FocusStatsChart } from "./components/FocusStatsChart";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { UserActivityHeatmap } from './components/UserActivityHeatmap';
@@ -8,12 +7,14 @@ import { AppState, useAppState } from "../../app/AppStates";
 import { AppOverlayRoute } from '../../app/AppConstants';
 import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
 import { ThemeMode } from "../../core/theme/ThemeManager";
+import { UserShareService } from './UserShareService';
 
 @ComponentV2
 export struct UserPage {
   @Local private app: AppState = useAppState();
   @Event onBottomBarVisibleChange: (visible: boolean) => void = (_visible: boolean): void => {};
   private readonly SHARE_SNAPSHOT_ID: string = 'user_share_snapshot';
+  private readonly userShareService: UserShareService = new UserShareService();
 
   aboutToAppear(): void {
     this.onBottomBarVisibleChange(true);
@@ -81,18 +82,13 @@ export struct UserPage {
   }
 
   private async handleShare(): Promise<void> {
-    try {
-      const snapshot = await this.getUIContext().getComponentSnapshot().get(this.SHARE_SNAPSHOT_ID, {
-        scale: 2,
-        waitUntilRenderFinished: true,
-      });
-      const board = pasteboard.getSystemPasteboard();
-      const data = pasteboard.createData(pasteboard.MIMETYPE_PIXELMAP, snapshot);
-      await board.setData(data);
-      this.safeToast('分享图已复制到剪贴板，可直接粘贴发送');
-    } catch (_error) {
-      this.safeToast('生成分享图失败，请稍后重试');
-    }
+    await this.userShareService.shareSnapshot(
+      this.getUIContext(),
+      this.SHARE_SNAPSHOT_ID,
+      (message: string): void => {
+        this.safeToast(message);
+      },
+    );
   }
 
   private openSharedTestOverlay(): void {
