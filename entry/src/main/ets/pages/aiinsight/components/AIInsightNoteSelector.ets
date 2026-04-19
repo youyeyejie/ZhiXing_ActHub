@@ -42,6 +42,14 @@ export struct AIInsightNoteSelector {
     return `${month}-${day}`;
   }
 
+  private setNoteSelection(ideaId: number, checked: boolean): void {
+    if (checked) {
+      this.state.selectNote(ideaId);
+      return;
+    }
+    this.state.deselectNote(ideaId);
+  }
+
   @Builder
   private buildStartButton(): void {
     Button({ type: ButtonType.Circle }) {
@@ -67,37 +75,41 @@ export struct AIInsightNoteSelector {
         .selectedColor(this.app.theme.palette.primary)
         .width(20)
         .height(20)
-        .onChange((_checked: boolean) => {
-          this.state.toggleNoteSelection(idea.id);
+        .onChange((checked: boolean) => {
+          this.setNoteSelection(idea.id, checked);
         })
 
-      Column({ space: 4 }) {
-        Text(idea.title.length > 0 ? idea.title : '无标题')
-          .fontSize(FormTypography.INPUT_CONTENT_SIZE)
-          .fontColor(this.app.theme.palette.textPrimary)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      Row() {
+        Column({ space: 4 }) {
+          Text(idea.title.length > 0 ? idea.title : '无标题')
+            .fontSize(FormTypography.INPUT_CONTENT_SIZE)
+            .fontColor(this.app.theme.palette.textPrimary)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-        Text(idea.content)
-          .fontSize(FormTypography.LABEL_SIZE)
-          .fontColor(this.app.theme.palette.textSecondary)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          Text(idea.content)
+            .fontSize(FormTypography.LABEL_SIZE)
+            .fontColor(this.app.theme.palette.textSecondary)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        Text(this.formatTime(idea.timestamp))
+          .fontSize(FormTypography.INFO_SIZE)
+          .fontColor(this.app.theme.palette.textTertiary)
       }
       .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-
-      Text(this.formatTime(idea.timestamp))
-        .fontSize(FormTypography.INFO_SIZE)
-        .fontColor(this.app.theme.palette.textTertiary)
+      .justifyContent(FlexAlign.SpaceBetween)
+      .onClick(() => {
+        this.state.toggleNoteSelection(idea.id);
+      })
     }
     .width('100%')
     .padding({ left: 12, right: 12, top: 10, bottom: 10 })
     .backgroundColor(this.app.theme.palette.surfaceSecondary)
     .borderRadius(12)
-    .onClick(() => {
-      this.state.toggleNoteSelection(idea.id);
-    })
   }
 
   build() {
