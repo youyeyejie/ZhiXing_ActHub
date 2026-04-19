@@ -95,7 +95,7 @@ export struct UserPage {
     this.app.nav.pushOverlayByName(AppOverlayRoute.SHARED_TEST, undefined, false);
   }
   @Builder
-  private buildProfileCard() {
+  private buildProfileCard(showThemeToggle: boolean) {
     Column({ space: 16 }) {
       Row({ space: 14 }) {
         Text(this.resolveInitial())
@@ -121,17 +121,19 @@ export struct UserPage {
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
-        Button({ type: ButtonType.Circle, stateEffect: true }) {
-          SymbolGlyph(this.resolveThemeModeIcon())
-            .fontSize(28)
-            .fontColor([this.app.theme.palette.textSecondary])
+        if (showThemeToggle) {
+          Button({ type: ButtonType.Circle, stateEffect: true }) {
+            SymbolGlyph(this.resolveThemeModeIcon())
+              .fontSize(28)
+              .fontColor([this.app.theme.palette.textSecondary])
+          }
+          .width(42)
+          .height(42)
+          .backgroundColor(this.app.theme.palette.surfaceSecondary)
+          .onClick(async () => {
+            await this.cycleThemeMode();
+          })
         }
-        .width(42)
-        .height(42)
-        .backgroundColor(this.app.theme.palette.surfaceSecondary)
-        .onClick(async () => {
-          await this.cycleThemeMode();
-        })
       }
       .width("100%")
       .alignItems(VerticalAlign.Center)
@@ -143,14 +145,14 @@ export struct UserPage {
   }
 
   @Builder
-  private buildShareableStatsSection() {
+  private buildStatsSection(showThemeToggle: boolean, snapshotId?: string) {
     Column({ space: 12 }) {
-      this.buildProfileCard()
+      this.buildProfileCard(showThemeToggle)
       FocusStatsChart()
       UserActivityHeatmap()
     }
     .width('100%')
-    .id(this.SHARE_SNAPSHOT_ID);
+    .id(snapshotId ?? '');
   }
 
   build() {
@@ -162,20 +164,31 @@ export struct UserPage {
       },
     }) {
       PageScrollLayout({ space: 12, paddingTop: 0 }) {
-        Row() {
-          Blank()
-          Column({ space: 12 }) {
-            this.buildShareableStatsSection()
-            SettingsPanel({
-              onLogoutTap: async () => {
-                await this.handleLogout();
-              },
-            })
+        Stack({ alignContent: Alignment.TopStart }) {
+          Row() {
+            Blank()
+            Column({ space: 12 }) {
+              this.buildStatsSection(true)
+              SettingsPanel({
+                onLogoutTap: async () => {
+                  await this.handleLogout();
+                },
+              })
+            }
+            .width("100%")
+            .constraintSize({ maxWidth: 760 })
+            Blank()
+          }
+          .width("100%")
+
+          Column() {
+            this.buildStatsSection(false, this.SHARE_SNAPSHOT_ID)
           }
           .width("100%")
           .constraintSize({ maxWidth: 760 })
-          Blank()
-        }.width("100%")
+          .position({ x: -4000, y: 0 })
+        }
+        .width("100%")
       }
     };
   }
