@@ -1,5 +1,6 @@
 import display from '@ohos.display';
 import { AppState, useAppState } from '../../app/AppStates';
+import { StatusBarService } from '../../core/services/StatusBarService';
 import { FocusPage } from '../../pages/focus';
 
 /**
@@ -22,7 +23,9 @@ export struct FocusOverlayDestination {
   @Local private panelTravelY: number = 1200;
   @Local private closing: boolean = false;
   @Local private entered: boolean = false;
+  @Local private statusBarHidden: boolean = false;
   private dismissDoneTimerId: number = -1;
+  private enterDoneTimerId: number = -1;
   private enterDuration: number = 200;
   private exitDuration: number = 200;
 
@@ -39,13 +42,22 @@ export struct FocusOverlayDestination {
   }
 
   aboutToDisappear(): void {
+    this.clearEnterDoneTimer();
     this.clearDismissDoneTimer();
+    this.restoreStatusBar();
   }
 
   private clearDismissDoneTimer(): void {
     if (this.dismissDoneTimerId >= 0) {
       clearTimeout(this.dismissDoneTimerId);
       this.dismissDoneTimerId = -1;
+    }
+  }
+
+  private clearEnterDoneTimer(): void {
+    if (this.enterDoneTimerId >= 0) {
+      clearTimeout(this.enterDoneTimerId);
+      this.enterDoneTimerId = -1;
     }
   }
 
@@ -62,15 +74,22 @@ export struct FocusOverlayDestination {
     if (this.entered) {
       return;
     }
+    this.clearEnterDoneTimer();
     this.entered = true;
     this.panelOffsetY = 0;
+    this.enterDoneTimerId = setTimeout(() => {
+      this.enterDoneTimerId = -1;
+      this.hideStatusBar();
+    }, this.enterDuration);
   }
 
   private requestDismiss(): void {
     if (this.closing) {
       return;
     }
+    this.clearEnterDoneTimer();
     this.clearDismissDoneTimer();
+    this.restoreStatusBar();
     this.closing = true;
     this.panelOffsetY = this.panelTravelY;
     this.dismissDoneTimerId = setTimeout(() => {
@@ -78,6 +97,22 @@ export struct FocusOverlayDestination {
       this.closing = false;
       this.app.nav.back(false);
     }, this.exitDuration);
+  }
+
+  private hideStatusBar(): void {
+    if (this.statusBarHidden) {
+      return;
+    }
+    this.statusBarHidden = true;
+    StatusBarService.hideStatusBar();
+  }
+
+  private restoreStatusBar(): void {
+    if (!this.statusBarHidden) {
+      return;
+    }
+    this.statusBarHidden = false;
+    StatusBarService.showStatusBar();
   }
 
   build() {
