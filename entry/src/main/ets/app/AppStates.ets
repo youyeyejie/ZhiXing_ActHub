@@ -6,6 +6,7 @@ import { AuthService } from '../core/services/AuthService';
 import { CalendarReminderService } from '../core/services/CalendarReminderService';
 import { FocusTimerEngine } from '../core/services/FocusTimerEngine';
 import { NotificationService } from '../core/services/NotificationService';
+import { StatusBarService } from '../core/services/StatusBarService';
 import { WhiteNoisePlayer } from '../core/services/WhiteNoisePlayer';
 import { User } from '../core/models/User';
 import { UserPreferenceRepository } from '../core/repositories/UserPreferenceRepository';
@@ -132,6 +133,9 @@ export class AppState {
   applyThemePreference(mode: ThemeMode, systemDarkMode: boolean): void {
     this.themeManager.set(mode);
     this.themeManager.setSystemDark(systemDarkMode);
+    StatusBarService.syncContentWithTheme(this.themeManager.palette).catch(() => {
+      return;
+    });
   }
 
   async setPreferredThemeMode(mode: ThemeMode): Promise<void> {

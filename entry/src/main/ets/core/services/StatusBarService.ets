@@ -1,4 +1,5 @@
 import { window } from '@kit.ArkUI';
+import { ThemePalette } from '../theme/ThemePalette';
 
 /**
  * 类功能简介：
@@ -30,6 +31,22 @@ export class StatusBarService {
 
   static showStatusBar(): Promise<void> {
     return StatusBarService.setStatusBarVisible(true);
+  }
+
+  static syncContentWithTheme(palette: ThemePalette): Promise<void> {
+    const mainWindow = StatusBarService.mainWindow;
+    if (mainWindow === null) {
+      return Promise.resolve();
+    }
+
+    return mainWindow.setWindowSystemBarProperties({
+      statusBarContentColor: palette.textPrimary,
+      navigationBarContentColor: palette.textPrimary,
+    }).then(() => {
+      return;
+    }).catch(() => {
+      return;
+    });
   }
 
   private static setStatusBarVisible(visible: boolean): Promise<void> {
