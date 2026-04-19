@@ -108,20 +108,40 @@ export struct UserActivityHeatmap {
     return `${this.formatMonthDay(startDate)} - ${this.formatMonthDay(endDate)}`;
   }
 
+  private resolveMaxCount(): number {
+    let maxCount: number = 0;
+    for (let weekIndex = 0; weekIndex < this.weeks.length; weekIndex++) {
+      const week: Array<UserHeatmapDay> = this.weeks[weekIndex];
+      for (let dayIndex = 0; dayIndex < week.length; dayIndex++) {
+        if (!week[dayIndex].isFuture) {
+          maxCount = Math.max(maxCount, week[dayIndex].count);
+        }
+      }
+    }
+    return maxCount;
+  }
+
   private getHeatColor(count: number): string {
     if (count === 0) {
       return this.app.theme.palette.surfaceSecondary;
     }
-    if (count === 1) {
+
+    const maxCount: number = this.resolveMaxCount();
+    if (maxCount <= 0) {
       return this.app.theme.palette.heatmapLevel_1;
     }
-    if (count <= 3) {
+
+    const ratio: number = count / maxCount;
+    if (ratio <= 0.2) {
+      return this.app.theme.palette.heatmapLevel_1;
+    }
+    if (ratio <= 0.4) {
       return this.app.theme.palette.heatmapLevel_2;
     }
-    if (count <= 5) {
+    if (ratio <= 0.6) {
       return this.app.theme.palette.heatmapLevel_3;
     }
-    if (count <= 10) {
+    if (ratio <= 0.8) {
       return this.app.theme.palette.heatmapLevel_4;
     }
     return this.app.theme.palette.heatmapLevel_5;

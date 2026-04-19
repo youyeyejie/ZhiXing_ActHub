@@ -50,6 +50,7 @@ export class AppState {
   @Trace public hasRequestedCalendarPermissionOnLaunch: boolean = false;
   @Trace public hasGrantedCalendarPermissionOnLaunch: boolean = false;
   @Trace public hasSyncedCalendarRemindersOnLaunch: boolean = false;
+  @Trace public focusStatsRefreshVersion: number = 0;
 
   get theme(): ThemeManager {
     return this.themeManager;
@@ -208,6 +209,10 @@ export class AppState {
 
   enterMain(): void {
     this.flow = AppFlow.MAIN;
+  }
+
+  notifyFocusStatsShouldRefresh(): void {
+    this.focusStatsRefreshVersion += 1;
   }
 
   async syncCalendarRemindersForCurrentUser(): Promise<void> {

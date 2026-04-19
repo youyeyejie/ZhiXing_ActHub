@@ -31,6 +31,11 @@ export struct FocusStatsChart {
     this.loadStats();
   }
 
+  @Monitor('app.focusStatsRefreshVersion')
+  onFocusStatsRefreshVersionChanged(): void {
+    this.loadStats();
+  }
+
   private async loadStats(): Promise<void> {
     this.loading = true;
     try {
@@ -120,7 +125,7 @@ export struct FocusStatsChart {
   private resolveBarHeight(duration: number, bars: Array<FocusDayBar>): number {
     const maxDuration: number = this.resolveMaxDuration(bars);
     if (duration <= 0 || maxDuration <= 0) {
-      return 8;
+      return 12;
     }
     return Math.max(16, Math.floor(duration / maxDuration * 112));
   }
@@ -171,13 +176,13 @@ export struct FocusStatsChart {
         Column()
           .width('100%')
           .height(120)
-          .borderRadius(16)
+          .borderRadius(6)
           .backgroundColor(this.app.theme.palette.surfaceSecondary);
 
         Column()
           .width('100%')
           .height(this.resolveBarHeight(item.duration, bars))
-          .borderRadius(16)
+          .borderRadius(6)
           .backgroundColor(item.duration > 0 ? this.app.theme.palette.primary : this.app.theme.palette.border);
       }
       .width('100%')
@@ -207,6 +212,7 @@ export struct FocusStatsChart {
       );
     }
     .width('100%')
+    .padding({ left: 6, right: 6 })
     .alignItems(VerticalAlign.Bottom);
   }
 
@@ -245,23 +251,6 @@ export struct FocusStatsChart {
         }
         .width('100%')
         .height(120);
-      } else if (this.totalCount <= 0) {
-        Column({ space: 8 }) {
-          Text('还没有图表数据')
-            .fontSize(14)
-            .fontColor(this.app.theme.palette.textSecondary);
-          Text('开始一次专注后，这里会显示今天及前 6 天的专注时长，并支持左右滑动翻页查看更早记录。')
-            .fontSize(12)
-            .lineHeight(18)
-            .fontColor(this.app.theme.palette.textTertiary)
-            .textAlign(TextAlign.Center);
-        }
-        .width('100%')
-        .height(120)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        .backgroundColor(this.app.theme.palette.surfaceSecondary)
-        .borderRadius(18);
       } else {
         Swiper() {
           ForEach(

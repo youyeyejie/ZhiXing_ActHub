@@ -95,6 +95,7 @@ export struct FocusOverlayDestination {
     this.dismissDoneTimerId = setTimeout(() => {
       this.dismissDoneTimerId = -1;
       this.closing = false;
+      this.app.notifyFocusStatsShouldRefresh();
       this.app.nav.back(false);
     }, this.exitDuration);
   }
