@@ -4,10 +4,9 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { UserActivityHeatmap } from './components/UserActivityHeatmap';
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
 import { AppState, useAppState } from "../../app/AppStates";
-import { AppOverlayRoute } from '../../app/AppConstants';
 import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
 import { ThemeMode } from "../../core/theme/ThemeManager";
-import { UserShareService } from './UserShareService';
+import { UserShareService } from '../../core/services/UserShareService';
 
 /**
  * 组件功能简介：

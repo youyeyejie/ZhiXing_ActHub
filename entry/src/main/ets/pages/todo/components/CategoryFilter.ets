@@ -193,10 +193,11 @@ export struct CategoryFilter {
           );
         }
         .justifyContent(FlexAlign.Start)
+        .alignItems(VerticalAlign.Center)
         .padding({ top: 2, bottom: 2 });
       }
-      .width('100%')
       .layoutWeight(1)
+      .align(Alignment.Start)
       .scrollable(ScrollDirection.Horizontal)
       .scrollBar(BarState.Off);
 
@@ -215,6 +216,7 @@ export struct CategoryFilter {
     .width('100%')
     .padding({top: 0, bottom: 12, left: 6, right: 6})
     .borderRadius(18)
+    .justifyContent(FlexAlign.Start)
     .alignItems(VerticalAlign.Center);
   }
 }

@@ -468,13 +468,17 @@ export struct TodoEditorContent {
 
             this.buildAddCategoryChip();
           }
+          .justifyContent(FlexAlign.Start)
+          .alignItems(VerticalAlign.Center)
           .padding({ right: 4 });
         }
         .layoutWeight(1)
+        .align(Alignment.Start)
         .scrollable(ScrollDirection.Horizontal)
         .scrollBar(BarState.Off);
       }
       .width('100%')
+      .justifyContent(FlexAlign.Start)
       .alignItems(VerticalAlign.Center)
       .padding({ top: 2, bottom: 2 });
     }

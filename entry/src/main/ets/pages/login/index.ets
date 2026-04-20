@@ -196,13 +196,6 @@ export struct LoginPage {
             .onClick(async () => {
               await this.submit();
             });
-
-          Text(this.isRegisterMode
-            ? '注册成功后会自动登录，下次启动会直接跳过登录页。'
-            : '支持登录状态保持，已登录用户会直接进入主界面。')
-            .fontSize(12)
-            .fontColor(this.app.theme.palette.textTertiary)
-            .lineHeight(18);
         }
         .width('100%')
         .padding(20)

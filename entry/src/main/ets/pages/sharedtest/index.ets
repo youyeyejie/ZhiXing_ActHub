@@ -65,6 +65,16 @@ class UndoDeleteTask {
   }
 }
 
+class DemoTodoDraft {
+  title: string;
+  categoryId: number;
+
+  constructor(title: string, categoryId: number) {
+    this.title = title;
+    this.categoryId = categoryId;
+  }
+}
+
 /**
  * 组件功能简介：
  * - 共享交互测试页面，用于验证卡片手势、撤销通知与测试数据构造流程。
@@ -101,9 +111,9 @@ export struct SharedInteractionTestPage {
   private readonly CATEGORY_TOTAL_CAPACITY: number = 8;
 
   private readonly planPrefix: string = '测试日程';
-  private readonly categoryPrefix: string = '分类';
   private readonly todoPrefix: string = '测试待办';
   private readonly ideaPrefix: string = '测试闪记';
+  private readonly fixedTestCategoryNames: Array<string> = ['生活', '学习', '工作', '健身'];
 
   private readonly ideaSamples: Array<string> = [
     '“讲完之后就去下一个片场讲。”莉雅嘴角微微翘着，“然后再去下一个世界，再再下一个世界，直到我无限的世界里到处都是你和你的故事，直到我忘掉所有过去，直到我只记得你，当无限的世界里只有你和我，我想问题应该也就能顺利解决了。”',
@@ -114,7 +124,64 @@ export struct SharedInteractionTestPage {
     '辽阔的土地，生不出狭隘的爱。',
   ];
 
-  private readonly focusMinutePattern: Array<number> = [1, 1, 4, 5, 1, 4];
+  private readonly focusMinutePattern: Array<number> = [
+    10, 10, 40, 50, 10, 40, 0,
+    10, 90, 10, 90, 80, 10, 0,
+  ];
+
+  private readonly morningPlanTitles: Array<string> = [
+    '信息安全基础复习',
+    '机器学习实验整理',
+    '项目任务拆解讨论',
+    '英语论文精读',
+    '课程预习与提纲整理',
+    '代码评审与缺陷修复',
+    '算法练习与错题回顾',
+  ];
+  private readonly afternoonPlanTitles: Array<string> = [
+    '项目管理课程学习',
+    '数据库课程实验',
+    '小组周会与进度同步',
+    '产品原型细化',
+    '前端交互联调',
+    '功能回归测试',
+    '演示材料准备',
+  ];
+  private readonly planLocationSamples: Array<string> = [
+    '东上院309',
+    '东上院307',
+    '东中院3-405',
+    '图书馆三楼自习区',
+    '实验楼A205',
+    '线上会议室',
+    '创新中心B201',
+  ];
+
+  private readonly lifeTodoSamples: Array<string> = [
+    '整理宿舍与书桌',
+    '采购三天食材',
+    '清洗衣物并晾晒',
+  ];
+  private readonly studyTodoSamples: Array<string> = [
+    '复习信息安全课堂笔记',
+    '完成数据库课程作业',
+    '阅读一篇相关论文并做摘要',
+  ];
+  private readonly workTodoSamples: Array<string> = [
+    '更新项目周报并同步进度',
+    '整理需求池并标注优先级',
+    '提交本周合并请求',
+  ];
+  private readonly fitnessTodoSamples: Array<string> = [
+    '慢跑30分钟',
+    '上肢力量训练三组',
+    '睡前拉伸15分钟',
+  ];
+  private readonly uncategorizedTodoSamples: Array<string> = [
+    '检查邮箱待处理事项',
+    '备份手机照片',
+    '给家人回电话',
+  ];
 
   private planRepository: PlanRepository = new PlanRepository();
   private todoCategoryRepository: TodoCategoryRepository = new TodoCategoryRepository();
@@ -316,15 +383,7 @@ export struct SharedInteractionTestPage {
   private collectPlanNames(plans: Array<Plan>): Array<string> {
     const values: Array<string> = [];
     for (let index = 0; index < plans.length; index++) {
-      values.push(this.normalizeText(plans[index].content));
-    }
-    return values;
-  }
-
-  private collectCategoryNames(categories: Array<TodoCategory>): Array<string> {
-    const values: Array<string> = [];
-    for (let index = 0; index < categories.length; index++) {
-      values.push(this.normalizeText(categories[index].category));
+      values.push(this.normalizeText(plans[index].description));
     }
     return values;
   }
@@ -332,9 +391,180 @@ export struct SharedInteractionTestPage {
   private collectTodoNames(todos: Array<Todo>): Array<string> {
     const values: Array<string> = [];
     for (let index = 0; index < todos.length; index++) {
-      values.push(this.normalizeText(todos[index].content));
+      values.push(this.normalizeText(todos[index].detail));
     }
     return values;
+  }
+
+  private randomIntInRange(min: number, max: number): number {
+    if (max <= min) {
+      return min;
+    }
+    return min + Math.floor(Math.random() * (max - min + 1));
+  }
+
+  private pickUniqueRandomIndices(total: number, count: number): Array<number> {
+    const pool: Array<number> = [];
+    for (let index = 0; index < total; index++) {
+      pool.push(index);
+    }
+
+    const result: Array<number> = [];
+    let remain = Math.min(count, pool.length);
+    while (remain > 0 && pool.length > 0) {
+      const picked = this.randomIntInRange(0, pool.length - 1);
+      result.push(pool[picked]);
+      pool.splice(picked, 1);
+      remain = remain - 1;
+    }
+
+    return result;
+  }
+
+  private pickUniqueRandomTexts(pool: Array<string>, count: number): Array<string> {
+    if (pool.length <= 0 || count <= 0) {
+      return [];
+    }
+    const indexes = this.pickUniqueRandomIndices(pool.length, count);
+    const result: Array<string> = [];
+    for (let index = 0; index < indexes.length; index++) {
+      result.push(pool[indexes[index]]);
+    }
+    return result;
+  }
+
+  private isFixedCategoryName(categoryName: string): boolean {
+    const normalized = this.normalizeText(categoryName);
+    for (let index = 0; index < this.fixedTestCategoryNames.length; index++) {
+      if (this.fixedTestCategoryNames[index] === normalized) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private resolveFixedCategoryOrder(categoryName: string): number {
+    const normalized = this.normalizeText(categoryName);
+    for (let index = 0; index < this.fixedTestCategoryNames.length; index++) {
+      if (this.fixedTestCategoryNames[index] === normalized) {
+        return index;
+      }
+    }
+    return this.fixedTestCategoryNames.length + 10;
+  }
+
+  private hasNumber(values: Array<number>, target: number): boolean {
+    for (let index = 0; index < values.length; index++) {
+      if (values[index] === target) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private resolveTodoTitlePoolByCategoryIndex(index: number): Array<string> {
+    if (index === 0) {
+      return this.lifeTodoSamples;
+    }
+    if (index === 1) {
+      return this.studyTodoSamples;
+    }
+    if (index === 2) {
+      return this.workTodoSamples;
+    }
+    return this.fitnessTodoSamples;
+  }
+
+  private resolvePlanTitle(dayIndex: number, isMorning: boolean): string {
+    if (isMorning) {
+      return this.morningPlanTitles[dayIndex % this.morningPlanTitles.length];
+    }
+    return this.afternoonPlanTitles[dayIndex % this.afternoonPlanTitles.length];
+  }
+
+  private resolvePlanLocation(dayIndex: number, slotSeed: number): string {
+    const index = (dayIndex + slotSeed) % this.planLocationSamples.length;
+    return this.planLocationSamples[index];
+  }
+
+  private resolveRandomIdeaTimestamp(dayStart: number): number {
+    const hour = this.randomIntInRange(8, 22);
+    const minute = this.randomIntInRange(0, 59);
+    return dayStart + hour * this.HOUR_MS + minute * 60 * 1000;
+  }
+
+  private resolveCategoryByName(categories: Array<TodoCategory>, name: string): TodoCategory | null {
+    const targetName = this.normalizeText(name);
+    for (let index = 0; index < categories.length; index++) {
+      if (this.normalizeText(categories[index].category) === targetName) {
+        return categories[index];
+      }
+    }
+    return null;
+  }
+
+  private appendTodoDrafts(
+    drafts: Array<DemoTodoDraft>,
+    titlePool: Array<string>,
+    categoryId: number,
+  ): void {
+    const count = this.randomIntInRange(1, 3);
+    const pickedTitles = this.pickUniqueRandomTexts(titlePool, count);
+    for (let index = 0; index < pickedTitles.length; index++) {
+      drafts.push(new DemoTodoDraft(pickedTitles[index], categoryId));
+    }
+  }
+
+  private resolveFixedCategoryIds(): Array<number> {
+    const ids: Array<number> = [];
+    for (let index = 0; index < this.fixedTestCategoryNames.length; index++) {
+      const found = this.resolveCategoryByName(this.testCategories, this.fixedTestCategoryNames[index]);
+      if (found !== null) {
+        ids.push(found.id);
+      }
+    }
+    return ids;
+  }
+
+  private applyDefaultDoneToDrafts(totalDrafts: number): Array<number> {
+    const doneCount = Math.min(2, totalDrafts);
+    return this.pickUniqueRandomIndices(totalDrafts, doneCount);
+  }
+
+  private createTestPlan(
+    content: string,
+    startTime: number,
+    endTime: number,
+    location: string,
+    description: string,
+    isCourse: number,
+    createdAt: number,
+  ): Plan {
+    const plan = new Plan();
+    plan.content = content;
+    plan.startTime = startTime;
+    plan.endTime = endTime;
+    plan.duration = endTime - startTime;
+    plan.timestamp = startTime;
+    plan.location = location;
+    plan.isCourse = isCourse;
+    plan.description = description;
+    plan.createdAt = createdAt;
+    plan.updatedAt = createdAt;
+    return plan;
+  }
+
+  private createTestFocusRecord(startTime: number, durationMinutes: number): Focus {
+    const focus = new Focus();
+    const durationSeconds = durationMinutes * 60;
+    focus.todoId = 0;
+    focus.startTime = startTime;
+    focus.endTime = startTime + durationSeconds * 1000;
+    focus.duration = durationSeconds;
+    focus.timestamp = startTime;
+    focus.createdAt = startTime;
+    focus.updatedAt = startTime;
+    return focus;
   }
 
   private collectIdeaTitles(ideas: Array<Idea>): Array<string> {
@@ -349,13 +579,13 @@ export struct SharedInteractionTestPage {
     const result: Array<TodoCategory> = [];
     for (let index = 0; index < categories.length; index++) {
       const categoryName = this.normalizeText(categories[index].category);
-      if (categoryName.startsWith(`${this.categoryPrefix}#`)) {
+      if (this.isFixedCategoryName(categoryName)) {
         result.push(categories[index]);
       }
     }
     result.sort((a: TodoCategory, b: TodoCategory) => {
-      const aIndex = this.parseNameIndex(a.category, this.categoryPrefix);
-      const bIndex = this.parseNameIndex(b.category, this.categoryPrefix);
+      const aIndex = this.resolveFixedCategoryOrder(a.category);
+      const bIndex = this.resolveFixedCategoryOrder(b.category);
       return aIndex - bIndex;
     });
     return result;
@@ -384,49 +614,43 @@ export struct SharedInteractionTestPage {
 
     for (let dayIndex = 0; dayIndex < weekDays.length; dayIndex++) {
       const currentDay = weekDays[dayIndex];
-      const firstPlan = new Plan();
-      firstPlan.content = `${this.planPrefix}#${nextIndex}`;
+      const firstPlan = this.createTestPlan(
+        this.resolvePlanTitle(dayIndex, true),
+        currentDay + 8 * this.HOUR_MS,
+        currentDay + 10 * this.HOUR_MS,
+        this.resolvePlanLocation(dayIndex, 1),
+        `${this.planPrefix}#${nextIndex}`,
+        0,
+        now,
+      );
       nextIndex = nextIndex + 1;
-      firstPlan.startTime = currentDay + 8 * this.HOUR_MS;
-      firstPlan.endTime = currentDay + 10 * this.HOUR_MS;
-      firstPlan.duration = firstPlan.endTime - firstPlan.startTime;
-      firstPlan.timestamp = firstPlan.startTime;
-      firstPlan.location = '共享测试页构建';
-      firstPlan.isCourse = 0;
-      firstPlan.description = '测试数据：8:00-10:00';
-      firstPlan.createdAt = now;
-      firstPlan.updatedAt = now;
       await this.planRepository.save(firstPlan);
       insertedCount = insertedCount + 1;
 
-      const secondPlan = new Plan();
-      secondPlan.content = `${this.planPrefix}#${nextIndex}`;
+      const secondPlan = this.createTestPlan(
+        this.resolvePlanTitle(dayIndex, false),
+        currentDay + 14 * this.HOUR_MS,
+        currentDay + 16 * this.HOUR_MS,
+        this.resolvePlanLocation(dayIndex, 3),
+        `${this.planPrefix}#${nextIndex}`,
+        0,
+        now,
+      );
       nextIndex = nextIndex + 1;
-      secondPlan.startTime = currentDay + 14 * this.HOUR_MS;
-      secondPlan.endTime = currentDay + 16 * this.HOUR_MS;
-      secondPlan.duration = secondPlan.endTime - secondPlan.startTime;
-      secondPlan.timestamp = secondPlan.startTime;
-      secondPlan.location = '共享测试页构建';
-      secondPlan.isCourse = 0;
-      secondPlan.description = '测试数据：14:00-16:00';
-      secondPlan.createdAt = now;
-      secondPlan.updatedAt = now;
       await this.planRepository.save(secondPlan);
       insertedCount = insertedCount + 1;
 
       if (this.isSameDay(currentDay, todayStart)) {
-        const extraPlan = new Plan();
-        extraPlan.content = `${this.planPrefix}#${nextIndex}`;
+        const extraPlan = this.createTestPlan(
+          '课程答疑与复盘',
+          now + 15 * 60 * 1000,
+          now + 60 * 60 * 1000,
+          '东中院3-405',
+          `${this.planPrefix}#${nextIndex}`,
+          1,
+          now,
+        );
         nextIndex = nextIndex + 1;
-        extraPlan.startTime = now + 15 * 60 * 1000;
-        extraPlan.endTime = now + 60 * 60 * 1000;
-        extraPlan.duration = extraPlan.endTime - extraPlan.startTime;
-        extraPlan.timestamp = extraPlan.startTime;
-        extraPlan.location = '共享测试页构建';
-        extraPlan.isCourse = 1;
-        extraPlan.description = '测试数据：当前15min后课程';
-        extraPlan.createdAt = now;
-        extraPlan.updatedAt = now;
         await this.planRepository.save(extraPlan);
         insertedCount = insertedCount + 1;
       }
@@ -437,31 +661,24 @@ export struct SharedInteractionTestPage {
 
   private async buildTodoCategoryData(): Promise<number> {
     const allCategories = await this.todoCategoryRepository.findAll();
-    if (allCategories.length >= this.CATEGORY_TOTAL_CAPACITY) {
-      this.safeToast(`分类数量已满（最多 ${this.CATEGORY_TOTAL_CAPACITY} 个）`);
-      this.pushLog('分类数量已满，跳过创建');
-      return 0;
-    }
-
-    const existingTestCategories = this.filterTestCategories(allCategories);
-    if (existingTestCategories.length >= this.TEST_CATEGORY_LIMIT) {
-      this.safeToast('测试分类已满');
-      this.pushLog('测试分类已满，跳过创建');
-      return 0;
-    }
-
     const colors = this.getCategoryColorPalette();
-    let nextIndex = this.resolveNextIndex(this.collectCategoryNames(allCategories), this.categoryPrefix);
     const now = Date.now();
     let insertedCount = 0;
 
-    for (let index = existingTestCategories.length; index < this.TEST_CATEGORY_LIMIT; index++) {
+    for (let index = 0; index < this.fixedTestCategoryNames.length; index++) {
+      const categoryName = this.fixedTestCategoryNames[index];
+      const exists = this.resolveCategoryByName(allCategories, categoryName) !== null;
+      if (exists) {
+        continue;
+      }
       if (allCategories.length + insertedCount >= this.CATEGORY_TOTAL_CAPACITY) {
+        this.safeToast(`分类数量已满（最多 ${this.CATEGORY_TOTAL_CAPACITY} 个）`);
+        this.pushLog('分类容量不足，未能补齐测试分类');
         break;
       }
+
       const category = new TodoCategory();
-      category.category = `${this.categoryPrefix}#${nextIndex}`;
-      nextIndex = nextIndex + 1;
+      category.category = categoryName;
       category.color = colors[index % colors.length];
       category.createdAt = now;
       category.updatedAt = now;
@@ -470,7 +687,7 @@ export struct SharedInteractionTestPage {
     }
 
     if (insertedCount <= 0) {
-      this.safeToast('测试分类已满');
+      this.safeToast('测试分类已存在');
     }
 
     return insertedCount;
@@ -487,30 +704,34 @@ export struct SharedInteractionTestPage {
     const allTodos = await this.todoRepository.findAll();
     let nextIndex = this.resolveNextIndex(this.collectTodoNames(allTodos), this.todoPrefix);
     const now = Date.now();
+    const fixedCategoryIds = this.resolveFixedCategoryIds();
+    if (fixedCategoryIds.length < this.TEST_CATEGORY_LIMIT) {
+      this.safeToast('测试分类缺失，请先创建四个测试分类');
+      this.pushLog('创建待办失败：未找到完整测试分类');
+      return 0;
+    }
+
+    const drafts: Array<DemoTodoDraft> = [];
+    for (let index = 0; index < fixedCategoryIds.length; index++) {
+      const pool = this.resolveTodoTitlePoolByCategoryIndex(index);
+      this.appendTodoDrafts(drafts, pool, fixedCategoryIds[index]);
+    }
+    this.appendTodoDrafts(drafts, this.uncategorizedTodoSamples, 0);
+
+    const doneIndexes = this.applyDefaultDoneToDrafts(drafts.length);
     let insertedCount = 0;
 
-    for (let index = 0; index < 10; index++) {
+    for (let index = 0; index < drafts.length; index++) {
       const todo = new Todo();
-      todo.content = `${this.todoPrefix}#${nextIndex}`;
+      todo.content = drafts[index].title;
+      todo.detail = `${this.todoPrefix}#${nextIndex}`;
       nextIndex = nextIndex + 1;
-      todo.detail = '共享测试页构建的待办数据';
       todo.timestamp = now + index * 60 * 1000;
       todo.createdAt = now;
       todo.updatedAt = now;
       todo.inFocus = 0;
-
-      if (index < 8) {
-        const categoryIndex = Math.floor(index / 2);
-        todo.categoryId = this.testCategories[categoryIndex].id;
-      } else {
-        todo.categoryId = 0;
-      }
-
-      if (index === 0 || index === 2) {
-        todo.isDone = 1;
-      } else {
-        todo.isDone = 0;
-      }
+      todo.categoryId = drafts[index].categoryId;
+      todo.isDone = this.hasNumber(doneIndexes, index) ? 1 : 0;
 
       await this.todoRepository.save(todo);
       insertedCount = insertedCount + 1;
@@ -531,36 +752,27 @@ export struct SharedInteractionTestPage {
     const existingIdeas = await this.ideaRepository.findAll();
     let nextIndex = this.resolveNextIndex(this.collectIdeaTitles(existingIdeas), this.ideaPrefix);
     const todayStart = this.resolveTodayStart();
+    const totalDays = 14 * 7;
     let insertedCount = 0;
 
-    for (let dayOffset = 30; dayOffset >= 1; dayOffset--) {
-      const idea = new Idea();
-      const content = this.sampleIdeaContent(nextIndex - 1);
-      const timestamp = todayStart - dayOffset * this.DAY_MS + 9 * this.HOUR_MS;
-      idea.title = `${this.ideaPrefix}#${nextIndex}`;
-      nextIndex = nextIndex + 1;
-      idea.content = content;
-      idea.length = content.length;
-      idea.timestamp = timestamp;
-      idea.createdAt = timestamp;
-      idea.updatedAt = timestamp;
-      await this.ideaRepository.save(idea);
-      insertedCount = insertedCount + 1;
-    }
-
-    for (let index = 0; index < 6; index++) {
-      const idea = new Idea();
-      const content = this.sampleIdeaContent(index);
-      const timestamp = todayStart + (8 + index) * this.HOUR_MS;
-      idea.title = `${this.ideaPrefix}#${nextIndex}`;
-      nextIndex = nextIndex + 1;
-      idea.content = content;
-      idea.length = content.length;
-      idea.timestamp = timestamp;
-      idea.createdAt = timestamp;
-      idea.updatedAt = timestamp;
-      await this.ideaRepository.save(idea);
-      insertedCount = insertedCount + 1;
+    for (let dayOffset = totalDays - 1; dayOffset >= 0; dayOffset--) {
+      const dayStart = todayStart - dayOffset * this.DAY_MS;
+      const ideaCount = this.randomIntInRange(0, Math.min(6, this.ideaSamples.length));
+      const daySamples = this.pickUniqueRandomTexts(this.ideaSamples, ideaCount);
+      for (let index = 0; index < daySamples.length; index++) {
+        const content = daySamples[index];
+        const timestamp = this.resolveRandomIdeaTimestamp(dayStart);
+        const idea = new Idea();
+        idea.title = `${this.ideaPrefix}#${nextIndex}`;
+        nextIndex = nextIndex + 1;
+        idea.content = content;
+        idea.length = content.length;
+        idea.timestamp = timestamp;
+        idea.createdAt = timestamp;
+        idea.updatedAt = timestamp;
+        await this.ideaRepository.save(idea);
+        insertedCount = insertedCount + 1;
+      }
     }
 
     return insertedCount;
@@ -571,18 +783,10 @@ export struct SharedInteractionTestPage {
     let insertedCount = 0;
 
     for (let index = 0; index < this.focusMinutePattern.length; index++) {
-      const focus = new Focus();
-      const dayOffset = this.focusMinutePattern.length - index;
+      const dayOffset = this.focusMinutePattern.length - 1 - index;
       const dayStart = todayStart - dayOffset * this.DAY_MS;
       const startTime = dayStart + 20 * this.HOUR_MS;
-      const durationSeconds = this.focusMinutePattern[index] * 60;
-      focus.todoId = 0;
-      focus.startTime = startTime;
-      focus.endTime = startTime + durationSeconds * 1000;
-      focus.duration = durationSeconds;
-      focus.timestamp = startTime;
-      focus.createdAt = startTime;
-      focus.updatedAt = startTime;
+      const focus = this.createTestFocusRecord(startTime, this.focusMinutePattern[index]);
       await this.focusRepository.save(focus);
       insertedCount = insertedCount + 1;
     }
@@ -842,12 +1046,7 @@ export struct SharedInteractionTestPage {
                 .fontWeight(FontWeight.Medium)
                 .fontColor(this.app.theme.palette.textPrimary);
 
-              Text('命名规则示例：测试日程#1、分类#1、测试待办#1、测试闪记#1')
-                .fontSize(12)
-                .lineHeight(18)
-                .fontColor(this.app.theme.palette.textSecondary);
-
-              Button('创建日程数据（本周 + 当天课程）')
+              Button('创建测试日程数据（本周 + 当天课程）')
                 .width('100%')
                 .height(42)
                 .enabled(!this.buildingData)
@@ -862,7 +1061,7 @@ export struct SharedInteractionTestPage {
                   );
                 });
 
-              Button('创建待办分类（最多四个）')
+              Button('创建测试待办分类（生活/学习/工作/健身）')
                 .width('100%')
                 .height(42)
                 .enabled(!this.buildingData)
@@ -877,7 +1076,7 @@ export struct SharedInteractionTestPage {
                   );
                 });
 
-              Button('创建待办（共十条）')
+              Button('创建测试待办（测试分类各1-3条）')
                 .width('100%')
                 .height(42)
                 .enabled(!this.buildingData && this.hasRequiredTestCategories())
@@ -896,7 +1095,7 @@ export struct SharedInteractionTestPage {
                 .fontSize(12)
                 .fontColor(this.app.theme.palette.textSecondary);
 
-              Button('创建闪记（前30天 + 今天6条）')
+              Button('创建测试闪记（过去14周，0-6条/天）')
                 .width('100%')
                 .height(42)
                 .enabled(!this.buildingData)
@@ -911,7 +1110,7 @@ export struct SharedInteractionTestPage {
                   );
                 });
 
-              Button('创建专注记录（前六天）')
+              Button('创建测试专注记录（今天及前13天）')
                 .width('100%')
                 .height(42)
                 .enabled(!this.buildingData)
