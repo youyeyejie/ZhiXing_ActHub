@@ -2,14 +2,16 @@ import { common, Want } from '@kit.AbilityKit';
 import promptAction from '@ohos.promptAction';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { fileIo as fs, picker, ReadOptions, WriteOptions } from '@kit.CoreFileKit';
+import { buffer } from '@kit.ArkTS';
 import { AppState } from '../../app/AppStates';
 import { UserDatabase } from '../database/UserDatabase';
-import { Plan } from '../models/Plan';
+import { AIInsight, Focus, Idea, Plan, Todo, TodoCategory, UserPreference } from '../models';
 import { PlanRepository } from '../repositories/PlanRepository';
 import { IcsFile, IcsItem, IcsService } from './IcsService';
 import { usePlanPageState } from '../../pages/plan/PlanPageState';
 import { useTodoPageState } from '../../pages/todo/TodoPageState';
 import { useIdeaPageState } from '../../pages/idea/IdeaPageState';
+import { useAIInsightState } from '../../pages/aiinsight/AIInsightState';
 
 const CHUNK_SIZE = 4096;
 
@@ -29,6 +31,19 @@ class IcsRecurrenceRule {
   count: number = 0;
   interval: number = 1;
   byDay: string[] = [];
+}
+
+class UserDataSnapshot {
+  version: number = 1;
+  username: string = '';
+  exportedAt: number = 0;
+  plans: Array<Plan> = [];
+  todos: Array<Todo> = [];
+  todoCategories: Array<TodoCategory> = [];
+  focusRecords: Array<Focus> = [];
+  ideas: Array<Idea> = [];
+  aiInsights: Array<AIInsight> = [];
+  userPreferences: Array<UserPreference> = [];
 }
 
 export class ImportExportService {
@@ -54,6 +69,16 @@ export class ImportExportService {
     const dbPath: string = await UserDatabase.getInstance().resolveDatabaseFilePath(context, account);
 
     try {
+      const snapshot: UserDataSnapshot | null = this.tryReadUserDataSnapshot(sourceUri);
+      if (snapshot !== null) {
+        await this.restoreUserDataSnapshot(context, account, snapshot);
+        this.resetPageStatesForReload();
+        await this.restartApplication(context);
+        return new ImportExportResult(
+          true,
+          `用户数据导入成功（待办 ${snapshot.todos.length}，专注 ${snapshot.focusRecords.length}，洞察 ${snapshot.aiInsights.length}）`,
+        );
+      }
       await this.reopenCurrentUserDatabase(context, account, false);
       this.removeSqliteSidecarFiles(dbPath);
       this.copyFileUriToPath(sourceUri, dbPath);
@@ -78,12 +103,25 @@ export class ImportExportService {
     }
 
     const account: string = user.name;
-    const targetUri: string | null = await this.pickSaveFile(context, `${user.name}_acthub.db`, ['SQLite|db']);
+    const targetUri: string | null = await this.pickSaveFile(
+      context,
+      `${user.name}_acthub`,
+      ['ActHub Snapshot|.json', 'SQLite|.db'],
+    );
     if (targetUri === null) {
       return new ImportExportResult(false, '已取消导出用户数据');
     }
 
     try {
+      if (this.isJsonSnapshotUri(targetUri)) {
+        const snapshot: UserDataSnapshot = this.buildUserDataSnapshot(account);
+        await this.yieldToPickerDismiss();
+        this.writeTextToFileUri(targetUri, JSON.stringify(snapshot));
+        return new ImportExportResult(
+          true,
+          `用户数据导出成功（待办 ${snapshot.todos.length}，专注 ${snapshot.focusRecords.length}，洞察 ${snapshot.aiInsights.length}）`,
+        );
+      }
       const dbPath: string = await UserDatabase.getInstance().resolveDatabaseFilePath(context, account);
       await this.reopenCurrentUserDatabase(context, account, false);
       await this.yieldToPickerDismiss();
@@ -153,7 +191,7 @@ export class ImportExportService {
       return new ImportExportResult(false, '当前未登录，无法导出 ICS');
     }
 
-    const targetUri: string | null = await this.pickSaveFile(context, 'courses.ics', ['iCalendar|ics']);
+    const targetUri: string | null = await this.pickSaveFile(context, 'courses', ['iCalendar|.ics']);
     if (targetUri === null) {
       return new ImportExportResult(false, '已取消导出 ICS');
     }
@@ -180,6 +218,181 @@ export class ImportExportService {
       if (file !== null) {
         fs.closeSync(file);
       }
+    }
+  }
+
+  private buildUserDataSnapshot(username: string): UserDataSnapshot {
+    const orm = UserDatabase.getInstance().getOrm();
+    const snapshot = new UserDataSnapshot();
+    snapshot.username = username;
+    snapshot.exportedAt = Date.now();
+    snapshot.plans = orm.query(Plan).find();
+    snapshot.todos = orm.query(Todo).find();
+    snapshot.todoCategories = orm.query(TodoCategory).find();
+    snapshot.focusRecords = orm.query(Focus).find();
+    snapshot.ideas = orm.query(Idea).find();
+    snapshot.aiInsights = orm.query(AIInsight).find();
+    snapshot.userPreferences = orm.query(UserPreference).find();
+    return snapshot;
+  }
+
+  private tryReadUserDataSnapshot(sourceUri: string): UserDataSnapshot | null {
+    if (!this.isJsonSnapshotUri(sourceUri)) {
+      return null;
+    }
+    try {
+      const rawText: string = this.readTextFromFileUri(sourceUri);
+      const parsed: Record<string, Object> = JSON.parse(rawText);
+      const snapshot = new UserDataSnapshot();
+      snapshot.version = Number(parsed.version);
+      snapshot.username = `${parsed.username ?? ''}`;
+      snapshot.exportedAt = Number(parsed.exportedAt);
+      snapshot.plans = this.mapSnapshotList<Plan>(parsed.plans, () => new Plan(), (source: Record<string, Object>, target: Plan) => {
+        target.id = Number(source.id ?? 0);
+        target.content = `${source.content ?? ''}`;
+        target.timestamp = Number(source.timestamp ?? 0);
+        target.duration = Number(source.duration ?? 0);
+        target.startTime = Number(source.startTime ?? 0);
+        target.endTime = Number(source.endTime ?? 0);
+        target.location = `${source.location ?? ''}`;
+        target.isCourse = Number(source.isCourse ?? 0);
+        target.description = `${source.description ?? ''}`;
+        target.loopRule = `${source.loopRule ?? ''}`;
+        target.reminderId = Number(source.reminderId ?? 0);
+        target.enableRemind = Number(source.enableRemind ?? 0);
+        target.version = Number(source.version ?? 0);
+        target.notifyVersion = Number(source.notifyVersion ?? 0);
+        target.createdAt = Number(source.createdAt ?? 0);
+        target.updatedAt = Number(source.updatedAt ?? 0);
+      });
+      snapshot.todos = this.mapSnapshotList<Todo>(parsed.todos, () => new Todo(), (source: Record<string, Object>, target: Todo) => {
+        target.id = Number(source.id ?? 0);
+        target.content = `${source.content ?? ''}`;
+        target.detail = `${source.detail ?? ''}`;
+        target.timestamp = Number(source.timestamp ?? 0);
+        target.categoryId = Number(source.categoryId ?? 0);
+        target.isDone = Number(source.isDone ?? 0);
+        target.inFocus = Number(source.inFocus ?? 0);
+        target.priority = Number(source.priority ?? 0);
+        target.dueAt = Number(source.dueAt ?? 0);
+        target.createdAt = Number(source.createdAt ?? 0);
+        target.updatedAt = Number(source.updatedAt ?? 0);
+      });
+      snapshot.todoCategories = this.mapSnapshotList<TodoCategory>(
+        parsed.todoCategories,
+        () => new TodoCategory(),
+        (source: Record<string, Object>, target: TodoCategory) => {
+          target.id = Number(source.id ?? 0);
+          target.category = `${source.category ?? ''}`;
+          target.color = `${source.color ?? ''}`;
+          target.createdAt = Number(source.createdAt ?? 0);
+          target.updatedAt = Number(source.updatedAt ?? 0);
+        },
+      );
+      snapshot.focusRecords = this.mapSnapshotList<Focus>(parsed.focusRecords, () => new Focus(), (source: Record<string, Object>, target: Focus) => {
+        target.id = Number(source.id ?? 0);
+        target.todoId = Number(source.todoId ?? 0);
+        target.timestamp = Number(source.timestamp ?? 0);
+        target.duration = Number(source.duration ?? 0);
+        target.startTime = Number(source.startTime ?? 0);
+        target.endTime = Number(source.endTime ?? 0);
+        target.createdAt = Number(source.createdAt ?? 0);
+        target.updatedAt = Number(source.updatedAt ?? 0);
+      });
+      snapshot.ideas = this.mapSnapshotList<Idea>(parsed.ideas, () => new Idea(), (source: Record<string, Object>, target: Idea) => {
+        target.id = Number(source.id ?? 0);
+        target.title = `${source.title ?? ''}`;
+        target.content = `${source.content ?? ''}`;
+        target.length = Number(source.length ?? 0);
+        target.timestamp = Number(source.timestamp ?? 0);
+        target.createdAt = Number(source.createdAt ?? 0);
+        target.updatedAt = Number(source.updatedAt ?? 0);
+      });
+      snapshot.aiInsights = this.mapSnapshotList<AIInsight>(
+        parsed.aiInsights,
+        () => new AIInsight(),
+        (source: Record<string, Object>, target: AIInsight) => {
+          target.id = Number(source.id ?? 0);
+          target.mode = `${source.mode ?? 'global'}`;
+          target.keywords = `${source.keywords ?? ''}`;
+          target.summary = `${source.summary ?? ''}`;
+          target.fullContent = `${source.fullContent ?? ''}`;
+          target.noteCount = Number(source.noteCount ?? 0);
+          target.totalLength = Number(source.totalLength ?? 0);
+          target.createdAt = Number(source.createdAt ?? 0);
+          target.updatedAt = Number(source.updatedAt ?? 0);
+        },
+      );
+      snapshot.userPreferences = this.mapSnapshotList<UserPreference>(
+        parsed.userPreferences,
+        () => new UserPreference(),
+        (source: Record<string, Object>, target: UserPreference) => {
+          target.id = Number(source.id ?? 0);
+          target.key = `${source.key ?? ''}`;
+          target.value = `${source.value ?? ''}`;
+          target.createdAt = Number(source.createdAt ?? 0);
+          target.updatedAt = Number(source.updatedAt ?? 0);
+        },
+      );
+      return snapshot;
+    } catch (error) {
+      this.logBusinessError('tryReadUserDataSnapshot failed', error);
+      return null;
+    }
+  }
+
+  private mapSnapshotList<T>(
+    source: Object | undefined,
+    createTarget: () => T,
+    assign: (raw: Record<string, Object>, target: T) => void,
+  ): Array<T> {
+    if (!(source instanceof Array)) {
+      return [];
+    }
+    const result: Array<T> = [];
+    for (let index = 0; index < source.length; index++) {
+      const rawItem = source[index] as Record<string, Object>;
+      const target = createTarget();
+      assign(rawItem, target);
+      result.push(target);
+    }
+    return result;
+  }
+
+  private async restoreUserDataSnapshot(
+    context: common.UIAbilityContext,
+    username: string,
+    snapshot: UserDataSnapshot,
+  ): Promise<void> {
+    await this.reopenCurrentUserDatabase(context, username, true);
+    const orm = UserDatabase.getInstance().getOrm();
+    this.clearTableItems(orm.query(UserPreference).find());
+    this.clearTableItems(orm.query(AIInsight).find());
+    this.clearTableItems(orm.query(Idea).find());
+    this.clearTableItems(orm.query(Focus).find());
+    this.clearTableItems(orm.query(Todo).find());
+    this.clearTableItems(orm.query(TodoCategory).find());
+    this.clearTableItems(orm.query(Plan).find());
+    this.insertTableItems(snapshot.plans);
+    this.insertTableItems(snapshot.todoCategories);
+    this.insertTableItems(snapshot.todos);
+    this.insertTableItems(snapshot.focusRecords);
+    this.insertTableItems(snapshot.ideas);
+    this.insertTableItems(snapshot.aiInsights);
+    this.insertTableItems(snapshot.userPreferences);
+  }
+
+  private clearTableItems(items: Array<Object>): void {
+    const orm = UserDatabase.getInstance().getOrm();
+    for (let index = 0; index < items.length; index++) {
+      orm.delete(items[index]);
+    }
+  }
+
+  private insertTableItems<T extends Object>(items: Array<T>): void {
+    const orm = UserDatabase.getInstance().getOrm();
+    for (let index = 0; index < items.length; index++) {
+      orm.insert<T>(items[index]);
     }
   }
 
@@ -211,6 +424,11 @@ export class ImportExportService {
       this.logBusinessError('pickSaveFile failed', error);
       return null;
     }
+  }
+
+  private isJsonSnapshotUri(uri: string): boolean {
+    const normalizedUri = `${uri}`.trim().toLowerCase();
+    return normalizedUri.endsWith('.json') || normalizedUri.endsWith('acthubjson');
   }
 
   private copyFileUriToPath(sourceUri: string, destinationPath: string): void {
@@ -278,6 +496,43 @@ export class ImportExportService {
       }
     } while (readLength > 0);
     return totalBytes;
+  }
+
+  private readTextFromFileUri(sourceUri: string): string {
+    let file: fs.File | null = null;
+    try {
+      file = fs.openSync(sourceUri, fs.OpenMode.READ_ONLY);
+      let offset: number = 0;
+      let readLength: number = 0;
+      let result: string = '';
+      do {
+        const chunk: ArrayBuffer = new ArrayBuffer(CHUNK_SIZE);
+        readLength = fs.readSync(file.fd, chunk, { offset, length: CHUNK_SIZE });
+        if (readLength > 0) {
+          result += buffer.from(chunk).subarray(0, readLength).toString('utf-8');
+          offset += readLength;
+        }
+      } while (readLength > 0);
+      return result;
+    } finally {
+      if (file !== null) {
+        fs.closeSync(file);
+      }
+    }
+  }
+
+  private writeTextToFileUri(targetUri: string, content: string): void {
+    let file: fs.File | null = null;
+    try {
+      file = fs.openSync(targetUri, fs.OpenMode.READ_WRITE);
+      const textBuffer = buffer.from(content, 'utf-8');
+      const data: ArrayBuffer = textBuffer.buffer as ArrayBuffer;
+      fs.writeSync(file.fd, data, { offset: 0, length: textBuffer.length });
+    } finally {
+      if (file !== null) {
+        fs.closeSync(file);
+      }
+    }
   }
 
   private mapIcsItemToCoursePlans(item: IcsItem): Array<Plan> {
@@ -722,6 +977,7 @@ export class ImportExportService {
     usePlanPageState().resetForReload();
     useTodoPageState().resetForReload();
     useIdeaPageState().resetForReload();
+    useAIInsightState().resetForReload();
   }
 
   private restartApplication(context: common.UIAbilityContext): Promise<void> {

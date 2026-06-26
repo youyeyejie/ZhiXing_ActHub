@@ -5,6 +5,10 @@ import { useTodoPageState, TodoPageState } from '../TodoPageState';
 import { CategoryCreateContent } from './CategoryCreateContent';
 import { FormTypography } from '../../../core/theme/FormTypography';
 import promptAction from '@ohos.promptAction';
+import { PlanPickerStyle } from '../../plan/components/PlanPickerStyle';
+
+const TODO_DUE_DATE_START_MS = new Date(2000, 0, 1).getTime();
+const TODO_DUE_DATE_END_MS = new Date(2100, 11, 31, 23, 59, 59, 999).getTime();
 
 /**
  * 待办编辑器内容。
@@ -27,6 +31,10 @@ export struct TodoEditorContent {
   @Local private initialCategoryId: number = 0;
   @Local private doneDraft: number = -1;
   @Local private initialDone: number = 0;
+  @Local private priorityDraft: number = 0;
+  @Local private initialPriority: number = 0;
+  @Local private dueAtDraft: number = 0;
+  @Local private initialDueAt: number = 0;
 
   aboutToAppear(): void {
     if (this.isForCreate) {
@@ -71,6 +79,10 @@ export struct TodoEditorContent {
     this.initialCategoryId = this.selectedCategoryIdDraft;
     this.doneDraft = 0;
     this.initialDone = 0;
+    this.priorityDraft = 0;
+    this.initialPriority = 0;
+    this.dueAtDraft = 0;
+    this.initialDueAt = 0;
     this.recalculateSaveEnabled();
   }
 
@@ -86,6 +98,10 @@ export struct TodoEditorContent {
       this.initialCategoryId = 0;
       this.doneDraft = -1;
       this.initialDone = 0;
+      this.priorityDraft = 0;
+      this.initialPriority = 0;
+      this.dueAtDraft = 0;
+      this.initialDueAt = 0;
       this.recalculateSaveEnabled();
       return;
     }
@@ -98,6 +114,10 @@ export struct TodoEditorContent {
     this.initialCategoryId = this.selectedCategoryIdDraft;
     this.doneDraft = todo.isDone === 1 ? 1 : 0;
     this.initialDone = this.doneDraft;
+    this.priorityDraft = this.normalizePriority(todo.priority);
+    this.initialPriority = this.priorityDraft;
+    this.dueAtDraft = this.normalizeDueAt(todo.dueAt);
+    this.initialDueAt = this.dueAtDraft;
     this.recalculateSaveEnabled();
   }
 
@@ -105,7 +125,9 @@ export struct TodoEditorContent {
     return this.normalizeText(this.titleDraft) !== this.initialTitle
       || this.normalizeText(this.detailDraft) !== this.initialDetail
       || this.resolveCurrentCategoryId() !== this.initialCategoryId
-      || this.resolveCurrentDone() !== this.initialDone;
+      || this.resolveCurrentDone() !== this.initialDone
+      || this.resolveCurrentPriority() !== this.initialPriority
+      || this.resolveCurrentDueAt() !== this.initialDueAt;
   }
 
   private computeCanSave(): boolean {
@@ -144,7 +166,13 @@ export struct TodoEditorContent {
     const detail = this.detailDraft;
     const categoryId = this.resolveCurrentCategoryId();
     try {
-      const ok = await this.state.createTodo(title, detail, categoryId);
+      const ok = await this.state.createTodo(
+        title,
+        detail,
+        categoryId,
+        this.resolveCurrentPriority(),
+        this.resolveCurrentDueAt(),
+      );
       if (ok) {
         this.state.closeTodoEditor();
         this.app.nav.back(false);
@@ -175,12 +203,16 @@ export struct TodoEditorContent {
       await this.state.updateTodoTitle(todoId, this.normalizeText(this.titleDraft));
       await this.state.updateTodoDetail(todoId, this.normalizeText(this.detailDraft));
       await this.state.updateTodoCategory(todoId, this.resolveCurrentCategoryId());
+      await this.state.updateTodoPriority(todoId, this.resolveCurrentPriority());
+      await this.state.updateTodoDueAt(todoId, this.resolveCurrentDueAt());
       await this.state.toggleDone(todoId, this.resolveCurrentDone() === 1);
 
       this.initialTitle = this.normalizeText(this.titleDraft);
       this.initialDetail = this.normalizeText(this.detailDraft);
       this.initialCategoryId = this.resolveCurrentCategoryId();
       this.initialDone = this.resolveCurrentDone();
+      this.initialPriority = this.resolveCurrentPriority();
+      this.initialDueAt = this.resolveCurrentDueAt();
       this.app.nav.back(false);
     } finally {
       this.saving = false;
@@ -208,6 +240,115 @@ export struct TodoEditorContent {
       return 0;
     }
     return todo.isDone === 1 ? 1 : 0;
+  }
+
+  private normalizePriority(value: number): number {
+    if (value < 0) {
+      return 0;
+    }
+    if (value > 3) {
+      return 3;
+    }
+    return value;
+  }
+
+  private resolveCurrentPriority(): number {
+    return this.normalizePriority(this.priorityDraft);
+  }
+
+  private normalizeDueAt(value: number): number {
+    return value > 0 ? value : 0;
+  }
+
+  private resolveCurrentDueAt(): number {
+    return this.normalizeDueAt(this.dueAtDraft);
+  }
+
+  private switchPriority(priority: number): void {
+    const normalizedPriority = this.normalizePriority(priority);
+    if (this.resolveCurrentPriority() === normalizedPriority) {
+      this.priorityDraft = 0;
+    } else {
+      this.priorityDraft = normalizedPriority;
+    }
+    this.recalculateSaveEnabled();
+  }
+
+  private clearDueAt(): void {
+    this.dueAtDraft = 0;
+    this.recalculateSaveEnabled();
+  }
+
+  private resolvePriorityLabel(priority: number): string {
+    switch (this.normalizePriority(priority)) {
+      case 3:
+        return '高';
+      case 2:
+        return '中';
+      case 1:
+        return '低';
+      default:
+        return '未设置';
+    }
+  }
+
+  private resolvePriorityColor(priority: number): string {
+    switch (this.normalizePriority(priority)) {
+      case 3:
+        return this.app.theme.palette.danger;
+      case 2:
+        return this.app.theme.palette.accentAmber;
+      case 1:
+        return this.app.theme.palette.info;
+      default:
+        return this.app.theme.palette.surfaceSecondary;
+    }
+  }
+
+  private formatDueAt(dueAt: number): string {
+    const normalizedDueAt = this.normalizeDueAt(dueAt);
+    if (normalizedDueAt <= 0) {
+      return '未设置';
+    }
+    const date: Date = new Date(normalizedDueAt);
+    const year: string = `${date.getFullYear()}`;
+    const month: string = String(date.getMonth() + 1).padStart(2, '0');
+    const day: string = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private toDueAtValue(date: Date): number {
+    const nextDate = new Date(date.getTime());
+    nextDate.setHours(23, 59, 0, 0);
+    return nextDate.getTime();
+  }
+
+  private openDueAtDialog(): void {
+    const selectedDate = this.resolveCurrentDueAt() > 0
+      ? new Date(this.resolveCurrentDueAt())
+      : new Date();
+    try {
+      this.getUIContext().showDatePickerDialog({
+        start: new Date(PlanPickerStyle.DATE_RANGE_START),
+        end: new Date(PlanPickerStyle.DATE_RANGE_END),
+        selected: selectedDate,
+        showTime: false,
+        disappearTextStyle: {
+          font: { size: PlanPickerStyle.DISAPPEAR_FONT_SIZE, weight: FontWeight.Regular }
+        },
+        textStyle: {
+          font: { size: PlanPickerStyle.TEXT_FONT_SIZE, weight: FontWeight.Regular }
+        },
+        selectedTextStyle: {
+          font: { size: PlanPickerStyle.SELECTED_FONT_SIZE, weight: FontWeight.Medium }
+        },
+        onDateAccept: (value: Date) => {
+          this.dueAtDraft = this.toDueAtValue(value);
+          this.recalculateSaveEnabled();
+        }
+      });
+    } catch (_error) {
+    }
   }
 
   private async toggleDoneAndPersist(): Promise<void> {
@@ -378,6 +519,93 @@ export struct TodoEditorContent {
   }
 
   @Builder
+  private buildMetaChip(label: string, selected: boolean, color: string, onTap: () => void) {
+    Button({ type: ButtonType.Capsule }) {
+      Text(label)
+        .fontSize(FormTypography.LABEL_SIZE)
+        .fontWeight(selected ? FontWeight.Medium : FontWeight.Regular)
+        .fontColor(selected ? this.app.theme.palette.surface : this.app.theme.palette.textSecondary)
+    }
+      .stateEffect(true)
+      .height(30)
+      .backgroundColor(selected ? color : this.app.theme.palette.surfaceSecondary)
+      .borderRadius(999)
+      .padding({ left: 12, right: 12, top: 4, bottom: 4 })
+      .onClick(() => {
+        onTap();
+      });
+  }
+
+  private resolvePriorityChipLabel(priority: number): string {
+    switch (priority) {
+      case 1:
+        return '低';
+      case 2:
+        return '中';
+      case 3:
+        return '高';
+      default:
+        return '';
+    }
+  }
+
+  @Builder
+  private buildPriorityChip(priority: number, label: string) {
+    Button(label)
+      .type(ButtonType.Capsule)
+      .stateEffect(true)
+      .height(28)
+      .fontSize(FormTypography.LABEL_SIZE)
+      .fontColor(
+        this.resolveCurrentPriority() === priority
+          ? this.app.theme.palette.surface
+          : this.app.theme.palette.textSecondary
+      )
+      .backgroundColor(
+        this.resolveCurrentPriority() === priority
+          ? this.resolvePriorityColor(priority)
+          : this.app.theme.palette.surfaceSecondary
+      )
+      .borderRadius(999)
+      .padding({ left: 12, right: 12, top: 4, bottom: 4 })
+      .onClick(() => {
+        this.switchPriority(priority);
+      });
+  }
+
+  @Builder
+  private buildDueDateFieldButton() {
+    Button(this.formatDueAt(this.resolveCurrentDueAt()))
+      .type(ButtonType.Normal)
+      .height(44)
+      .layoutWeight(1)
+      .fontSize(FormTypography.INPUT_CONTENT_SIZE)
+      .fontColor(this.resolveCurrentDueAt() > 0
+        ? this.app.theme.palette.textPrimary
+        : this.app.theme.palette.textTertiary)
+      .backgroundColor(this.app.theme.palette.surfaceSecondary)
+      .borderRadius(12)
+      .onClick(() => {
+        this.openDueAtDialog();
+      });
+  }
+
+  @Builder
+  private buildClearDueAtButton() {
+    Button({ type: ButtonType.Circle }) {
+      SymbolGlyph($r('sys.symbol.delete_left'))
+        .fontSize(16)
+        .fontColor([this.app.theme.palette.textSecondary]);
+    }
+      .width(32)
+      .height(32)
+      .backgroundColor(this.app.theme.palette.surfaceSecondary)
+      .onClick(() => {
+        this.clearDueAt();
+      });
+  }
+
+  @Builder
   private buildAddCategoryChip() {
     Button('+')
       .type(ButtonType.Capsule)
@@ -481,6 +709,37 @@ export struct TodoEditorContent {
       .justifyContent(FlexAlign.Start)
       .alignItems(VerticalAlign.Center)
       .padding({ top: 2, bottom: 2 });
+
+      Row({ space: 8 }) {
+        Text('优先级')
+          .fontSize(FormTypography.LABEL_SIZE)
+          .fontColor(this.app.theme.palette.textSecondary)
+          .padding({ left: 8, right: 8 });
+
+        Row({ space: 8 }) {
+          ForEach([1, 2, 3], (priority: number) => {
+            this.buildPriorityChip(priority, this.resolvePriorityChipLabel(priority));
+          }, (priority: number) => `${priority}_${this.resolveCurrentPriority()}`)
+        }
+        .layoutWeight(1)
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center);
+
+      Row({ space: 10 }) {
+        Text('截止日期')
+          .fontSize(FormTypography.LABEL_SIZE)
+          .fontColor(this.app.theme.palette.textSecondary)
+          .padding({ left: 8, right: 8 });
+
+        this.buildDueDateFieldButton()
+
+        if (this.resolveCurrentDueAt() > 0) {
+          this.buildClearDueAtButton()
+        }
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center);
     }
     .width('100%')
     .onAppear(() => {
@@ -506,9 +765,13 @@ export struct TodoEditorContent {
     this.initialDetail = '';
     this.initialCategoryId = 0;
     this.initialDone = 0;
+    this.initialPriority = 0;
+    this.initialDueAt = 0;
     this.loadedTodoId = 0;
     this.selectedCategoryIdDraft = -1;
     this.doneDraft = -1;
+    this.priorityDraft = 0;
+    this.dueAtDraft = 0;
 
     if (this.isForCreate) {
       this.state.closeTodoEditor();

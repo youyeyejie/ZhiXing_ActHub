@@ -94,6 +94,34 @@ export struct TodoPickerSheet {
     return this.app.theme.palette.surfaceSecondary;
   }
 
+  private resolvePriorityLabel(todo: Todo): string {
+    switch (Number(todo.priority)) {
+      case 3:
+        return '高优先级';
+      case 2:
+        return '中优先级';
+      case 1:
+        return '低优先级';
+      default:
+        return '';
+    }
+  }
+
+  private formatDueAt(todo: Todo): string {
+    const dueAt: number = Number(todo.dueAt);
+    if (dueAt <= 0) {
+      return '';
+    }
+    const date: Date = new Date(dueAt);
+    const month: string = String(date.getMonth() + 1).padStart(2, '0');
+    const day: string = String(date.getDate()).padStart(2, '0');
+    return `截止 ${month}-${day}`;
+  }
+
+  private hasMetaInfo(todo: Todo): boolean {
+    return Number(todo.categoryId) > 0 || Number(todo.priority) > 0 || Number(todo.dueAt) > 0;
+  }
+
   @Builder
   private renderLoading(): void {
     Column({ space: 14 }) {
@@ -137,17 +165,33 @@ export struct TodoPickerSheet {
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .width('100%');
         
-        if (todo.categoryId !== 0) {
+        if (this.hasMetaInfo(todo)) {
           Row({ space: 10 }) {
-            Column()
-              .width(8)
-              .height(8)
-              .borderRadius(4)
-              .backgroundColor(this.resolveCategoryBorderColor(todo))
-            
-            Text(this.todoState.resolveCategoryName(Number(todo.categoryId)))
-              .fontSize(12)
-              .fontColor(this.app.theme.palette.textSecondary)
+            if (todo.categoryId !== 0) {
+              Column()
+                .width(8)
+                .height(8)
+                .borderRadius(4)
+                .backgroundColor(this.resolveCategoryBorderColor(todo))
+
+              Text(this.todoState.resolveCategoryName(Number(todo.categoryId)))
+                .fontSize(12)
+                .fontColor(this.app.theme.palette.textSecondary)
+            }
+
+            if (Number(todo.priority) > 0) {
+              Text(this.resolvePriorityLabel(todo))
+                .fontSize(12)
+                .fontColor(this.app.theme.palette.textSecondary)
+            }
+
+            if (Number(todo.dueAt) > 0) {
+              Text(this.formatDueAt(todo))
+                .fontSize(12)
+                .fontColor(this.app.theme.palette.textSecondary)
+            }
+
+            Blank()
           }
           .width("100%")
           .alignItems(VerticalAlign.Center)

@@ -1,7 +1,8 @@
 import { http } from "@kit.NetworkKit";
 import { buffer } from "@kit.ArkTS";
-import { common } from "@kit.AbilityKit";
-import { AppDatabase } from "../database/AppDatabase";
+import { UserDatabase } from "../database/UserDatabase";
+import { UserPreferenceRepository } from '../repositories/UserPreferenceRepository';
+import { AppPreferenceKey } from '../../app/AppConstants';
 
 /**
  * 组件功能简介：
@@ -20,6 +21,18 @@ interface AIConfig {
   apiKey: string;
   baseUrl: string;
   model: string;
+}
+
+export class AIConfigSnapshot {
+  apiKey: string = '';
+  baseUrl: string = '';
+  model: string = '';
+
+  constructor(apiKey: string = '', baseUrl: string = '', model: string = '') {
+    this.apiKey = apiKey;
+    this.baseUrl = baseUrl;
+    this.model = model;
+  }
 }
 
 /**
@@ -56,12 +69,12 @@ interface ChatMessage {
 export class AIService {
   private static readonly DEFAULT_CONFIG: AIConfig = {
     apiKey: "",
-    baseUrl: "https://api.deepseek.com",
-    model: "deepseek-chat",
+    baseUrl: "",
+    model: "",
   };
 
   private config: AIConfig;
-  private configLoaded: boolean = false;
+  private userPreferenceRepository: UserPreferenceRepository = new UserPreferenceRepository();
 
   constructor(apiKey: string = "") {
     this.config = {
@@ -72,39 +85,6 @@ export class AIService {
     if (apiKey.length > 0) {
       this.config.apiKey = apiKey;
     }
-    this.loadConfig();
-  }
-
-  /**
-   * 从 rawfile/ai_config.json 读取配置。
-   * 解析失败或文件不存在时 apiKey 留空，不影响其他功能。
-   * 构造函数自动调用一次；也可在 context 可用后手动再调用。
-   */
-  loadConfig(): void {
-    if (this.configLoaded) {
-      return;
-    }
-    try {
-      const context = AppDatabase.getInstance().getContext() as common.Context;
-      const rawContent: Uint8Array = context.resourceManager.getRawFileContentSync('ai_config.json');
-      const jsonStr: string = buffer.from(rawContent).toString('utf-8');
-      const parsed: Record<string, Object> = JSON.parse(jsonStr);
-      const parsedKey = parsed.apiKey as string;
-      const parsedUrl = parsed.baseUrl as string;
-      const parsedModel = parsed.model as string;
-      if (parsedKey && parsedKey.length > 0) {
-        this.config.apiKey = parsedKey;
-      }
-      if (parsedUrl && parsedUrl.length > 0) {
-        this.config.baseUrl = parsedUrl;
-      }
-      if (parsedModel && parsedModel.length > 0) {
-        this.config.model = parsedModel;
-      }
-      this.configLoaded = true;
-    } catch (_err) {
-      // 配置文件不存在或 context 尚未就绪，apiKey 留空
-    }
   }
 
   /**
@@ -114,15 +94,54 @@ export class AIService {
     this.config.apiKey = apiKey;
   }
 
-  /**
-   * 检查是否已配置 API Key。
-   * 若首次构造时 context 不可用，会再尝试加载一次配置。
-   */
-  hasApiKey(): boolean {
-    if (!this.configLoaded) {
-      this.loadConfig();
+  getConfigSnapshot(): AIConfigSnapshot {
+    return new AIConfigSnapshot(this.config.apiKey, this.config.baseUrl, this.config.model);
+  }
+
+  async loadPersistedOverrides(): Promise<void> {
+    if (!UserDatabase.getInstance().isReady()) {
+      this.clearConfigCache();
+      return;
     }
-    return this.config.apiKey.length > 0;
+    this.clearConfigCache();
+    const apiKey: string = await this.userPreferenceRepository.getString(AppPreferenceKey.AI_API_KEY, '');
+    const baseUrl: string = await this.userPreferenceRepository.getString(AppPreferenceKey.AI_BASE_URL, '');
+    const model: string = await this.userPreferenceRepository.getString(AppPreferenceKey.AI_MODEL, '');
+    this.config.apiKey = apiKey.trim();
+    this.config.baseUrl = this.normalizeBaseUrl(baseUrl);
+    this.config.model = model.trim();
+  }
+
+  async saveConfig(config: AIConfigSnapshot): Promise<void> {
+    const normalizedApiKey: string = config.apiKey.trim();
+    const normalizedBaseUrl: string = this.normalizeBaseUrl(config.baseUrl);
+    const normalizedModel: string = config.model.trim().length > 0
+      ? config.model.trim()
+      : '';
+    this.config.apiKey = normalizedApiKey;
+    this.config.baseUrl = normalizedBaseUrl;
+    this.config.model = normalizedModel;
+    if (!UserDatabase.getInstance().isReady()) {
+      return;
+    }
+    await this.userPreferenceRepository.setString(AppPreferenceKey.AI_API_KEY, normalizedApiKey);
+    await this.userPreferenceRepository.setString(AppPreferenceKey.AI_BASE_URL, normalizedBaseUrl);
+    await this.userPreferenceRepository.setString(AppPreferenceKey.AI_MODEL, normalizedModel);
+  }
+
+  /**
+   * 当前用户是否已完整配置 AI 服务。
+   */
+  hasUsableConfig(): boolean {
+    return this.config.apiKey.length > 0
+      && this.config.baseUrl.length > 0
+      && this.config.model.length > 0;
+  }
+
+  clearConfigCache(): void {
+    this.config.apiKey = '';
+    this.config.baseUrl = '';
+    this.config.model = '';
   }
 
   /**
@@ -139,8 +158,8 @@ export class AIService {
     onDone: () => void,
     onError: (error: string) => void,
   ): http.HttpRequest | null {
-    if (!this.hasApiKey()) {
-      onError("AI 功能需配置 API Key，请参考 rawfile/ai_config.example.json 创建 ai_config.json 并填入您的 Key。");
+    if (!this.hasUsableConfig()) {
+      onError("AI 功能尚未配置，请先前往“我的”页完成 API Key、Base URL 和 Model 配置。");
       return null;
     }
 
@@ -180,9 +199,12 @@ export class AIService {
    * 测试网络连接。
    */
   async testConnection(): Promise<string> {
+    if (!this.hasUsableConfig()) {
+      return '请先前往“我的”页完整配置 API Key、Base URL 和 Model';
+    }
     const httpRequest = http.createHttp();
     try {
-      const result = await httpRequest.request(`${this.config.baseUrl}/v1/models`, {
+      const result = await httpRequest.request(this.resolveModelsUrl(), {
         method: http.RequestMethod.GET,
         header: {
           "Authorization": `Bearer ${this.config.apiKey}`,
@@ -274,7 +296,7 @@ export class AIService {
 
     // 发起流式请求
     httpRequest.requestInStream(
-      `${this.config.baseUrl}/v1/chat/completions`,
+      this.resolveChatCompletionsUrl(),
       {
         method: http.RequestMethod.POST,
         header: {
@@ -338,6 +360,43 @@ export class AIService {
       return '网络错误：请检查网络连接';
     }
     return `请求出错：${msg}`;
+  }
+
+  private normalizeBaseUrl(baseUrl: string): string {
+    let normalizedBaseUrl: string = baseUrl.trim().length > 0
+      ? baseUrl.trim()
+      : '';
+
+    if (normalizedBaseUrl.length === 0) {
+      return '';
+    }
+
+    while (normalizedBaseUrl.endsWith('/')) {
+      normalizedBaseUrl = normalizedBaseUrl.substring(0, normalizedBaseUrl.length - 1);
+    }
+
+    if (normalizedBaseUrl.endsWith('/chat/completions')) {
+      normalizedBaseUrl = normalizedBaseUrl.substring(
+        0,
+        normalizedBaseUrl.length - '/chat/completions'.length,
+      );
+    } else if (normalizedBaseUrl.endsWith('/models')) {
+      normalizedBaseUrl = normalizedBaseUrl.substring(0, normalizedBaseUrl.length - '/models'.length);
+    }
+
+    if (!/\/v\d+$/.test(normalizedBaseUrl)) {
+      normalizedBaseUrl = `${normalizedBaseUrl}/v1`;
+    }
+
+    return normalizedBaseUrl;
+  }
+
+  private resolveModelsUrl(): string {
+    return `${this.normalizeBaseUrl(this.config.baseUrl)}/models`;
+  }
+
+  private resolveChatCompletionsUrl(): string {
+    return `${this.normalizeBaseUrl(this.config.baseUrl)}/chat/completions`;
   }
 }
 

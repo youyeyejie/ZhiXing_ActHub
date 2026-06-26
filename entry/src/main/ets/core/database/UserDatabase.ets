@@ -3,6 +3,7 @@ import { common } from '@kit.AbilityKit';
 import { DatabaseConfig } from './DatabaseConfig';
 import { AIInsight, Focus, Idea, Plan, Todo, TodoCategory, UserPreference } from '../models';
 import { PlanRepository } from '../repositories/PlanRepository';
+import { TodoRepository } from '../repositories/TodoRepository';
 import { UserPreferenceRepository } from '../repositories/UserPreferenceRepository';
 import { HashUtils } from '../security/HashUtils';
 
@@ -89,6 +90,9 @@ export class UserDatabase {
     if (currentVersion < 1) {
       await this.migrateToVersion1();
     }
+    if (currentVersion < 2) {
+      await this.migrateToVersion2();
+    }
 
     await preferences.setString(UserDatabase.SCHEMA_VERSION_KEY, `${DatabaseConfig.USER_SCHEMA_VERSION}`);
   }
@@ -112,6 +116,29 @@ export class UserDatabase {
 
       if (changed) {
         await planRepository.save(plan);
+      }
+    }
+  }
+
+  private async migrateToVersion2(): Promise<void> {
+    const todoRepository = new TodoRepository();
+    const todos: Array<Todo> = await todoRepository.findAll();
+    for (let index = 0; index < todos.length; index++) {
+      const todo = todos[index];
+      let changed: boolean = false;
+
+      if (todo.priority < 0 || todo.priority > 3) {
+        todo.priority = 0;
+        changed = true;
+      }
+
+      if (todo.dueAt < 0) {
+        todo.dueAt = 0;
+        changed = true;
+      }
+
+      if (changed) {
+        await todoRepository.save(todo);
       }
     }
   }

@@ -249,6 +249,10 @@ export class AIInsightState {
       this.notifyGeneratingLocked();
       return;
     }
+    if (!this.aiService.hasUsableConfig()) {
+      this.notifyConfigRequired();
+      return;
+    }
     const ideas = this.ideaState.ideas;
     if (ideas.length === 0) {
       return;
@@ -264,6 +268,10 @@ export class AIInsightState {
   startSelectedInsight(): void {
     if (this.isGenerating) {
       this.notifyGeneratingLocked();
+      return;
+    }
+    if (!this.aiService.hasUsableConfig()) {
+      this.notifyConfigRequired();
       return;
     }
     const allIdeas = this.ideaState.ideas;
@@ -344,6 +352,10 @@ export class AIInsightState {
 
   notifyGeneratingLocked(): void {
     this.safeToast('当前已有洞察正在生成，请稍候');
+  }
+
+  notifyConfigRequired(): void {
+    this.safeToast('AI 功能尚未配置，请先前往“我的”页完成配置');
   }
 
   requestDeleteRecord(recordId: number): void {
@@ -670,6 +682,21 @@ export class AIInsightState {
       }
     }
     return contentLines.join(' ');
+  }
+
+  resetForReload(): void {
+    this.cancelStream();
+    this.records = [];
+    this.selectedNoteIds = [];
+    this.undoTasks = [];
+    this.historyLoadingTask = null;
+    this.lastRecordId = 0;
+    this.viewMode = 'home';
+    this.activeRecord = null;
+    this.generatingText = '';
+    this.errorMessage = '';
+    this.isGenerating = false;
+    this.app.aiInsightSession.reset();
   }
 
   private safeToast(message: string): void {

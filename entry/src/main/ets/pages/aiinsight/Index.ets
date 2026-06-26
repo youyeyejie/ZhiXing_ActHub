@@ -7,6 +7,8 @@ import { AIInsightHistoryList } from './components/AIInsightHistoryList';
 import { AIInsightConversation } from './components/AIInsightConversation';
 import { AIInsightNoteSelector } from './components/AIInsightNoteSelector';
 import { UndoNotificationStack } from '../../components/feedback/UndoNotificationStack';
+import { AIService, useAIService } from '../../core/services/AIService';
+import promptAction from '@ohos.promptAction';
 
 /**
  * AI 洞察中心主页面。
@@ -17,12 +19,29 @@ export struct AIInsightPage {
   @Local private app: AppState = useAppState();
   @Local private state: AIInsightState = useAIInsightState();
   @Local private ideaState: IdeaPageState = useIdeaPageState();
+  @Local private aiService: AIService = useAIService();
+  @Local private aiConfigReady: boolean = false;
   @Param onRequestDismiss: () => void = () => {};
 
   aboutToAppear(): void {
-    // 每次进入回到首页视图，但不打断后台生成
+    this.preparePage();
+  }
+
+  private async preparePage(): Promise<void> {
     this.state.viewMode = 'home';
-    this.state.refreshRecords();
+    await this.aiService.loadPersistedOverrides();
+    this.aiConfigReady = this.aiService.hasUsableConfig();
+    await this.state.refreshRecords();
+    if (!this.aiConfigReady) {
+      this.safeToast('AI 功能尚未配置，请先前往“我的”页完成 API 配置');
+    }
+  }
+
+  private safeToast(message: string): void {
+    try {
+      promptAction.showToast({ message, duration: 1600 });
+    } catch (_error) {
+    }
   }
 
   /**
@@ -132,7 +151,7 @@ export struct AIInsightPage {
             icon: $r('sys.symbol.lightbulb'),
             title: '全量思维分析',
             description: '汇总所有笔记，发掘你的思维模式',
-            disabled: this.ideaState.ideas.length === 0,
+            disabled: this.ideaState.ideas.length === 0 || !this.aiConfigReady,
             onTap: () => {
               this.state.startGlobalInsight();
             },
@@ -143,7 +162,7 @@ export struct AIInsightPage {
             icon: $r('sys.symbol.magnifyingglass'),
             title: '选中笔记对话',
             description: '针对特定内容进行精准分析',
-            disabled: this.ideaState.ideas.length === 0,
+            disabled: this.ideaState.ideas.length === 0 || !this.aiConfigReady,
             onTap: () => {
               this.openNoteSelector();
             },

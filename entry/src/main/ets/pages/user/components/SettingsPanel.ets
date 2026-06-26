@@ -7,6 +7,7 @@ import { NotificationService } from "../../../core/services/NotificationService"
 import { UserPreferenceRepository } from "../../../core/repositories/UserPreferenceRepository";
 import { ImportExportResult, ImportExportService} from "../../../core/services/ImportExportService";
 import { AppOverlayRoute } from "../../../app/AppConstants";
+import { AIConfigEditorContent } from './AIConfigEditorContent';
 
 /**
  * 组件功能简介：
@@ -144,22 +145,18 @@ export struct SettingsPanel {
   }
 
   @Builder
-  private buildActionRow(title: string, subtitle: string, buttonLabel: string, onTap: () => void) {
+  private buildActionRow(title: string, buttonLabel: string, onTap: () => void) {
     Row({ space: 12 }) {
       Column({ space: 4 }) {
         Text(title)
           .fontSize(15)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.textPrimary)
-        Text(subtitle)
-          .fontSize(12)
-          .lineHeight(18)
-          .fontColor(this.app.theme.palette.textSecondary)
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
       Button(buttonLabel)
-        .height(34)
+        .height(30)
         .fontSize(12)
         .fontColor(this.app.theme.palette.textPrimary)
         .backgroundColor(this.app.theme.palette.surface)
@@ -255,6 +252,11 @@ export struct SettingsPanel {
     .backgroundColor(this.app.theme.palette.surfaceSecondary);
   }
 
+  @Builder
+  private buildAIConfigSheetContent() {
+    AIConfigEditorContent();
+  }
+
   build() {
     Column({ space: 12 }) {
       Text("设置选项")
@@ -296,6 +298,14 @@ export struct SettingsPanel {
       .padding(16)
       .borderRadius(18)
       .backgroundColor(this.app.theme.palette.surfaceSecondary)
+
+      this.buildActionRow(
+        'AI 洞察配置',
+        '编辑',
+        () => {
+          this.app.nav.openActionSheet(this.buildAIConfigSheetContent, 'auto');
+        },
+      )
 
       this.buildImportExportMenuRow()
       Button("退出登录")

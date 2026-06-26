@@ -7,6 +7,7 @@ import { AppState, useAppState } from "../../app/AppStates";
 import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
 import { ThemeMode } from "../../core/theme/ThemeManager";
 import { UserShareService } from '../../core/services/UserShareService';
+import { UserProfileEditorContent } from './components/UserProfileEditorContent';
 
 /**
  * 组件功能简介：
@@ -42,6 +43,10 @@ export struct UserPage {
   }
 
   private resolveInitial(): string {
+    const avatar: string = `${this.app.currentUserAvatar}`.trim();
+    if (avatar.length > 0) {
+      return avatar.substring(0, 2);
+    }
     return this.resolveDisplayName().substring(0, 1).toUpperCase();
   }
 
@@ -104,6 +109,11 @@ export struct UserPage {
   }
 
   @Builder
+  private buildProfileEditorContent() {
+    UserProfileEditorContent();
+  }
+
+  @Builder
   private buildProfileCard(showThemeToggle: boolean) {
     Column({ space: 16 }) {
       Row({ space: 14 }) {
@@ -147,7 +157,10 @@ export struct UserPage {
     .width("100%")
     .padding(18)
     .borderRadius(24)
-    .backgroundColor(this.app.theme.palette.surface);
+    .backgroundColor(this.app.theme.palette.surface)
+    .onClick(() => {
+      this.app.nav.openActionSheet(this.buildProfileEditorContent, 'auto');
+    });
   }
 
   @Builder

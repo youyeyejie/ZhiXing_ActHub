@@ -67,6 +67,10 @@ export struct TodoCardLlist {
     return todo.categoryId > 0;
   }
 
+  private hasMetaInfo(todo: TodoItem): boolean {
+    return this.hasCategory(todo) || todo.inFocus === 1 || todo.priority > 0 || todo.dueAt > 0;
+  }
+
   private resolveCategoryBorderColor(todo: TodoItem): string {
     const localColor = this.normalizeText(todo.categoryColor);
     if (localColor.length > 0) {
@@ -120,6 +124,29 @@ export struct TodoCardLlist {
       return this.app.theme.palette.textSecondary;
     }
     return this.app.theme.palette.textPrimary;
+  }
+
+  private resolvePriorityLabel(todo: TodoItem): string {
+    switch (todo.priority) {
+      case 3:
+        return '高优先级';
+      case 2:
+        return '中优先级';
+      case 1:
+        return '低优先级';
+      default:
+        return '';
+    }
+  }
+
+  private formatDueAt(todo: TodoItem): string {
+    if (todo.dueAt <= 0) {
+      return '';
+    }
+    const date: Date = new Date(todo.dueAt);
+    const month: string = String(date.getMonth() + 1).padStart(2, '0');
+    const day: string = String(date.getDate()).padStart(2, '0');
+    return `截止 ${month}-${day}`;
   }
 
   private updateDoneVisualOverride(todo: TodoItem, isDone: boolean): void {
@@ -267,20 +294,34 @@ export struct TodoCardLlist {
             })
             .width("100%")
             .animation({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal })
-          if (this.hasCategory(todo)) {
+          if (this.hasMetaInfo(todo)) {
             Row({ space: 8 }) {
-              Column()
-                .width(8)
-                .height(8)
-                .borderRadius(4)
-                .backgroundColor(this.resolveCategoryBorderColor(todo))
-              Text(
-                this.normalizeText(todo.categoryName).length > 0
-                  ? todo.categoryName
-                  : this.state.resolveCategoryName(todo.categoryId),
-              )
-                .fontSize(12)
-                .fontColor(this.app.theme.palette.textSecondary)
+              if (this.hasCategory(todo)) {
+                Column()
+                  .width(8)
+                  .height(8)
+                  .borderRadius(4)
+                  .backgroundColor(this.resolveCategoryBorderColor(todo))
+                Text(
+                  this.normalizeText(todo.categoryName).length > 0
+                    ? todo.categoryName
+                    : this.state.resolveCategoryName(todo.categoryId),
+                )
+                  .fontSize(12)
+                  .fontColor(this.app.theme.palette.textSecondary)
+              }
+
+              if (todo.priority > 0) {
+                Text(this.resolvePriorityLabel(todo))
+                  .fontSize(12)
+                  .fontColor(this.app.theme.palette.textSecondary)
+              }
+
+              if (todo.dueAt > 0) {
+                Text(this.formatDueAt(todo))
+                  .fontSize(12)
+                  .fontColor(this.app.theme.palette.textSecondary)
+              }
               Blank()
 
               if (todo.inFocus === 1) {
@@ -299,7 +340,7 @@ export struct TodoCardLlist {
           return;
         }
         this.state.openTodoDetail(todo.id);
-        this.app.nav.openDetailCard(this.buildTodoDetailContent, "40%");
+        this.app.nav.openDetailCard(this.buildTodoDetailContent, "50%");
       })
       .onAppear(() => {
         this.scheduleRestoreMove(todo);
@@ -333,13 +374,9 @@ export struct TodoCardLlist {
         .alignItems(HorizontalAlign.Center);
       }
 
-      ForEach(
-        this.state.visibleTodoCards,
-        (item: TodoItem) => {
-          this.buildTodoRow(item);
-        },
-        (item: TodoItem) => this.resolveTodoRenderKey(item),
-      );
+      ForEach(this.state.visibleTodoCards, (todo: TodoItem) => {
+        this.buildTodoRow(todo);
+      }, (todo: TodoItem) => this.resolveTodoRenderKey(todo))
     }
     .width("100%")
     .animation({ duration: 160, curve: Curve.EaseInOut, playMode: PlayMode.Normal });

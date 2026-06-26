@@ -68,6 +68,104 @@ export struct AIInsightHistoryList {
     return `${month}-${day} ${timeStr}`;
   }
 
+  @Builder
+  private buildRecordCard(record: InsightRecord) {
+    InteractableCard({
+      leftHint: '删除',
+      enableSwipeLeft: true,
+      enableSwipeRight: false,
+      cornerRadius: 20,
+      contentPadding: 0,
+      outerPaddingVertical: 0,
+      shadowRadius: 10,
+      shadowOffsetY: 3,
+      swipeLeftColor: this.app.theme.palette.danger,
+      onSwipeLeft: () => {
+        this.markSwipeActionTriggered();
+        animateTo({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
+          this.state.requestDeleteRecord(record.id);
+        });
+      },
+      onCardTap: () => {
+        if (!this.canOpenDetailNow()) {
+          return;
+        }
+        this.state.openRecord(record);
+      },
+    }) {
+      Column({ space: 8 }) {
+        Row() {
+          Text(record.mode === 'global' ? '全局分析' : '精准分析')
+            .fontSize(11)
+            .fontColor(this.app.theme.palette.textPrimary)
+            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+            .borderRadius(10)
+            .backgroundColor(record.mode === 'global' ? this.app.theme.palette.primary : this.app.theme.palette.info)
+
+          Blank()
+
+          Text(this.formatTime(record.createdAt))
+            .fontSize(12)
+            .fontColor(this.app.theme.palette.textTertiary)
+        }
+        .width('100%')
+
+        if (record.pending) {
+          Row({ space: 6 }) {
+            SymbolGlyph($r('sys.symbol.lightbulb'))
+              .fontSize(14)
+              .renderingStrategy(SymbolRenderingStrategy.SINGLE)
+              .fontColor([this.app.theme.palette.primary])
+            Text('正在生成')
+              .fontSize(13)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.app.theme.palette.primary)
+          }
+          .width('100%')
+        }
+
+        if (record.keywords.length > 0) {
+          Flex({ wrap: FlexWrap.Wrap }) {
+            ForEach(
+              record.keywords,
+              (keyword: string, kwIdx: number) => {
+                Text(keyword)
+                  .fontSize(12)
+                  .fontColor(this.app.theme.palette.textSecondary)
+                  .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+                  .borderRadius(8)
+                  .backgroundColor(this.app.theme.palette.surfaceSecondary)
+                  .margin({ right: 6, bottom: 4 })
+              },
+              (keyword: string, kwIdx: number) => `kw_${record.id}_${kwIdx}`,
+            )
+          }
+          .width('100%')
+        }
+
+        if (record.pending) {
+          Text('已转入后台继续生成，完成后会自动更新到历史。')
+            .fontSize(13)
+            .fontColor(this.app.theme.palette.textSecondary)
+            .width('100%')
+            .lineHeight(20)
+        } else if (record.summary.length > 0) {
+          Text(record.summary)
+            .fontSize(13)
+            .fontColor(this.app.theme.palette.textSecondary)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .width('100%')
+            .lineHeight(20)
+        }
+      }
+      .width('100%')
+      .padding(14)
+      .borderRadius(20)
+      .backgroundColor(this.app.theme.palette.surface)
+    }
+  }
+
   build() {
     Column({ space: 12 }) {
       if (this.state.records.length === 0) {
@@ -101,107 +199,12 @@ export struct AIInsightHistoryList {
           .width('100%')
 
         // 历史记录列表
-        ForEach(
-          this.state.records,
-          (record: InsightRecord) => {
-            InteractableCard({
-              leftHint: '删除',
-              enableSwipeLeft: true,
-              enableSwipeRight: false,
-              cornerRadius: 20,
-              contentPadding: 0,
-              outerPaddingVertical: 0,
-              shadowRadius: 10,
-              shadowOffsetY: 3,
-              swipeLeftColor: this.app.theme.palette.danger,
-              onSwipeLeft: () => {
-                this.markSwipeActionTriggered();
-                animateTo({ duration: 180, curve: Curve.EaseInOut, playMode: PlayMode.Normal }, () => {
-                  this.state.requestDeleteRecord(record.id);
-                });
-              },
-              onCardTap: () => {
-                if (!this.canOpenDetailNow()) {
-                  return;
-                }
-                this.state.openRecord(record);
-              },
-            }) {
-              Column({ space: 8 }) {
-                // 顶部：模式标签 + 时间
-                Row() {
-                  Text(record.mode === 'global' ? '全局分析' : '精准分析')
-                    .fontSize(11)
-                    .fontColor(this.app.theme.palette.textPrimary)
-                    .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-                    .borderRadius(10)
-                    .backgroundColor(record.mode === 'global' ? this.app.theme.palette.primary : this.app.theme.palette.info)
-
-                  Blank()
-
-                  Text(this.formatTime(record.createdAt))
-                    .fontSize(12)
-                    .fontColor(this.app.theme.palette.textTertiary)
-                }
-                .width('100%')
-
-                if (record.pending) {
-                  Row({ space: 6 }) {
-                    SymbolGlyph($r('sys.symbol.lightbulb'))
-                      .fontSize(14)
-                      .renderingStrategy(SymbolRenderingStrategy.SINGLE)
-                      .fontColor([this.app.theme.palette.primary])
-                    Text('正在生成')
-                      .fontSize(13)
-                      .fontWeight(FontWeight.Medium)
-                      .fontColor(this.app.theme.palette.primary)
-                  }
-                  .width('100%')
-                }
-
-                if (record.keywords.length > 0) {
-                  Flex({ wrap: FlexWrap.Wrap }) {
-                    ForEach(
-                      record.keywords,
-                      (keyword: string, kwIdx: number) => {
-                        Text(keyword)
-                          .fontSize(12)
-                          .fontColor(this.app.theme.palette.textSecondary)
-                          .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-                          .borderRadius(8)
-                          .backgroundColor(this.app.theme.palette.surfaceSecondary)
-                          .margin({ right: 6, bottom: 4 })
-                      },
-                      (keyword: string, kwIdx: number) => `kw_${record.id}_${kwIdx}`,
-                    )
-                  }
-                  .width('100%')
-                }
-
-                if (record.pending) {
-                  Text('已转入后台继续生成，完成后会自动更新到历史。')
-                    .fontSize(13)
-                    .fontColor(this.app.theme.palette.textSecondary)
-                    .width('100%')
-                    .lineHeight(20)
-                } else if (record.summary.length > 0) {
-                  Text(record.summary)
-                    .fontSize(13)
-                    .fontColor(this.app.theme.palette.textSecondary)
-                    .maxLines(2)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-                    .width('100%')
-                    .lineHeight(20)
-                }
-              }
-              .width('100%')
-              .padding(14)
-              .borderRadius(20)
-              .backgroundColor(this.app.theme.palette.surface)
-            }
-          },
-          (record: InsightRecord) => `insight_record_${record.id}`,
-        )
+        Column({ space: 12 }) {
+          ForEach(this.state.records, (record: InsightRecord) => {
+            this.buildRecordCard(record);
+          }, (record: InsightRecord) => `${record.id}_${record.createdAt}`)
+        }
+        .width('100%')
       }
     }
     .width('100%')

@@ -1,35 +1,82 @@
-import { AppState, useAppState } from '../../app/AppStates';
-
 /**
  * 组件功能简介：
- * - 内容流容器占位组件，预留列表懒加载与分页能力。
- * - TODO: 尚未接入数据源、分页策略和统一间距规则。
+ * - 通用内容流容器，负责按批次增量渲染列表内容，降低首屏渲染压力。
  *
  * 可传入项：
- * - 无。
+ * - `totalCount`：总条目数。
+ * - `batchSize`：每次增量渲染的条目数。
+ * - `space`：条目间距。
+ * - `itemBuilder(index)`：按索引构建条目。
  *
  * 返回行为：
- * - 渲染内容流占位卡片。
+ * - 返回支持懒加载扩容的纵向内容流。
  *
  * 副作用：
- * - 无业务副作用。
+ * - 底部哨兵出现在视口时会提升 `visibleCount`。
  */
 @ComponentV2
 export struct ContentFlow {
-  @Local private app: AppState = useAppState();
+  @Param totalCount: number = 0;
+  @Param batchSize: number = 12;
+  @Param space: number = 12;
+  @BuilderParam itemBuilder: (index: number) => void = this.buildEmptyItem;
+  @Local private visibleCount: number = 0;
+
+  aboutToAppear(): void {
+    this.resetVisibleCount();
+  }
+
+  @Monitor('totalCount')
+  onTotalCountChanged(): void {
+    this.resetVisibleCount();
+  }
+
+  @Builder
+  private buildEmptyItem(_index: number) {}
+
+  private resolveBatchSize(): number {
+    return this.batchSize > 0 ? this.batchSize : 12;
+  }
+
+  private resetVisibleCount(): void {
+    const initialCount: number = Math.min(this.totalCount, this.resolveBatchSize());
+    this.visibleCount = initialCount > 0 ? initialCount : 0;
+  }
+
+  private loadMore(): void {
+    if (this.visibleCount >= this.totalCount) {
+      return;
+    }
+    this.visibleCount = Math.min(this.totalCount, this.visibleCount + this.resolveBatchSize());
+  }
+
+  private buildIndexList(): Array<number> {
+    const indices: Array<number> = [];
+    for (let index = 0; index < this.visibleCount; index++) {
+      indices.push(index);
+    }
+    return indices;
+  }
 
   build() {
-    Column({ space: 8 }) {
-      Text('ContentFlow')
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium);
-      Text('TODO: 承载页面内容列表与懒加载逻辑。')
-        .fontSize(12)
-        .fontColor(this.app.theme.palette.textSecondary);
+    Column({ space: this.space }) {
+      ForEach(
+        this.buildIndexList(),
+        (index: number) => {
+          this.itemBuilder(index);
+        },
+        (index: number) => `content_flow_${index}`,
+      )
+
+      if (this.visibleCount < this.totalCount) {
+        Blank()
+          .width('100%')
+          .height(1)
+          .onAppear(() => {
+            this.loadMore();
+          })
+      }
     }
-    .width('100%')
-    .padding(16)
-    .borderRadius(20)
-    .backgroundColor(this.app.theme.palette.surface);
+    .width('100%');
   }
 }

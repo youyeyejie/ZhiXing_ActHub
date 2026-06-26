@@ -197,13 +197,9 @@ export struct IdeaCardList {
         .alignItems(HorizontalAlign.Center);
       }
 
-      ForEach(
-        this.state.visibleIdeaCards,
-        (idea: IdeaItem) => {
-          this.buildIdeaRow(idea);
-        },
-        (idea: IdeaItem) => this.resolveIdeaRenderKey(idea),
-      )
+      ForEach(this.state.visibleIdeaCards, (idea: IdeaItem) => {
+        this.buildIdeaRow(idea);
+      }, (idea: IdeaItem) => this.resolveIdeaRenderKey(idea))
     }
     .width("100%");
   }

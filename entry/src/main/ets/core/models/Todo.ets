@@ -43,6 +43,14 @@ export class Todo extends BaseEntity {
   @NotNull()
   inFocus: number = 0;
 
+  @Column({ type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
+  @NotNull()
+  priority: number = 0;
+
+  @Column({ name: "due_at", type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
+  @NotNull()
+  dueAt: number = 0;
+
   @Column({ name: "created_at", type: ColumnType.INTEGER, notNull: true, defaultValue: 0 })
   @NotNull()
   createdAt: number = 0;

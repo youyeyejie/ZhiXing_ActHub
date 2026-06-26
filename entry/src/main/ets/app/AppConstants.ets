@@ -34,6 +34,9 @@ export class AppPreferenceKey {
   static readonly PREFERRED_THEME_MODE: string = 'preferredThemeMode';
   static readonly NOTIFICATION_ENABLED: string = 'notificationEnabled';
   static readonly PLAN_REMINDER_ENABLED: string = 'planReminderEnabled';
+  static readonly AI_API_KEY: string = 'ai.apiKey';
+  static readonly AI_BASE_URL: string = 'ai.baseUrl';
+  static readonly AI_MODEL: string = 'ai.model';
 }
 
 /**

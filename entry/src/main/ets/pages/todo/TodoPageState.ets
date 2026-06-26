@@ -62,6 +62,8 @@ export class TodoItem {
   @Trace categoryColor: string = "";
   @Trace isDone: number = 0;
   @Trace inFocus: number = 0;
+  @Trace priority: number = 0;
+  @Trace dueAt: number = 0;
   @Trace createdAt: number = 0;
   @Trace timestamp: number = 0;
   @Trace updatedAt: number = 0;
@@ -74,6 +76,8 @@ export class TodoItem {
     this.categoryColor = categoryColor;
     this.isDone = todo.isDone;
     this.inFocus = todo.inFocus;
+    this.priority = todo.priority;
+    this.dueAt = todo.dueAt;
     this.createdAt = todo.createdAt;
     this.timestamp = todo.timestamp;
     this.updatedAt = todo.updatedAt;
@@ -170,9 +174,25 @@ export class TodoPageState {
     todo.categoryId = source.categoryId;
     todo.isDone = source.isDone;
     todo.inFocus = source.inFocus;
+    todo.priority = source.priority;
+    todo.dueAt = source.dueAt;
     todo.createdAt = source.createdAt;
     todo.updatedAt = source.updatedAt;
     return todo;
+  }
+
+  private normalizePriority(value: number): number {
+    if (value < 0) {
+      return 0;
+    }
+    if (value > 3) {
+      return 3;
+    }
+    return value;
+  }
+
+  private normalizeDueAt(value: number): number {
+    return value > 0 ? value : 0;
   }
 
   private resolveTodoCardTitle(todo: Todo): string {
@@ -217,6 +237,21 @@ export class TodoPageState {
   }
 
   private compareTodoByCreatedAtDesc(a: Todo, b: Todo): number {
+    const priorityDiff = this.normalizePriority(b.priority) - this.normalizePriority(a.priority);
+    if (priorityDiff !== 0) {
+      return priorityDiff;
+    }
+    const dueAtA = this.normalizeDueAt(a.dueAt);
+    const dueAtB = this.normalizeDueAt(b.dueAt);
+    if (dueAtA > 0 && dueAtB > 0 && dueAtA !== dueAtB) {
+      return dueAtA - dueAtB;
+    }
+    if (dueAtA > 0 && dueAtB <= 0) {
+      return -1;
+    }
+    if (dueAtB > 0 && dueAtA <= 0) {
+      return 1;
+    }
     const aCreatedAt = a.createdAt > 0 ? a.createdAt : 0;
     const bCreatedAt = b.createdAt > 0 ? b.createdAt : 0;
     if (aCreatedAt !== bCreatedAt) {
@@ -492,7 +527,13 @@ export class TodoPageState {
     return found ? found.color : this.app.theme.palette.textTertiary;
   }
 
-  async createTodo(title: string, detail: string, categoryId: number): Promise<boolean> {
+  async createTodo(
+    title: string,
+    detail: string,
+    categoryId: number,
+    priority: number = 0,
+    dueAt: number = 0,
+  ): Promise<boolean> {
     if (this.categories.length === 0) {
       await this.refreshCategories();
     }
@@ -511,6 +552,8 @@ export class TodoPageState {
     todo.categoryId = hasCandidate ? candidateId : 0;
     todo.isDone = 0;
     todo.inFocus = 0;
+    todo.priority = this.normalizePriority(priority);
+    todo.dueAt = this.normalizeDueAt(dueAt);
     todo.timestamp = Date.now();
     todo.createdAt = Date.now();
     todo.updatedAt = Date.now();
@@ -655,6 +698,86 @@ export class TodoPageState {
     if (targetTodo === null) {
       return;
     }
+    await this.todoRepository.save(targetTodo);
+    if (!hasLocalTodo) {
+      await this.refreshTodos();
+    }
+  }
+
+  async updateTodoPriority(todoId: number, priority: number): Promise<void> {
+    const normalizedTodoId = this.normalizeId(todoId);
+    if (normalizedTodoId <= 0) {
+      return;
+    }
+    const nextPriority = this.normalizePriority(priority);
+    const now = Date.now();
+    let targetTodo: Todo | null = null;
+    const hasLocalTodo = this.todos.some(
+      (item: Todo) => this.normalizeId(item.id) === normalizedTodoId,
+    );
+
+    const localIndex = this.todos.findIndex(
+      (item: Todo) => this.normalizeId(item.id) === normalizedTodoId,
+    );
+    if (localIndex >= 0) {
+      targetTodo = this.todos[localIndex];
+      targetTodo.priority = nextPriority;
+      targetTodo.updatedAt = now;
+      targetTodo.timestamp = now;
+      this.todos = this.todos.slice();
+      this.syncVisibleTodos();
+    }
+
+    if (targetTodo === null) {
+      targetTodo = await this.todoRepository.findById(normalizedTodoId);
+      if (!targetTodo) {
+        return;
+      }
+      targetTodo.priority = nextPriority;
+      targetTodo.updatedAt = now;
+      targetTodo.timestamp = now;
+    }
+
+    await this.todoRepository.save(targetTodo);
+    if (!hasLocalTodo) {
+      await this.refreshTodos();
+    }
+  }
+
+  async updateTodoDueAt(todoId: number, dueAt: number): Promise<void> {
+    const normalizedTodoId = this.normalizeId(todoId);
+    if (normalizedTodoId <= 0) {
+      return;
+    }
+    const nextDueAt = this.normalizeDueAt(dueAt);
+    const now = Date.now();
+    let targetTodo: Todo | null = null;
+    const hasLocalTodo = this.todos.some(
+      (item: Todo) => this.normalizeId(item.id) === normalizedTodoId,
+    );
+
+    const localIndex = this.todos.findIndex(
+      (item: Todo) => this.normalizeId(item.id) === normalizedTodoId,
+    );
+    if (localIndex >= 0) {
+      targetTodo = this.todos[localIndex];
+      targetTodo.dueAt = nextDueAt;
+      targetTodo.updatedAt = now;
+      targetTodo.timestamp = now;
+      this.todos = this.todos.slice();
+      this.syncVisibleTodos();
+    }
+
+    if (targetTodo === null) {
+      targetTodo = await this.todoRepository.findById(normalizedTodoId);
+      if (!targetTodo) {
+        return;
+      }
+      targetTodo.dueAt = nextDueAt;
+      targetTodo.updatedAt = now;
+      targetTodo.timestamp = now;
+    }
+
     await this.todoRepository.save(targetTodo);
     if (!hasLocalTodo) {
       await this.refreshTodos();

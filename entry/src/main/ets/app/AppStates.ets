@@ -10,6 +10,8 @@ import { StatusBarService } from '../core/services/StatusBarService';
 import { WhiteNoisePlayer } from '../core/services/WhiteNoisePlayer';
 import { User } from '../core/models/User';
 import { UserPreferenceRepository } from '../core/repositories/UserPreferenceRepository';
+import { UserRepository } from '../core/repositories/UserRepository';
+import { AIService, useAIService } from '../core/services/AIService';
 
 
 
@@ -125,8 +127,10 @@ export class AppState {
   private aiInsightSessionState: AIInsightSessionState = new AIInsightSessionState();
   private authService: AuthService = new AuthService();
   private calendarReminderService: CalendarReminderService = new CalendarReminderService();
+  private aiService: AIService = useAIService();
   private currentUserValue: User | null = null;
   private userPreferenceRepository: UserPreferenceRepository = new UserPreferenceRepository();
+  private userRepository: UserRepository = new UserRepository();
 
   @Trace public flow: AppFlow = AppFlow.SPLASH;
   @Trace public currentUserId: number = 0;
@@ -197,12 +201,14 @@ export class AppState {
       const restoredUser: User | null = await this.authService.restoreSession();
       if (restoredUser === null) {
         this.applyCurrentUser(null);
+        await this.reloadUserScopedServices();
         AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, ThemeMode.SYSTEM);
         this.applyThemePreference(ThemeMode.SYSTEM, this.readSystemDarkMode());
         this.enterAuth();
         return;
       }
       this.applyCurrentUser(restoredUser);
+      await this.reloadUserScopedServices();
       try {
         const storedThemeMode: string = await this.userPreferenceRepository.getString(
           AppPreferenceKey.PREFERRED_THEME_MODE,
@@ -219,6 +225,7 @@ export class AppState {
       await this.syncCalendarRemindersAfterLaunchIfReady();
     } catch (_error) {
       this.applyCurrentUser(null);
+      await this.reloadUserScopedServices();
       AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, ThemeMode.SYSTEM);
       this.applyThemePreference(ThemeMode.SYSTEM, this.readSystemDarkMode());
       this.enterAuth();
@@ -235,6 +242,7 @@ export class AppState {
     }
 
     this.applyCurrentUser(user);
+    await this.reloadUserScopedServices();
     await this.loadUserPreferences();
     this.enterMain();
     await this.syncCalendarRemindersForCurrentUser();
@@ -254,6 +262,7 @@ export class AppState {
     }
 
     this.applyCurrentUser(user);
+    await this.reloadUserScopedServices();
     await this.loadUserPreferences();
     this.enterMain();
     await this.syncCalendarRemindersForCurrentUser();
@@ -269,6 +278,7 @@ export class AppState {
     }
     await this.authService.logout();
     this.applyCurrentUser(null);
+    await this.reloadUserScopedServices();
     AppStorage.set(AppPreferenceKey.PREFERRED_THEME_MODE, ThemeMode.SYSTEM);
     this.applyThemePreference(ThemeMode.SYSTEM, this.readSystemDarkMode());
     this.enterAuth();
@@ -329,11 +339,49 @@ export class AppState {
     await this.syncCalendarRemindersForCurrentUser();
   }
 
+  async updateCurrentUserProfile(avatar: string, password: string): Promise<AuthActionResult> {
+    if (this.currentUserValue === null) {
+      return {
+        success: false,
+        message: '当前未登录，无法更新资料',
+      };
+    }
+
+    const normalizedAvatar: string = avatar.trim();
+    const normalizedPassword: string = password.trim();
+    if (normalizedPassword.length > 0 && normalizedPassword.length < 6) {
+      return {
+        success: false,
+        message: '新密码至少需要 6 位',
+      };
+    }
+
+    const nextUser: User = new User();
+    nextUser.id = this.currentUserValue.id;
+    nextUser.name = this.currentUserValue.name;
+    nextUser.avatar = normalizedAvatar;
+    nextUser.password = normalizedPassword.length > 0 ? normalizedPassword : this.currentUserValue.password;
+    nextUser.timestamp = this.currentUserValue.timestamp;
+    nextUser.createdAt = this.currentUserValue.createdAt;
+    nextUser.updatedAt = this.currentUserValue.updatedAt;
+    await this.userRepository.updateProfile(nextUser);
+    this.applyCurrentUser(nextUser);
+    return {
+      success: true,
+      message: '个人资料已更新',
+    };
+  }
+
   private applyCurrentUser(user: User | null): void {
     this.currentUserValue = user;
     this.currentUserId = user !== null ? user.id : 0;
     this.currentUserName = user !== null ? user.name : '';
     this.currentUserAvatar = user !== null ? user.avatar : '';
+  }
+
+  private async reloadUserScopedServices(): Promise<void> {
+    this.aiInsightSession.reset();
+    await this.aiService.loadPersistedOverrides();
   }
 
   private readSystemDarkMode(): boolean {
