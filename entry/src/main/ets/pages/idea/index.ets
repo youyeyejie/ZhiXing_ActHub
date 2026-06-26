@@ -3,7 +3,6 @@ import { IdeaActionSheetContent } from "./components/IdeaActionSheetContent";
 import { IdeaDetailCardContent } from "./components/IdeaDetailCardContent";
 import { HitokotoCard } from "./components/HitokotoCard";
 import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
-import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
 import { FloatingActionButton } from "../../components/buttons/FloatingActionButton";
 import { UndoNotificationStack } from "../../components/feedback/UndoNotificationStack";
 import { AppOverlayRoute } from "../../app/AppConstants";
@@ -27,6 +26,11 @@ export struct IdeaPage {
   @Builder
   private buildIdeaDetailContent() {
     IdeaDetailCardContent();
+  }
+
+  @Builder
+  private buildIdeaListHeader() {
+    HitokotoCard();
   }
 
   aboutToAppear(): void {
@@ -67,18 +71,13 @@ export struct IdeaPage {
           );
         },
       }) {
-
-        // 闪记列表
-        PageScrollLayout({ space: 12, paddingTop: 0 }) {
-          // 一言卡片
-          HitokotoCard()
-
-          IdeaCardList({
-            onOpenIdea: (ideaId: number) => {
-              this.openEditIdea(ideaId);
-            },
-          })
-        }
+        IdeaCardList({
+          onOpenIdea: (ideaId: number) => {
+            this.openEditIdea(ideaId);
+          },
+          header: this.buildIdeaListHeader,
+        })
+        .layoutWeight(1)
       }      
 
       // 新建按钮（FAB）

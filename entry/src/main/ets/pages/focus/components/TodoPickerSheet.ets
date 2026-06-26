@@ -1,4 +1,5 @@
 import { AppState, useAppState } from '../../../app/AppStates';
+import { ArrayDataSource } from '../../../components/list/ArrayDataSource';
 import { Todo } from '../../../core/models/Todo';
 import { TodoRepository } from '../../../core/repositories/TodoRepository';
 import { TodoPageState, useTodoPageState } from '../../todo/TodoPageState';
@@ -28,6 +29,7 @@ export struct TodoPickerSheet {
   @Local private todos: Todo[] = [];
   @Local private isLoading: boolean = true;
   @Local private currentTodo: Todo | undefined = undefined;
+  private availableTodoDataSource: ArrayDataSource<Todo> = new ArrayDataSource<Todo>();
 
   private get availableTodos(): Todo[] {
     return this.todos.filter(t => String(t.id) !== String(this.app.focusEngine.todoId));
@@ -36,6 +38,11 @@ export struct TodoPickerSheet {
   aboutToAppear(): void {
     this.todoState.refreshTodos();
     this.loadData();
+  }
+
+  @Monitor("todos")
+  onTodosChanged(): void {
+    this.syncAvailableTodoDataSource();
   }
 
   private async loadData(): Promise<void> {
@@ -58,8 +65,13 @@ export struct TodoPickerSheet {
     } catch (error) {
       console.error('[TodoPickerSheet] 加载待办列表失败:', error);
     } finally {
+      this.syncAvailableTodoDataSource();
       this.isLoading = false;
     }
+  }
+
+  private syncAvailableTodoDataSource(): void {
+    this.availableTodoDataSource.updateItems(this.availableTodos);
   }
 
   private onTodoItemClick(todoId: number): void {
@@ -219,38 +231,44 @@ export struct TodoPickerSheet {
 
   @Builder
   private renderTodoList(): void {
-    Scroll() {
-      Column({ space: 12 }) {
-        if (this.app.focusEngine.hasTodo() && this.currentTodo) {
-          Text("--- 当前选择 ---")
-            .fontSize(FormTypography.INFO_SIZE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.app.theme.palette.textSecondary)
-            .width('100%')
-            .textAlign(TextAlign.Center);
+     List({ space: 12 }) {
+      if (this.app.focusEngine.hasTodo() && this.currentTodo) {
+        ListItem() {
+          Column({ space: 12 }) {
+            Text("--- 当前选择 ---")
+              .fontSize(FormTypography.INFO_SIZE)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.app.theme.palette.textSecondary)
+              .width('100%')
+              .textAlign(TextAlign.Center);
 
-          this.buildTodoCard(this.currentTodo, true);
+            this.buildTodoCard(this.currentTodo, true);
+          }
+          .width('100%')
         }
-        
-        if (this.availableTodos.length > 0) {
+      }
+
+      if (this.availableTodos.length > 0) {
+        ListItem() {
           Text(this.app.focusEngine.hasTodo() ? "--- 其他未完成待办 ---" : "--- 未完成待办 ---")
             .fontSize(FormTypography.INFO_SIZE)
             .fontWeight(FontWeight.Medium)
             .fontColor(this.app.theme.palette.textSecondary)
             .width('100%')
             .textAlign(TextAlign.Center);
-
-          ForEach(this.availableTodos, (todo: Todo) => {
-            this.buildTodoCard(todo, false);
-          }, (todo: Todo) => String(todo.id));
         }
+
+        LazyForEach(this.availableTodoDataSource, (todo: Todo) => {
+          ListItem() {
+            this.buildTodoCard(todo, false);
+          }
+        }, (todo: Todo) => String(todo.id));
       }
-      .width('100%')
-      .padding({ bottom: 45 }) 
     }
     .scrollBar(BarState.Off)
     .width('100%')
     .flexShrink(1)
+    .padding({ bottom: 45 })
     .align(Alignment.Top); 
   }
 

@@ -47,9 +47,10 @@ export struct PlanPage {
         },
       }) {
         WeekCalendar().width("90%")
-        PageScrollLayout({ space: 12, paddingTop: 12 }) {
-          TimelineView()
-        }
+        TimelineView()
+          .layoutWeight(1)
+          .width("100%")
+          .padding({ top: 12, right: 20, bottom: 20, left: 20 })
       }
 
       UndoNotificationStack({
