@@ -3,6 +3,13 @@
 </p>
 <h1 align="center" width="100%"> 知行 ActHub </h1>
 
+<p align="center" width="100%">
+    <a href="https://youyeyejie.github.io/_posts/%E9%B8%BF%E8%92%99%E5%BA%94%E7%94%A8%E7%9F%A5%E8%A1%8CActHub%E5%BC%80%E5%8F%91%E5%88%86%E4%BA%AB/" >
+        <img src="https://img.shields.io/badge/Blog-Read_Post-brightgreen.svg" alt="Read Blog" />
+    </a>
+</p>
+
+
 ## 项目简介
 
 本项目是上海交通大学 NIS3366《项目管理与软件设计》课程设计，我们小组六人在两周内进行项目设计与开发，完成了这款鸿蒙系统日程管理与效率应用 **知行 ActHub**。应用围绕「**计划 Plan、待办 Todo、专注 Focus、闪记 Idea、我的 User**」构建统一工作流，让任务与想法在同一空间内自由流转。
