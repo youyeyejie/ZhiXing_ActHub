@@ -1,13 +1,5 @@
-/node_modules
 /oh_modules
-/local.properties
-/.idea
 **/build
 /.hvigor
-.cxx
-/.clangd
-/.clang-format
-/.clang-tidy
-**/.test
-/.appanalyzer
-entry/src/main/resources/rawfile/ai_config.json
+/.idea
+log
