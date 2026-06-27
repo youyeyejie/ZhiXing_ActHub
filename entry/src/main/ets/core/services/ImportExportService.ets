@@ -4,6 +4,7 @@ import { BusinessError } from '@kit.BasicServicesKit';
 import { fileIo as fs, picker, ReadOptions, WriteOptions } from '@kit.CoreFileKit';
 import { buffer } from '@kit.ArkTS';
 import { AppState } from '../../app/AppStates';
+import { DatabaseConfig } from '../database/DatabaseConfig';
 import { UserDatabase } from '../database/UserDatabase';
 import { AIInsight, Focus, Idea, Plan, Todo, TodoCategory, UserPreference } from '../models';
 import { PlanRepository } from '../repositories/PlanRepository';
@@ -33,6 +34,28 @@ class IcsRecurrenceRule {
   byDay: string[] = [];
 }
 
+class IdeaSnapshotItem {
+  id: number = 0;
+  title: string = '';
+  content: string = '';
+  length: number = 0;
+  timestamp: number = 0;
+  createdAt: number = 0;
+  updatedAt: number = 0;
+}
+
+class AIInsightSnapshotItem {
+  id: number = 0;
+  mode: string = 'global';
+  keywords: string = '';
+  summary: string = '';
+  fullContent: string = '';
+  noteCount: number = 0;
+  totalLength: number = 0;
+  createdAt: number = 0;
+  updatedAt: number = 0;
+}
+
 class UserDataSnapshot {
   version: number = 1;
   username: string = '';
@@ -41,8 +64,8 @@ class UserDataSnapshot {
   todos: Array<Todo> = [];
   todoCategories: Array<TodoCategory> = [];
   focusRecords: Array<Focus> = [];
-  ideas: Array<Idea> = [];
-  aiInsights: Array<AIInsight> = [];
+  ideas: Array<IdeaSnapshotItem> = [];
+  aiInsights: Array<AIInsightSnapshotItem> = [];
   userPreferences: Array<UserPreference> = [];
 }
 
@@ -74,10 +97,7 @@ export class ImportExportService {
         await this.restoreUserDataSnapshot(context, account, snapshot);
         this.resetPageStatesForReload();
         await this.restartApplication(context);
-        return new ImportExportResult(
-          true,
-          `用户数据导入成功（待办 ${snapshot.todos.length}，专注 ${snapshot.focusRecords.length}，洞察 ${snapshot.aiInsights.length}）`,
-        );
+        return new ImportExportResult(true, '用户数据导入成功');
       }
       await this.reopenCurrentUserDatabase(context, account, false);
       this.removeSqliteSidecarFiles(dbPath);
@@ -117,10 +137,7 @@ export class ImportExportService {
         const snapshot: UserDataSnapshot = this.buildUserDataSnapshot(account);
         await this.yieldToPickerDismiss();
         this.writeTextToFileUri(targetUri, JSON.stringify(snapshot));
-        return new ImportExportResult(
-          true,
-          `用户数据导出成功（待办 ${snapshot.todos.length}，专注 ${snapshot.focusRecords.length}，洞察 ${snapshot.aiInsights.length}）`,
-        );
+        return new ImportExportResult(true, '用户数据导出成功');
       }
       const dbPath: string = await UserDatabase.getInstance().resolveDatabaseFilePath(context, account);
       await this.reopenCurrentUserDatabase(context, account, false);
@@ -230,10 +247,126 @@ export class ImportExportService {
     snapshot.todos = orm.query(Todo).find();
     snapshot.todoCategories = orm.query(TodoCategory).find();
     snapshot.focusRecords = orm.query(Focus).find();
-    snapshot.ideas = orm.query(Idea).find();
-    snapshot.aiInsights = orm.query(AIInsight).find();
+    snapshot.ideas = this.readIdeaSnapshotItemsFromTable();
+    snapshot.aiInsights = this.readAIInsightSnapshotItemsFromTable();
     snapshot.userPreferences = orm.query(UserPreference).find();
     return snapshot;
+  }
+
+  private readIdeaSnapshotItemsFromTable(): Array<IdeaSnapshotItem> {
+    const records = UserDatabase.getInstance().getOrm()
+      .table(DatabaseConfig.IDEA_TABLE)
+      .select('id', 'title', 'content', 'length', 'timestamp', 'created_at', 'updated_at')
+      .find() as Array<Record<string, Object>>;
+    return this.mapIdeaRecordsToSnapshotItems(records);
+  }
+
+  private mapIdeaRecordsToSnapshotItems(records: Array<Record<string, Object>>): Array<IdeaSnapshotItem> {
+    const result: Array<IdeaSnapshotItem> = [];
+    for (let index = 0; index < records.length; index++) {
+      const source: Record<string, Object> = records[index];
+      const target: IdeaSnapshotItem = new IdeaSnapshotItem();
+      target.id = this.readRecordNumber(source, 'id');
+      target.title = this.readRecordString(source, 'title');
+      target.content = this.readRecordString(source, 'content');
+      target.length = this.readRecordNumber(source, 'length');
+      target.timestamp = this.readRecordNumber(source, 'timestamp');
+      target.createdAt = this.readRecordNumber(source, 'createdAt', 'created_at');
+      target.updatedAt = this.readRecordNumber(source, 'updatedAt', 'updated_at');
+      result.push(target);
+    }
+    return result;
+  }
+
+  private mapIdeaSnapshotItemsToEntities(items: Array<IdeaSnapshotItem>): Array<Idea> {
+    const result: Array<Idea> = [];
+    for (let index = 0; index < items.length; index++) {
+      const source: IdeaSnapshotItem = items[index];
+      const target: Idea = new Idea();
+      target.id = source.id;
+      target.title = source.title;
+      target.content = source.content;
+      target.length = source.length;
+      target.timestamp = source.timestamp;
+      target.createdAt = source.createdAt;
+      target.updatedAt = source.updatedAt;
+      result.push(target);
+    }
+    return result;
+  }
+
+  private readAIInsightSnapshotItemsFromTable(): Array<AIInsightSnapshotItem> {
+    const records = UserDatabase.getInstance().getOrm()
+      .table(DatabaseConfig.AI_INSIGHT_TABLE)
+      .select('id', 'mode', 'keywords', 'summary', 'full_content', 'note_count', 'total_length', 'created_at', 'updated_at')
+      .find() as Array<Record<string, Object>>;
+    return this.mapAIInsightRecordsToSnapshotItems(records);
+  }
+
+  private mapAIInsightRecordsToSnapshotItems(records: Array<Record<string, Object>>): Array<AIInsightSnapshotItem> {
+    const result: Array<AIInsightSnapshotItem> = [];
+    for (let index = 0; index < records.length; index++) {
+      const source: Record<string, Object> = records[index];
+      const target: AIInsightSnapshotItem = new AIInsightSnapshotItem();
+      target.id = this.readRecordNumber(source, 'id');
+      target.mode = this.readRecordString(source, 'mode');
+      target.keywords = this.readRecordString(source, 'keywords');
+      target.summary = this.readRecordString(source, 'summary');
+      target.fullContent = this.readRecordString(source, 'fullContent', 'full_content');
+      target.noteCount = this.readRecordNumber(source, 'noteCount', 'note_count');
+      target.totalLength = this.readRecordNumber(source, 'totalLength', 'total_length');
+      target.createdAt = this.readRecordNumber(source, 'createdAt', 'created_at');
+      target.updatedAt = this.readRecordNumber(source, 'updatedAt', 'updated_at');
+      result.push(target);
+    }
+    return result;
+  }
+
+  private readRecordString(record: Record<string, Object>, key: string, fallbackKey: string = ''): string {
+    const primary = record[key];
+    if (primary !== undefined && primary !== null) {
+      return `${primary}`;
+    }
+    if (fallbackKey.length > 0) {
+      const fallback = record[fallbackKey];
+      if (fallback !== undefined && fallback !== null) {
+        return `${fallback}`;
+      }
+    }
+    return '';
+  }
+
+  private readRecordNumber(record: Record<string, Object>, key: string, fallbackKey: string = ''): number {
+    const primary = record[key];
+    if (primary !== undefined && primary !== null) {
+      return Number(primary);
+    }
+    if (fallbackKey.length > 0) {
+      const fallback = record[fallbackKey];
+      if (fallback !== undefined && fallback !== null) {
+        return Number(fallback);
+      }
+    }
+    return 0;
+  }
+
+  private mapAIInsightSnapshotItemsToEntities(items: Array<AIInsightSnapshotItem>): Array<AIInsight> {
+    const result: Array<AIInsight> = [];
+    for (let index = 0; index < items.length; index++) {
+      const source: AIInsightSnapshotItem = items[index];
+      const target: AIInsight = new AIInsight();
+      target.id = source.id;
+      target.mode = source.mode;
+      target.keywords = source.keywords;
+      target.summary = source.summary;
+      target.fullContent = source.fullContent;
+      target.noteCount = source.noteCount;
+      target.totalLength = source.totalLength;
+      target.createdAt = source.createdAt;
+      target.updatedAt = source.updatedAt;
+      result.push(target);
+    }
+    return result;
   }
 
   private tryReadUserDataSnapshot(sourceUri: string): UserDataSnapshot | null {
@@ -299,7 +432,7 @@ export class ImportExportService {
         target.createdAt = Number(source.createdAt ?? 0);
         target.updatedAt = Number(source.updatedAt ?? 0);
       });
-      snapshot.ideas = this.mapSnapshotList<Idea>(parsed.ideas, () => new Idea(), (source: Record<string, Object>, target: Idea) => {
+      snapshot.ideas = this.mapSnapshotList<IdeaSnapshotItem>(parsed.ideas, () => new IdeaSnapshotItem(), (source: Record<string, Object>, target: IdeaSnapshotItem) => {
         target.id = Number(source.id ?? 0);
         target.title = `${source.title ?? ''}`;
         target.content = `${source.content ?? ''}`;
@@ -308,10 +441,10 @@ export class ImportExportService {
         target.createdAt = Number(source.createdAt ?? 0);
         target.updatedAt = Number(source.updatedAt ?? 0);
       });
-      snapshot.aiInsights = this.mapSnapshotList<AIInsight>(
+      snapshot.aiInsights = this.mapSnapshotList<AIInsightSnapshotItem>(
         parsed.aiInsights,
-        () => new AIInsight(),
-        (source: Record<string, Object>, target: AIInsight) => {
+        () => new AIInsightSnapshotItem(),
+        (source: Record<string, Object>, target: AIInsightSnapshotItem) => {
           target.id = Number(source.id ?? 0);
           target.mode = `${source.mode ?? 'global'}`;
           target.keywords = `${source.keywords ?? ''}`;
@@ -377,8 +510,8 @@ export class ImportExportService {
     this.insertTableItems(snapshot.todoCategories);
     this.insertTableItems(snapshot.todos);
     this.insertTableItems(snapshot.focusRecords);
-    this.insertTableItems(snapshot.ideas);
-    this.insertTableItems(snapshot.aiInsights);
+    this.insertTableItems(this.mapIdeaSnapshotItemsToEntities(snapshot.ideas));
+    this.insertTableItems(this.mapAIInsightSnapshotItemsToEntities(snapshot.aiInsights));
     this.insertTableItems(snapshot.userPreferences);
   }
 
