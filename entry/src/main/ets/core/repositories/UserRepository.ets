@@ -1,4 +1,5 @@
 import { User } from "../models/User";
+import { UserAvatarCodec } from "../models/UserAvatar";
 import { BaseRepository } from "./BaseRepository";
 import { RepositoryScope } from "../database/RepositoryScope";
 
@@ -28,7 +29,7 @@ export class UserRepository extends BaseRepository<User> {
     return Promise.resolve(this.query.where("name", account).exists());
   }
 
-  register(account: string, password: string, avatar: string = ""): Promise<User | null> {
+  register(account: string, password: string, avatar: string = UserAvatarCodec.DEFAULT_AVATAR): Promise<User | null> {
     const normalizedAccount: string = account.trim();
     const normalizedPassword: string = password.trim();
     if (normalizedAccount.length === 0 || normalizedPassword.length === 0) {

@@ -1,5 +1,5 @@
 import promptAction from "@ohos.promptAction";
-import { common } from "@kit.AbilityKit";
+import { common, Want } from "@kit.AbilityKit";
 import { AppState, useAppState } from "../../../app/AppStates";
 import { AppPreferenceKey } from "../../../app/AppConstants";
 import { CalendarReminderService } from "../../../core/services/CalendarReminderService";
@@ -8,6 +8,7 @@ import { UserPreferenceRepository } from "../../../core/repositories/UserPrefere
 import { ImportExportResult, ImportExportService} from "../../../core/services/ImportExportService";
 import { AppOverlayRoute } from "../../../app/AppConstants";
 import { AIConfigEditorContent } from './AIConfigEditorContent';
+import { PasswordEditorContent } from './PasswordEditorContent';
 
 /**
  * 组件功能简介：
@@ -31,6 +32,7 @@ export struct SettingsPanel {
   @Local private importExportExpanded: boolean = false;
   @Event onLogoutTap: () => void = () => {};
 
+  private readonly FEEDBACK_ISSUE_URL: string = 'https://github.com/youyeyejie/ZhiXing_ActHub/issues';
   private userPreferenceRepository: UserPreferenceRepository = new UserPreferenceRepository();
   private calendarReminderService: CalendarReminderService = new CalendarReminderService();
   private importExportService: ImportExportService = new ImportExportService();
@@ -144,31 +146,41 @@ export struct SettingsPanel {
     }
   }
 
+  private async openFeedbackIssuePage(): Promise<void> {
+    try {
+      const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      const want: Want = {
+        action: 'ohos.want.action.viewData',
+        uri: this.FEEDBACK_ISSUE_URL,
+      };
+      await context.startAbility(want);
+    } catch (_error) {
+      this.safeToast('暂时无法打开反馈页面');
+    }
+  }
+
   @Builder
-  private buildActionRow(title: string, buttonLabel: string, onTap: () => void) {
-    Row({ space: 12 }) {
-      Column({ space: 4 }) {
+  private buildNavigationRow(title: string, onTap: () => void) {
+    Button() {
+      Row({ space: 12 }) {
         Text(title)
           .fontSize(15)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.app.theme.palette.textPrimary)
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-      Button(buttonLabel)
-        .height(30)
-        .fontSize(12)
-        .fontColor(this.app.theme.palette.textPrimary)
-        .backgroundColor(this.app.theme.palette.surface)
-        .borderRadius(999)
-        .onClick(() => {
-          onTap();
-        })
+          .layoutWeight(1)
+        SymbolGlyph($r("sys.symbol.chevron_right"))
+          .fontSize(16)
+          .renderingStrategy(SymbolRenderingStrategy.SINGLE)
+          .fontColor([this.app.theme.palette.textSecondary])
+      }.width("100%")
     }
     .width("100%")
     .padding(16)
+    .backgroundColor(this.app.theme.palette.surfaceSecondary)
     .borderRadius(18)
-    .backgroundColor(this.app.theme.palette.surfaceSecondary);
+    .onClick(() => {
+      onTap();
+    })
   }
 
   @Builder
@@ -257,6 +269,11 @@ export struct SettingsPanel {
     AIConfigEditorContent();
   }
 
+  @Builder
+  private buildPasswordEditorContent() {
+    PasswordEditorContent();
+  }
+
   build() {
     Column({ space: 12 }) {
       Text("设置选项")
@@ -299,15 +316,29 @@ export struct SettingsPanel {
       .borderRadius(18)
       .backgroundColor(this.app.theme.palette.surfaceSecondary)
 
-      this.buildActionRow(
+      this.buildNavigationRow(
         'AI 洞察配置',
-        '编辑',
         () => {
           this.app.nav.openActionSheet(this.buildAIConfigSheetContent, 'auto');
         },
       )
 
+      this.buildNavigationRow(
+        '修改密码',
+        () => {
+          this.app.nav.openActionSheet(this.buildPasswordEditorContent, 'auto');
+        },
+      )
+
       this.buildImportExportMenuRow()
+
+      this.buildNavigationRow(
+        '提交反馈',
+        async () => {
+          await this.openFeedbackIssuePage();
+        },
+      )
+
       Button("退出登录")
         .width("100%")
         .height(44)

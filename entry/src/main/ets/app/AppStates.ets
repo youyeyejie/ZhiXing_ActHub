@@ -12,6 +12,7 @@ import { User } from '../core/models/User';
 import { UserPreferenceRepository } from '../core/repositories/UserPreferenceRepository';
 import { UserRepository } from '../core/repositories/UserRepository';
 import { AIService, useAIService } from '../core/services/AIService';
+import { UserAvatarCodec } from '../core/models/UserAvatar';
 
 
 
@@ -339,37 +340,83 @@ export class AppState {
     await this.syncCalendarRemindersForCurrentUser();
   }
 
-  async updateCurrentUserProfile(avatar: string, password: string): Promise<AuthActionResult> {
+  async updateCurrentUserAvatar(avatar: string): Promise<AuthActionResult> {
     if (this.currentUserValue === null) {
       return {
         success: false,
-        message: '当前未登录，无法更新资料',
+        message: '当前未登录，无法更新头像',
       };
     }
 
-    const normalizedAvatar: string = avatar.trim();
-    const normalizedPassword: string = password.trim();
-    if (normalizedPassword.length > 0 && normalizedPassword.length < 6) {
+    const normalizedAvatar: string = avatar.trim().length > 0 ? avatar.trim() : UserAvatarCodec.DEFAULT_AVATAR;
+    const nextUser: User = this.cloneCurrentUser();
+    nextUser.avatar = normalizedAvatar;
+    await this.userRepository.updateProfile(nextUser);
+    this.applyCurrentUser(nextUser);
+    return {
+      success: true,
+      message: '头像已更新',
+    };
+  }
+
+  async changeCurrentUserPassword(oldPassword: string, newPassword: string): Promise<AuthActionResult> {
+    if (this.currentUserValue === null) {
+      return {
+        success: false,
+        message: '当前未登录，无法修改密码',
+      };
+    }
+
+    const normalizedOldPassword: string = oldPassword.trim();
+    const normalizedNewPassword: string = newPassword.trim();
+    if (normalizedOldPassword !== this.currentUserValue.password) {
+      return {
+        success: false,
+        message: '旧密码不正确',
+      };
+    }
+    if (normalizedNewPassword.length < 6) {
       return {
         success: false,
         message: '新密码至少需要 6 位',
       };
     }
 
-    const nextUser: User = new User();
-    nextUser.id = this.currentUserValue.id;
-    nextUser.name = this.currentUserValue.name;
-    nextUser.avatar = normalizedAvatar;
-    nextUser.password = normalizedPassword.length > 0 ? normalizedPassword : this.currentUserValue.password;
-    nextUser.timestamp = this.currentUserValue.timestamp;
-    nextUser.createdAt = this.currentUserValue.createdAt;
-    nextUser.updatedAt = this.currentUserValue.updatedAt;
+    const nextUser: User = this.cloneCurrentUser();
+    nextUser.password = normalizedNewPassword;
     await this.userRepository.updateProfile(nextUser);
     this.applyCurrentUser(nextUser);
     return {
       success: true,
-      message: '个人资料已更新',
+      message: '密码已修改',
     };
+  }
+
+  async updateCurrentUserProfile(avatar: string, password: string): Promise<AuthActionResult> {
+    const avatarResult: AuthActionResult = await this.updateCurrentUserAvatar(avatar);
+    if (!avatarResult.success) {
+      return avatarResult;
+    }
+    if (password.trim().length > 0) {
+      return {
+        success: false,
+        message: '请在设置选项中验证旧密码后修改密码',
+      };
+    }
+    return avatarResult;
+  }
+
+  private cloneCurrentUser(): User {
+    const source: User = this.currentUserValue as User;
+    const nextUser: User = new User();
+    nextUser.id = source.id;
+    nextUser.name = source.name;
+    nextUser.avatar = source.avatar;
+    nextUser.password = source.password;
+    nextUser.timestamp = source.timestamp;
+    nextUser.createdAt = source.createdAt;
+    nextUser.updatedAt = source.updatedAt;
+    return nextUser;
   }
 
   private applyCurrentUser(user: User | null): void {

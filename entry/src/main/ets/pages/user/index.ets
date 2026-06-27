@@ -7,7 +7,8 @@ import { AppState, useAppState } from "../../app/AppStates";
 import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
 import { ThemeMode } from "../../core/theme/ThemeManager";
 import { UserShareService } from '../../core/services/UserShareService';
-import { UserProfileEditorContent } from './components/UserProfileEditorContent';
+import { UserAvatarEditorContent } from './components/UserAvatarEditorContent';
+import { UserAvatarImage } from './components/UserAvatarImage';
 
 /**
  * 组件功能简介：
@@ -40,14 +41,6 @@ export struct UserPage {
   private resolveDisplayName(): string {
     const name: string = `${this.app.currentUserName}`.trim();
     return name.length > 0 ? name : "未登录用户";
-  }
-
-  private resolveInitial(): string {
-    const avatar: string = `${this.app.currentUserAvatar}`.trim();
-    if (avatar.length > 0) {
-      return avatar.substring(0, 2);
-    }
-    return this.resolveDisplayName().substring(0, 1).toUpperCase();
   }
 
   private resolveJoinedText(): string {
@@ -109,23 +102,22 @@ export struct UserPage {
   }
 
   @Builder
-  private buildProfileEditorContent() {
-    UserProfileEditorContent();
+  private buildAvatarEditorContent() {
+    UserAvatarEditorContent();
   }
 
   @Builder
   private buildProfileCard(showThemeToggle: boolean) {
     Column({ space: 16 }) {
       Row({ space: 14 }) {
-        Text(this.resolveInitial())
-          .width(58)
-          .height(58)
-          .borderRadius(29)
-          .backgroundColor(this.app.theme.palette.primary)
-          .fontSize(24)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.app.theme.palette.surface)
-          .textAlign(TextAlign.Center)
+        UserAvatarImage({
+          avatar: this.app.currentUserAvatar,
+          avatarSize: 58,
+          avatarRadius: 29,
+        })
+          .onClick(() => {
+            this.app.nav.openActionSheet(this.buildAvatarEditorContent, 'auto');
+          })
         Column({ space: 4 }) {
           Text(this.resolveDisplayName())
             .fontSize(22)
@@ -157,10 +149,7 @@ export struct UserPage {
     .width("100%")
     .padding(18)
     .borderRadius(24)
-    .backgroundColor(this.app.theme.palette.surface)
-    .onClick(() => {
-      this.app.nav.openActionSheet(this.buildProfileEditorContent, 'auto');
-    });
+    .backgroundColor(this.app.theme.palette.surface);
   }
 
   @Builder
