@@ -38,10 +38,16 @@ export struct IdeaCardList {
   @Monitor("state.visibleIdeaCards")
   onVisibleIdeaCardsChanged(): void {
     this.reconcileRestoreMoveScheduledIds();
-    this.syncIdeaDataSource();
+    this.syncIdeaDataSource("visibleIdeaCards");
   }
 
-  private syncIdeaDataSource(): void {
+  @Monitor("state.refreshVersion")
+  onRefreshVersionChanged(): void {
+    this.reconcileRestoreMoveScheduledIds();
+    this.syncIdeaDataSource("refreshVersion");
+  }
+
+  private syncIdeaDataSource(reason: string = "manual"): void {
     this.ideaDataSource.updateItems(this.state.visibleIdeaCards);
   }
 
@@ -200,28 +206,26 @@ export struct IdeaCardList {
   }
 
   build() {
-    {
-      List({ space: 12 }) {
+    List({ space: 12 }) {
+      ListItem() {
+        this.header();
+      }
+
+      if (!this.state.loading && this.state.visibleIdeaCards.length === 0) {
         ListItem() {
-          this.header();
-        }
-
-        if (!this.state.loading && this.state.visibleIdeaCards.length === 0) {
-          ListItem() {
-            Column({ space: 12 }) {
-              Text("还没有闪记")
-                .fontSize(16)
-                .fontColor(this.app.theme.palette.textSecondary)
-              Text("点击右下角按钮，记录你的灵感")
-                .fontSize(14)
-                .fontColor(this.app.theme.palette.textTertiary)
-            }
-            .width("100%")
-            .padding({ top: 40, bottom: 40 })
-            .alignItems(HorizontalAlign.Center);
+          Column({ space: 12 }) {
+            Text("还没有闪记")
+              .fontSize(16)
+              .fontColor(this.app.theme.palette.textSecondary)
+            Text("点击右下角按钮，记录你的灵感")
+              .fontSize(14)
+              .fontColor(this.app.theme.palette.textTertiary)
           }
+          .width("100%")
+          .padding({ top: 40, bottom: 40 })
+          .alignItems(HorizontalAlign.Center);
         }
-
+      } else {
         LazyForEach(
           this.ideaDataSource,
           (idea: IdeaItem) => {
@@ -229,18 +233,18 @@ export struct IdeaCardList {
               this.buildIdeaRow(idea);
             }
           },
-          (idea: IdeaItem) => this.resolveIdeaRenderKey(idea)
+          (idea: IdeaItem) => this.resolveIdeaRenderKey(idea),
         )
       }
-      .width("100%")
-      .height("100%")
-      .padding({
-        top: 12,
-        right: 20,
-        bottom: 20,
-        left: 20
-      })
-      .scrollBar(BarState.Off);
     }
+    .width("100%")
+    .height("100%")
+    .padding({
+      top: 12,
+      right: 20,
+      bottom: 20,
+      left: 20
+    })
+    .scrollBar(BarState.Off);
   }
 }

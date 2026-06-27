@@ -96,6 +96,14 @@ export struct TimelineView {
     return `${hourText}:${minuteText}`;
   }
 
+  private resolvePlanRenderKey(plan: PlanItem): string {
+    const normalizedId = this.resolvePlanId(plan);
+    if (normalizedId > 0) {
+      return `${normalizedId}`;
+    }
+    return `plan_fallback_${plan.startTime}_${plan.createdAt}`;
+  }
+
   @Builder
   private buildAxis(timeText: string) {
     Column({ space: 4 }) {
@@ -127,14 +135,6 @@ export struct TimelineView {
       this.scheduleRestoreMove(plan);
     })
     .animation({ duration: 160, curve: Curve.EaseInOut, playMode: PlayMode.Normal });
-  }
-
-  private resolvePlanRenderKey(plan: PlanItem): string {
-    const normalizedId = this.resolvePlanId(plan);
-    if (normalizedId > 0) {
-      return `${normalizedId}`;
-    }
-    return `plan_fallback_${plan.startTime}_${plan.createdAt}`;
   }
 
   build() {
