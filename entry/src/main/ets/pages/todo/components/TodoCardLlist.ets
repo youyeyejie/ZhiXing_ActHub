@@ -1,6 +1,7 @@
 import { AppState, useAppState } from "../../../app/AppStates";
 import { InteractableCard } from "../../../components/card/InteractableCard";
 import { AppRoute } from "../../../app/AppConstants";
+import { ArrayDataSource } from "../../../components/list/ArrayDataSource";
 import { useTodoPageState, TodoItem, TodoPageState } from "../TodoPageState";
 import { TodoDetailCardContent } from "./TodoDetailCardContent";
 
@@ -29,11 +30,13 @@ export struct TodoCardLlist {
   @Local private doneVisualOverrides: Map<number, number> = new Map<number, number>();
   @Local private restoreMoveScheduledIds: Set<number> = new Set<number>();
   private restoreMoveDispatchTimers: Map<number, number> = new Map<number, number>();
+  private todoDataSource: ArrayDataSource<TodoItem> = new ArrayDataSource<TodoItem>();
 
   aboutToAppear(): void {
     // 刷新由 TodoPage 统一触发，避免多子组件重复拉取导致状态被覆盖。
     this.reconcileDoneVisualOverrides();
     this.reconcileRestoreMoveScheduledIds();
+    this.syncTodoDataSource();
   }
 
   aboutToDisappear(): void {
@@ -47,6 +50,11 @@ export struct TodoCardLlist {
   onVisibleTodoCardsChanged(): void {
     this.reconcileDoneVisualOverrides();
     this.reconcileRestoreMoveScheduledIds();
+    this.syncTodoDataSource();
+  }
+
+  private syncTodoDataSource(): void {
+    this.todoDataSource.updateItems(this.state.visibleTodoCards);
   }
 
   private normalizeText(value: string): string {
@@ -359,26 +367,34 @@ export struct TodoCardLlist {
    * 渲染待办卡片，并把手势事件透传给页面层。
    */
   build() {
-    Column({ space: 8 }) {
-      if (this.state.visibleTodoCards.length === 0) {
-        Column({ space: 12 }) {
-          Text("还没有待办事项")
-            .fontSize(16)
-            .fontColor(this.app.theme.palette.textSecondary)
-          Text("点击右下角按钮，创建待办事项")
-            .fontSize(14)
-            .fontColor(this.app.theme.palette.textTertiary)
-        }
-        .width("100%")
-        .padding({ top: 40, bottom: 40 })
-        .alignItems(HorizontalAlign.Center);
+     if (this.state.visibleTodoCards.length === 0) {
+      Column({ space: 12 }) {
+        Text("还没有待办事项")
+          .fontSize(16)
+          .fontColor(this.app.theme.palette.textSecondary)
+        Text("点击右下角按钮，创建待办事项")
+          .fontSize(14)
+          .fontColor(this.app.theme.palette.textTertiary)
       }
-
-      ForEach(this.state.visibleTodoCards, (todo: TodoItem) => {
-        this.buildTodoRow(todo);
-      }, (todo: TodoItem) => this.resolveTodoRenderKey(todo))
+      .width("100%")
+      .padding({ top: 40, bottom: 40 })
+      .alignItems(HorizontalAlign.Center);
+    } else {
+      List({ space: 8 }) {
+        LazyForEach(
+          this.todoDataSource,
+          (item: TodoItem) => {
+            ListItem() {
+              this.buildTodoRow(item);
+            }
+          },
+          (item: TodoItem) => this.resolveTodoRenderKey(item),
+        );
+      }
+      .width("100%")
+      .height("100%")
+      .scrollBar(BarState.Off)
+      .animation({ duration: 160, curve: Curve.EaseInOut, playMode: PlayMode.Normal });
     }
-    .width("100%")
-    .animation({ duration: 160, curve: Curve.EaseInOut, playMode: PlayMode.Normal });
   }
 }

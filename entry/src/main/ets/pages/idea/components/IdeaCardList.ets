@@ -1,4 +1,5 @@
 import { AppState, useAppState } from "../../../app/AppStates";
+import { ArrayDataSource } from "../../../components/list/ArrayDataSource";
 import { InteractableCard } from "../../../components/card/InteractableCard";
 import { IdeaItem, IdeaPageState, useIdeaPageState } from "../IdeaPageState";
 
@@ -10,10 +11,22 @@ import { IdeaItem, IdeaPageState, useIdeaPageState } from "../IdeaPageState";
 export struct IdeaCardList {
   @Local private app: AppState = useAppState();
   @Local private state: IdeaPageState = useIdeaPageState();
-  @Event onOpenIdea: (ideaId: number) => void = (_ideaId: number): void => {};
+  @Event onOpenIdea: (ideaId: number) => void = (_ideaId: number): void => {
+  };
+  @BuilderParam header: () => void = this.emptyHeader;
   @Local private suppressDetailOpenUntil: number = 0;
   @Local private restoreMoveScheduledIds: Set<number> = new Set<number>();
   private restoreMoveDispatchTimers: Map<number, number> = new Map<number, number>();
+  private ideaDataSource: ArrayDataSource<IdeaItem> = new ArrayDataSource<IdeaItem>();
+
+  @Builder
+  private emptyHeader() {
+  }
+
+  aboutToAppear(): void {
+    this.reconcileRestoreMoveScheduledIds();
+    this.syncIdeaDataSource();
+  }
 
   aboutToDisappear(): void {
     for (const timerId of this.restoreMoveDispatchTimers.values()) {
@@ -25,6 +38,17 @@ export struct IdeaCardList {
   @Monitor("state.visibleIdeaCards")
   onVisibleIdeaCardsChanged(): void {
     this.reconcileRestoreMoveScheduledIds();
+    this.syncIdeaDataSource("visibleIdeaCards");
+  }
+
+  @Monitor("state.refreshVersion")
+  onRefreshVersionChanged(): void {
+    this.reconcileRestoreMoveScheduledIds();
+    this.syncIdeaDataSource("refreshVersion");
+  }
+
+  private syncIdeaDataSource(reason: string = "manual"): void {
+    this.ideaDataSource.updateItems(this.state.visibleIdeaCards);
   }
 
   private resolveIdeaId(idea: IdeaItem): number {
@@ -182,25 +206,45 @@ export struct IdeaCardList {
   }
 
   build() {
-    Column({ space: 12 }) {
-      if (!this.state.loading && this.state.visibleIdeaCards.length === 0) {
-        Column({ space: 12 }) {
-          Text("还没有闪记")
-            .fontSize(16)
-            .fontColor(this.app.theme.palette.textSecondary)
-          Text("点击右下角按钮，记录你的灵感")
-            .fontSize(14)
-            .fontColor(this.app.theme.palette.textTertiary)
-        }
-        .width("100%")
-        .padding({ top: 40, bottom: 40 })
-        .alignItems(HorizontalAlign.Center);
+    List({ space: 12 }) {
+      ListItem() {
+        this.header();
       }
 
-      ForEach(this.state.visibleIdeaCards, (idea: IdeaItem) => {
-        this.buildIdeaRow(idea);
-      }, (idea: IdeaItem) => this.resolveIdeaRenderKey(idea))
+      if (!this.state.loading && this.state.visibleIdeaCards.length === 0) {
+        ListItem() {
+          Column({ space: 12 }) {
+            Text("还没有闪记")
+              .fontSize(16)
+              .fontColor(this.app.theme.palette.textSecondary)
+            Text("点击右下角按钮，记录你的灵感")
+              .fontSize(14)
+              .fontColor(this.app.theme.palette.textTertiary)
+          }
+          .width("100%")
+          .padding({ top: 40, bottom: 40 })
+          .alignItems(HorizontalAlign.Center);
+        }
+      } else {
+        LazyForEach(
+          this.ideaDataSource,
+          (idea: IdeaItem) => {
+            ListItem() {
+              this.buildIdeaRow(idea);
+            }
+          },
+          (idea: IdeaItem) => this.resolveIdeaRenderKey(idea),
+        )
+      }
     }
-    .width("100%");
+    .width("100%")
+    .height("100%")
+    .padding({
+      top: 12,
+      right: 20,
+      bottom: 20,
+      left: 20
+    })
+    .scrollBar(BarState.Off);
   }
 }

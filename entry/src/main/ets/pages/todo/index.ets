@@ -7,7 +7,6 @@ import { MainTabPageLayout } from "../../components/layout/MainTabPageLayout";
 import { AppOverlayRoute } from "../../app/AppConstants";
 import { AppState, useAppState } from "../../app/AppStates";
 import { TodoPageState, useTodoPageState } from "./TodoPageState";
-import { PageScrollLayout } from "../../components/layout/PageScrollLayout";
 
 /**
  * 待办模块主页骨架。
@@ -41,9 +40,10 @@ export struct TodoPage {
         },
       }) {
         CategoryFilter().width("90%")
-        PageScrollLayout({ space: 12, paddingTop: 0 }) {
-          TodoCardLlist()
-        }
+        TodoCardLlist()
+          .layoutWeight(1)
+          .width("100%")
+          .padding({ top: 12, right: 20, bottom: 20, left: 20 })
       }
 
       UndoNotificationStack({

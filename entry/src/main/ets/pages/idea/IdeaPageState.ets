@@ -138,6 +138,7 @@ export class IdeaPageState {
     const filtered = this.ideas.filter((item: Idea) => !this.hasUndoTaskForIdea(item.id));
     this.visibleIdeas = this.sortVisibleIdeaList(filtered);
     this.syncVisibleIdeaCards();
+    this.refreshVersion += 1;
   }
 
   private syncVisibleIdeaCards(): void {
@@ -239,7 +240,6 @@ export class IdeaPageState {
     }
 
     this.closeIdeaDetail();
-    this.refreshVersion += 1;
   }
 
   requestDeleteIdea(idea: Idea): void {
@@ -307,7 +307,6 @@ export class IdeaPageState {
       this.ideas = [...before, task.idea, ...after];
       this.ideas = this.sortIdeasByTime(this.ideas);
       this.markIdeaPendingRestoreMove(task.idea.id);
-      this.refreshVersion += 1;
     }
     this.syncVisibleIdeas();
   }
@@ -321,7 +320,6 @@ export class IdeaPageState {
     this.clearPendingRestoreMove(task.idea.id);
     await this.repository.removeById(task.idea.id);
     await this.refreshAll();
-    this.refreshVersion += 1;
   }
 
   closeUndo(taskId: string): void {

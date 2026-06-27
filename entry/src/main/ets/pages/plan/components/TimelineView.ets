@@ -1,4 +1,5 @@
 import { AppState, useAppState } from "../../../app/AppStates";
+import { ArrayDataSource } from "../../../components/list/ArrayDataSource";
 import { PlanItem, PlanPageState, usePlanPageState } from "../PlanPageState";
 import { PlanCardListItem } from "./PlanCardListItem";
 
@@ -12,6 +13,11 @@ export struct TimelineView {
   @Local private state: PlanPageState = usePlanPageState();
   @Local private restoreMoveScheduledIds: Set<number> = new Set<number>();
   private restoreMoveDispatchTimers: Map<number, number> = new Map<number, number>();
+  private planDataSource: ArrayDataSource<PlanItem> = new ArrayDataSource<PlanItem>();
+
+  aboutToAppear(): void {
+    this.syncPlanDataSource();
+  }
 
   aboutToDisappear(): void {
     for (const timerId of this.restoreMoveDispatchTimers.values()) {
@@ -23,6 +29,11 @@ export struct TimelineView {
   @Monitor("state.visiblePlanCards")
   onVisiblePlanCardsChanged(): void {
     this.reconcileRestoreMoveScheduledIds();
+    this.syncPlanDataSource();
+  }
+
+  private syncPlanDataSource(): void {
+    this.planDataSource.updateItems(this.state.visiblePlanCards);
   }
 
   private resolvePlanId(plan: PlanItem): number {
@@ -85,6 +96,14 @@ export struct TimelineView {
     return `${hourText}:${minuteText}`;
   }
 
+  private resolvePlanRenderKey(plan: PlanItem): string {
+    const normalizedId = this.resolvePlanId(plan);
+    if (normalizedId > 0) {
+      return `${normalizedId}`;
+    }
+    return `plan_fallback_${plan.startTime}_${plan.createdAt}`;
+  }
+
   @Builder
   private buildAxis(timeText: string) {
     Column({ space: 4 }) {
@@ -118,43 +137,37 @@ export struct TimelineView {
     .animation({ duration: 160, curve: Curve.EaseInOut, playMode: PlayMode.Normal });
   }
 
-  private resolvePlanRenderKey(plan: PlanItem): string {
-    const normalizedId = this.resolvePlanId(plan);
-    if (normalizedId > 0) {
-      return `${normalizedId}`;
-    }
-    return `plan_fallback_${plan.startTime}_${plan.createdAt}`;
-  }
-
   build() {
-    Column({ space: 12 }) {
-      if (this.state.visiblePlanCards.length === 0) {
-        Column({ space: 12 }) {
-          Text("还没有日程")
-            .fontSize(16)
-            .fontColor(this.app.theme.palette.textSecondary)
-          Text("点击右下角按钮，创建日程")
-            .fontSize(14)
-            .fontColor(this.app.theme.palette.textTertiary)
-        }
-        .width("100%")
-        .padding({ top: 40, bottom: 40 })
-        .alignItems(HorizontalAlign.Center);
-      }
-
-      Column({ space: 10 }) {
-        ForEach(
-          this.state.visiblePlanCards,
-          (item: PlanItem) => {
-            this.buildPlanRow(item);
-          },
-          (item: PlanItem) => this.resolvePlanRenderKey(item),
-        )
+    if (this.state.visiblePlanCards.length === 0) {
+      Column({ space: 12 }) {
+        Text("还没有日程")
+          .fontSize(16)
+          .fontColor(this.app.theme.palette.textSecondary)
+        Text("点击右下角按钮，创建日程")
+          .fontSize(14)
+          .fontColor(this.app.theme.palette.textTertiary)
       }
       .width("100%")
+      .padding({ top: 40, bottom: 40 })
+      .alignItems(HorizontalAlign.Center);
+    } else {
+      List({ space: 10 }) {
+        LazyForEach(
+          this.planDataSource,
+          (item: PlanItem) => {
+            ListItem() {
+              this.buildPlanRow(item);
+            }
+          },
+          (item: PlanItem) => this.resolvePlanRenderKey(item),
+        );
+      }
+      .width("100%")
+      .height("100%")
       .padding(16)
       .borderRadius(20)
       .backgroundColor(this.app.theme.palette.surface)
-    }.width("100%");
+      .scrollBar(BarState.Off);
+    }
   }
 }

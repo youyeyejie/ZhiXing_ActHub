@@ -12,6 +12,7 @@ import { IdeaPageState, useIdeaPageState } from "../idea/IdeaPageState";
 import { KeyboardAvoidMode } from "@kit.ArkUI";
 import { SafeAreaUtils } from "../../core/theme/SafeAreaUtils";
 import { SymbolGlyphModifier } from "@kit.ArkUI";
+import { ArrayDataSource } from "../../components/list/ArrayDataSource";
 
 /**
  * 组件功能简介：
@@ -45,6 +46,7 @@ export struct SearchPage {
   @Local private requestVersion: number = 0;
   @Local private keyboardAvoidModeChanged: boolean = false;
   @Local private previousKeyboardAvoidMode: KeyboardAvoidMode = KeyboardAvoidMode.OFFSET;
+  private resultDataSource: ArrayDataSource<SearchResultItem> = new ArrayDataSource<SearchResultItem>();
 
   private normalizeId(value: number): number {
     return value > 0 ? value : 0;
@@ -156,6 +158,7 @@ export struct SearchPage {
     const normalized = keyword.trim();
     if (normalized.length === 0) {
       this.resultList = [];
+      this.syncResultDataSource();
       this.searching = false;
       return;
     }
@@ -167,7 +170,12 @@ export struct SearchPage {
     }
 
     this.resultList = result;
+    this.syncResultDataSource();
     this.searching = false;
+  }
+
+  private syncResultDataSource(): void {
+    this.resultDataSource.updateItems(this.resultList);
   }
 
   private openPlanDetailFromSearch(item: SearchResultItem): void {
@@ -404,20 +412,22 @@ export struct SearchPage {
             // 软键盘提交时不做额外处理，保持搜索结果不变。
           })
 
-        Scroll() {
-          Column({ space: 10 }) {
-            if (this.searching || this.resultList.length === 0) {
-              Column() {
-                Text(this.resolveHintText())
-                  .fontSize(13)
-                  .fontColor(this.app.theme.palette.textTertiary)
-                  .textAlign(TextAlign.Center)
-              }
-              .width("100%")
-              .alignItems(HorizontalAlign.Center)
-              .padding({ top: 28, bottom: 24 });
-            } else {
-              ForEach(this.resultList, (item: SearchResultItem) => {
+        if (this.searching || this.resultList.length === 0) {
+          Column() {
+            Text(this.resolveHintText())
+              .fontSize(13)
+              .fontColor(this.app.theme.palette.textTertiary)
+              .textAlign(TextAlign.Center)
+          }
+          .width("100%")
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Center)
+          .justifyContent(FlexAlign.Start)
+          .padding({ top: 36, left: 16, right: 16, bottom: 24 });
+        } else {
+          List({ space: 10 }) {
+            LazyForEach(this.resultDataSource, (item: SearchResultItem) => {
+              ListItem() {
                 Column({ space: 6 }) {
                   this.buildResultItem(item)
                 }
@@ -428,16 +438,15 @@ export struct SearchPage {
                 .onClick(() => {
                   this.handleSearchResultTap(item);
                 });
-              });
-            }
+               }
+            }, (item: SearchResultItem) => `${item.scope}_${item.id}_${item.title}`)
           }
           .width("100%")
-          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
           .padding({ left: 16, right: 16, bottom: 16, top: 8 })
+          .scrollBar(BarState.Off)
+          .align(Alignment.Top)
         }
-        .width("100%")
-        .layoutWeight(1)
-        .align(Alignment.Top)
       }.width("100%")
     }
     .width("100%")

@@ -1,4 +1,5 @@
 import { AppState, useAppState } from '../../../app/AppStates';
+import { ArrayDataSource } from '../../../components/list/ArrayDataSource';
 import { AIInsightState, useAIInsightState } from '../AIInsightState';
 import { IdeaPageState, useIdeaPageState } from '../../idea/IdeaPageState';
 import { Idea } from '../../../core/models/Idea';
@@ -13,11 +14,25 @@ export struct AIInsightNoteSelector {
   @Local private app: AppState = useAppState();
   @Local private state: AIInsightState = useAIInsightState();
   @Local private ideaState: IdeaPageState = useIdeaPageState();
+  private ideaDataSource: ArrayDataSource<Idea> = new ArrayDataSource<Idea>();
 
   private get canStartAnalysis(): boolean {
     return this.state.selectedNoteIds.length > 0;
   }
 
+  aboutToAppear(): void {
+    this.syncIdeaDataSource();
+  }
+
+  @Monitor("ideaState.ideas")
+  onIdeasChanged(): void {
+    this.syncIdeaDataSource();
+  }
+
+  private syncIdeaDataSource(): void {
+    this.ideaDataSource.updateItems(this.ideaState.ideas);
+  }
+  
   /**
    * 关闭弹层并启动精准洞察分析。
    */
@@ -132,8 +147,8 @@ export struct AIInsightNoteSelector {
         .textAlign(TextAlign.Start)
 
       List({ space: 10 }) {
-        ForEach(
-          this.ideaState.ideas,
+        LazyForEach(
+          this.ideaDataSource,
           (idea: Idea) => {
             ListItem() {
               this.buildIdeaItem(idea)
